@@ -52,6 +52,8 @@ let idx = stateOf(typeof history === 'undefined' ? undefined : history.state)?._
 let lastRegion = stateOf(typeof history === 'undefined' ? undefined : history.state)?.__pruRegion
 // The page and query the document shows: an entry that differs from it only in its hash needs no fetch.
 let shown = typeof location === 'undefined' ? '' : location.pathname + location.search
+// The pages Load more added to the document since its last swap, beside the one it shows: their #hash links scroll too.
+const appended = new Set<string>()
 let burstOpen = false
 let burstTimer: ReturnType<typeof setTimeout> | undefined
 let liveTimer: ReturnType<typeof setTimeout> | undefined
@@ -189,6 +191,10 @@ async function apply(region: HTMLElement, found: { content: DocumentFragment, ti
   // A typing burst and an append stay put: a transition freezes the page, and the field being typed in with it.
   const animate = !swap.append && swap.history !== 'burst' && swap.fresh !== true
   await swapInTransition(() => {
+    if (swap.append)
+      appended.add(shown)
+    else
+      appended.clear()
     if (swap.history !== 'none') {
       saveScroll()
       record(finalUrl, swap.region, swap.history)
@@ -333,8 +339,9 @@ if (typeof document !== 'undefined') {
     if (url.origin !== location.origin || missingRegion(name, `<a href="${link.getAttribute('href')}">`))
       return
     event.preventDefault()
-    // A hash already on the page is a scroll, with the address keeping its page.
-    if (!append && url.pathname === location.pathname && elementOfHash(url.hash) !== null) {
+    // A hash already on the page is a scroll when the document holds the page the link names, with the address keeping its page.
+    const page = url.pathname + url.search
+    if (!append && (page === shown || appended.has(page)) && elementOfHash(url.hash) !== null) {
       location.hash = url.hash
       return
     }
@@ -388,6 +395,7 @@ if (typeof document !== 'undefined') {
   // Keep region state aligned when spa() swaps to another document (including popstate back to a document with prior region entries).
   window.addEventListener('pru:navigate', () => {
     shown = location.pathname + location.search
+    appended.clear()
     const st = stateOf(history.state)
     idx = st?.__pruIdx ?? 0
     lastRegion = st?.__pruRegion

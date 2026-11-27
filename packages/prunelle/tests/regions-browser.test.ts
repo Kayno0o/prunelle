@@ -98,7 +98,7 @@ beforeAll(async () => {
             <aside id="side">side {data.q}</aside>
             <Region name="count"><output id="count">{data.renders}</output></Region>
             <Region name="sets" id="sets">
-              <ul>{data.items.map(i => <li>{i}</li>)}</ul>
+              <ul>{data.items.map(i => <li id={i}>{i}</li>)}</ul>
               {data.more && <a id="more" href={'/sets?q=' + data.q + '&page=' + (data.page + 1)} data-pru-target="sets" data-pru-append>More</a>}
             </Region>
           </Region>
@@ -128,6 +128,7 @@ beforeAll(async () => {
           <a id="pushs" href="/swap?n=2" data-pru-target="scrolled">Go two scrolled</a>
           <a id="jump" href="/swap?n=1#sec" data-pru-target="body">Jump</a>
           <a id="jumpfar" href="/swap?n=3#far" data-pru-target="body">Jump far</a>
+          <a id="jumpquery" href="/swap?n=2#sec" data-pru-target="body">Jump to two</a>
           <form id="filter" method="get" action="/swap" data-pru-target="body" data-pru-live>
             <input name="a" value="" />
             <input name="b" value="x" />
@@ -315,6 +316,26 @@ describe('regions() swaps one region of a page (#3597)', () => {
       expect(await page.evaluate('document.querySelectorAll("#more").length')).toBe(1)
       expect(await marker(page)).toBe(true)
       expect(page.errors).toEqual([])
+    }, 30_000)
+
+    it('scrolls without a fetch to a #hash of the first page or of a page Load more appended, until the list is swapped', async () => {
+      const page = await open('/sets')
+      await page.click('#more')
+      await page.waitFor(() => document.querySelectorAll('#sets li').length === 4)
+      await page.evaluate('window.__fetches = 0; window.fetch = (f => (u, o) => { window.__fetches++; return f(u, o) })(window.fetch)')
+      await page.evaluate('(() => { for (const [id, href] of [["tofirst", "/sets#apricot"], ["toappended", "/sets?q=&page=2#blueberry"]]) { const a = document.createElement("a"); a.id = id; a.href = href; a.dataset.pruTarget = "sets"; a.textContent = id; document.body.append(a) } })()')
+      await page.click('#toappended')
+      await page.waitFor(() => location.hash === '#blueberry')
+      await page.click('#tofirst')
+      await page.waitFor(() => location.hash === '#apricot')
+      expect(await items(page)).toBe('apple,apricot,banana,blueberry')
+      expect(await page.evaluate('window.__fetches')).toBe(0)
+      await type(page, 'a')
+      await page.waitFor(() => document.getElementById('side')?.textContent === 'side a')
+      await page.evaluate('window.__fetches = 0')
+      await page.click('#tofirst')
+      await page.waitFor(() => location.search === '' && document.querySelectorAll('#sets li').length === 2)
+      expect(await page.evaluate('location.hash + " " + window.__fetches')).toBe('#apricot 1')
     }, 30_000)
 
     it('finds the new inner region after the outer one is swapped, and appends to that one', async () => {
@@ -516,6 +537,14 @@ describe('a region swap keeps the page in place (#3640)', () => {
     expect(await page.evaluate('location.search + location.hash')).toBe('?n=3#far')
     expect(await page.evaluate('window.__fetches')).toBe(1)
     expect(await marker(page)).toBe(true)
+  }, 30_000)
+
+  it('fetches a link to a #hash on the page when its query names another page', async () => {
+    const page = await swapPage()
+    await click(page, 'jumpquery')
+    await state(page, 'n=2 saved=')
+    expect(await page.evaluate('location.search + location.hash')).toBe('?n=2#sec')
+    expect(await page.evaluate('window.__fetches')).toBe(1)
   }, 30_000)
 
   it('drops the empty fields of a GET form from the URL', async () => {

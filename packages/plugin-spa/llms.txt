@@ -22,7 +22,7 @@ Pair `regions()` in `prunelle.config.ts` with `<Region name="pane" as="section" 
 - Swaps run in `document.startViewTransition` where supported, and not under `prefers-reduced-motion: reduce`. `append`, `refreshRegion()` and live typing swap without one.
 - Each history entry remembers the window's scroll and the scrolled regions' scroll, and back/forward restores both. A pushed swap leaves the window's scroll alone and resets the region's own scroll, unless the region carries `data-pru-keep-scroll`.
 - After a swap, links whose `href` matches the new URL get `aria-current="page"`, others lose it.
-- A `#hash` link to an element already on the page scrolls to it with no fetch; after a swap the page scrolls to the URL's hash.
+- A `#hash` link to an element already on the page scrolls to it with no fetch when its page and query are the ones the page shows, or one Load more appended; another query fetches; after a swap the page scrolls to the URL's hash.
 - The regions client loads only on routes whose tree renders a `<Region>`: every other page ships none of it (plugin field `regionClientEntry`).
 - Dispatches `window` event `pru:region` with `{ detail: { name, url } }`. `prunelle check` verifies every `data-pru-target` matches a `<Region>` in `src/`.
 - `data-pru-keep-scroll="<key>"` on any element: its scroll offset survives region swaps and `spa()` swaps, and is kept per history entry.

@@ -1,12 +1,12 @@
 {
   "bench-app": {
     "/": 3933,
-    "/regions": 3926,
+    "/regions": 3967,
     "/table": 7097
   },
   "bench-app (spa)": {
     "/": 7728,
-    "/regions": 10564,
+    "/regions": 10602,
     "/table": 10854
   },
   "examples/noticeboard": {
