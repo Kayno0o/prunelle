@@ -34,10 +34,85 @@ import {
   emitSsrElementAttrs,
   precomputeSsrSubtreeFlags,
   serializeComponentProps,
+  staticLiteralOrTemplate,
   StringParts,
 } from './ssr-helpers'
 import { emitIsland } from './ssr-island'
 import { emitCatch, emitSuspense } from './ssr-prunelle-tags'
+
+const FORM_CONTROL_TAGS = new Set(['input', 'select', 'textarea'])
+const FORM_ATTR_BITS: Record<string, number> = {
+  type: 1,
+  required: 2,
+  minlength: 4,
+  maxlength: 8,
+  min: 16,
+  max: 32,
+  step: 64,
+  pattern: 128,
+}
+
+function findDynamicFormAction(node: JSXElement): Node | undefined {
+  for (const attr of node.openingElement.attributes) {
+    if (attr.type !== 'JSXAttribute' || jsxTagName(attr.name) !== 'action')
+      continue
+    if (attr.value?.type !== 'JSXExpressionContainer' || attr.value.expression.type === 'JSXEmptyExpression')
+      return undefined
+    const expr = attr.value.expression
+    if (staticLiteralOrTemplate(expr).ok)
+      return undefined
+    if (expr.type === 'ConditionalExpression' && staticLiteralOrTemplate(expr.consequent).ok && staticLiteralOrTemplate(expr.alternate).ok)
+      return undefined
+    return expr
+  }
+  return undefined
+}
+
+function emitFormControlAttrs(
+  node: JSXElement,
+  tag: 'input' | 'select' | 'textarea',
+  parts: StringParts,
+  use: (name: string) => string,
+  compileSubExpression: (node: Node) => string,
+): void {
+  const attrs = node.openingElement.attributes
+  if (attrs.some(a => a.type === 'JSXSpreadAttribute'))
+    return
+  let nameExpr: string | undefined
+  let typeExpr: string | undefined
+  let present = 0
+  for (const attr of attrs) {
+    if (attr.type !== 'JSXAttribute')
+      continue
+    const attrName = jsxTagName(attr.name).toLowerCase()
+    const bit = FORM_ATTR_BITS[attrName]
+    if (bit !== undefined)
+      present |= bit
+    if (attrName === 'name') {
+      if (attr.value?.type === 'Literal' && typeof attr.value.value === 'string') {
+        nameExpr = JSON.stringify(attr.value.value)
+      }
+      else if (attr.value?.type === 'JSXExpressionContainer' && attr.value.expression.type !== 'JSXEmptyExpression') {
+        const lit = staticLiteralOrTemplate(attr.value.expression)
+        nameExpr = lit.ok && typeof lit.value === 'string' ? JSON.stringify(lit.value) : compileSubExpression(attr.value.expression)
+      }
+    }
+    else if (tag === 'input' && attrName === 'type') {
+      if (attr.value?.type === 'Literal' && typeof attr.value.value === 'string') {
+        typeExpr = JSON.stringify(attr.value.value.toLowerCase())
+      }
+      else if (attr.value?.type === 'JSXExpressionContainer' && attr.value.expression.type !== 'JSXEmptyExpression') {
+        const lit = staticLiteralOrTemplate(attr.value.expression)
+        if (lit.ok && typeof lit.value === 'string')
+          typeExpr = JSON.stringify(lit.value.toLowerCase())
+      }
+    }
+  }
+  if (nameExpr === undefined)
+    return
+  const typeArg = typeExpr !== undefined ? `, ${typeExpr}` : ''
+  parts.pushExpr(`${use('ssrFormAttrs')}(${JSON.stringify(tag)}, ${nameExpr}, ${present}${typeArg})`)
+}
 
 export interface IslandBinding {
   id: string
@@ -56,6 +131,33 @@ export interface CompileSsrOptions {
 export interface CompileResult {
   code: string
   analysis: ModuleAnalysis
+}
+
+function emitActionFormExpr(
+  formAction: Node,
+  isAsyncForm: boolean,
+  nextId: () => number,
+  use: (name: string) => string,
+  compileSubExpression: (node: Node) => string,
+  emitBody: (bufVar: string, parts: StringParts, flush: () => void, pushStmt: (stmt: string) => void, override: { node: Node, ident: string }) => void,
+): string {
+  const faVar = `_fa${nextId()}`
+  const innerBuf = `_o${nextId()}`
+  const innerStmts: string[] = []
+  const innerParts = new StringParts()
+  const flushInner = () => {
+    if (!innerParts.isEmpty()) {
+      innerStmts.push(`${innerBuf} += ${innerParts.toExpr()};`)
+      innerParts.clear()
+    }
+  }
+  emitBody(innerBuf, innerParts, flushInner, s => innerStmts.push(s), { node: formAction, ident: faVar })
+  if (innerStmts.length > 0)
+    flushInner()
+  const body = innerStmts.length === 0 ? innerParts.toExpr() : `{ let ${innerBuf} = ""; ${innerStmts.join(' ')} return ${innerBuf}; }`
+  return isAsyncForm
+    ? `await ${use('ssrFormAsync')}(${compileSubExpression(formAction)}, async (${faVar}) => ${body})`
+    : `${use('ssrForm')}(${compileSubExpression(formAction)}, (${faVar}) => ${body})`
 }
 
 function markerTest(markers: NonNullable<CompileSsrOptions['emitMarkers']>): (offset: number) => boolean {
@@ -125,7 +227,7 @@ export function compileSsr(filename: string, code: string, options: CompileSsrOp
   }
 
   // Emits JSX directly into a string accumulator variable `_out` (zero closures on nested `.map()` loops!)
-  function emitIntoBuffer(node: JSXElement | JSXFragment, bufVar: string, parts: StringParts, flushParts: () => void, pushStmt: (stmt: string) => void): void {
+  function emitIntoBuffer(node: JSXElement | JSXFragment, bufVar: string, parts: StringParts, flushParts: () => void, pushStmt: (stmt: string) => void, actionOverride?: { node: Node, ident: string }): void {
     if (node.type === 'JSXFragment') {
       emitChildrenIntoBuffer(node.children, bufVar, parts, flushParts, pushStmt, undefined, markersAt(node.start), true)
       return
@@ -137,21 +239,21 @@ export function compileSsr(filename: string, code: string, options: CompileSsrOp
       return
     }
 
+    if (tag === 'form' && actionOverride === undefined) {
+      const formAction = findDynamicFormAction(node)
+      if (formAction !== undefined) {
+        parts.pushExpr(emitActionFormExpr(formAction, directAwaitNodes.has(node), () => loopCounter++, use, compileSubExpression, (b, p, f, ps, ov) => emitIntoBuffer(node, b, p, f, ps, ov)))
+        return
+      }
+    }
+
     parts.pushStatic(`<${tag}`)
     const isTextarea = tag === 'textarea'
     const isSelect = tag === 'select'
-    const { innerHtmlExpr, textareaValue, nextSelectValue } = emitSsrElementAttrs({
-      node,
-      tag,
-      parts,
-      activeSelectValue,
-      flushParts,
-      pushStmt,
-      nextId: () => loopCounter++,
-      use,
-      compileSubExpression,
-    })
-
+    const compileAttrExpr = actionOverride !== undefined ? (n: Node) => (n === actionOverride.node ? actionOverride.ident : compileSubExpression(n)) : compileSubExpression
+    const { innerHtmlExpr, textareaValue, nextSelectValue } = emitSsrElementAttrs({ node, tag, parts, activeSelectValue, flushParts, pushStmt, nextId: () => loopCounter++, use, compileSubExpression: compileAttrExpr })
+    if (FORM_CONTROL_TAGS.has(tag))
+      emitFormControlAttrs(node, tag as 'input' | 'select' | 'textarea', parts, use, compileSubExpression)
     parts.pushStatic('>')
     if (VOID_ELEMENTS.has(tag))
       return
@@ -161,28 +263,23 @@ export function compileSsr(filename: string, code: string, options: CompileSsrOp
       activeSelectValue = nextSelectValue
 
     try {
-      if (innerHtmlExpr !== undefined) {
+      if (innerHtmlExpr !== undefined)
         parts.pushExpr(innerHtmlExpr)
-      }
-      else if (isTextarea && textareaValue !== undefined && filterMeaningfulChildren(node.children).length === 0) {
-        if (textareaValue.staticText !== undefined)
-          parts.pushStatic(escapeStaticText(textareaValue.staticText))
-        else if (textareaValue.expr !== undefined)
-          parts.pushExpr(`${use('esc')}(${textareaValue.expr})`)
-      }
+      else if (isTextarea && textareaValue !== undefined && filterMeaningfulChildren(node.children).length === 0)
+        textareaValue.staticText !== undefined ? parts.pushStatic(escapeStaticText(textareaValue.staticText)) : textareaValue.expr !== undefined && parts.pushExpr(`${use('esc')}(${textareaValue.expr})`)
       else if (tag === 'style') {
         const styleExpr = compileChildrenListToStringExpr(node.children, false, false, 'style')
         if (styleExpr !== '""')
           parts.pushExpr(`${use('ssrStyleBlock')}(${styleExpr})`)
       }
-      else {
+      else
         emitChildrenIntoBuffer(node.children, bufVar, parts, flushParts, pushStmt, RAW_TEXT_ELEMENTS.has(tag) ? tag as 'style' | 'script' : undefined)
-      }
     }
     finally {
       activeSelectValue = prevSelectValue
     }
-    parts.pushStatic(`</${tag}>`)
+    if (actionOverride === undefined)
+      parts.pushStatic(`</${tag}>`)
   }
 
   function emitChildrenIntoBuffer(

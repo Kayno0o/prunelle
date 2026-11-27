@@ -3,20 +3,23 @@
 import type { IslandIssue } from '../build/islands'
 import type { ModuleAnalysis } from '../compiler/analyze'
 import type { ComplianceConfig } from '../compiler/compliance'
-import type { CheckPluginContext, PrunellePlugin } from '../plugins/index'
+import type { CheckPluginContext, PrunelleConfig, PrunellePlugin } from '../plugins/index'
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, join, relative, resolve } from 'node:path'
 import { isInNodeModules, isNotSourceDir, isTsFile, relPosix, walkFiles, walkRoutes } from '../build/files'
 import { ModuleGraph } from '../build/graph'
 import { nodeEnvWarning, renderProblems, serverNodeEnvReads } from '../build/render-rules'
 import { analyzeIslands } from '../build/islands'
-import { fileToRoutePath, hasRouteHandlerExport, missingPathsProblem, normalizeRoutePattern, routeExportProblemLocation, routeFileProblem, SPECIAL_ROUTE_FILES } from '../build/routes'
+import { discoverRouteMatchers, fileToRoutePath, hasRouteHandlerExport, missingPathsProblem, normalizeRoutePattern, routeExportProblemLocation, routeFileProblem, SPECIAL_ROUTE_FILES } from '../build/routes'
+import { findUnknownStatusPages } from '../build/status-pages'
 import { analyzeModule } from '../compiler/analyze'
 import { collectProjectComplianceWarnings, shouldEmitWarning } from '../compiler/compliance'
 import { collectMistakes, PrunelleMistake, serverOnlyTagError } from '../compiler/mistakes'
 import { DIAGNOSTIC_PREFIX_RE, formatDiagnostic, formatLoc } from '../compiler/shared'
 import { createAppContext, loadConfig, resolvePlugins, runWithAppContext } from '../plugins/index'
 import { collectRequirements } from '../plugins/requires'
+import { checkAppForms } from './check-forms'
+import { checkAppLinks } from './check-links'
 
 /** Whether `prunelle check` typechecked the app, with which tool, or why it did not. */
 export type TypecheckRun = { ran: true, tool: string } | { ran: false, reason: string }
@@ -176,7 +179,7 @@ function formatIslandIssue(issue: IslandIssue, root: string, sources: Map<string
 // Each plugin's check(ctx) runs inside a real AppRuntimeContext; what it reports without a place lands on prunelle.config.ts.
 async function runPluginChecks(plugins: readonly PrunellePlugin[], paths: { root: string, routesDir: string, outDir: string, assetPrefix: string, site: string | undefined }, errors: string[], warnings: string[]): Promise<void> {
   const { root, routesDir, outDir, assetPrefix, site } = paths
-  const appCtx = createAppContext({ root, outDir, publicDir: join(outDir, 'public'), assetPrefix, dev: false })
+  const appCtx = createAppContext({ root, outDir, publicDir: join(outDir, 'public'), assetPrefix, site, dev: false })
   const placed = (message: string, severity: 'error' | 'warning'): string =>
     DIAGNOSTIC_PREFIX_RE.test(message) ? message : formatDiagnostic('prunelle.config.ts:1:1', message, severity)
   const pluginCtx: CheckPluginContext = {
@@ -210,12 +213,15 @@ export async function checkProject(rootDir: string, options: { skipTypecheck?: b
   // 1. Validate prunelle.config.ts
   let routesDir = resolve(root, 'src/routes')
   let outDir = resolve(root, 'dist')
+  let publicDir = resolve(root, 'public')
   let assetPrefix = '/_pru'
   let site: string | undefined
   let compliance: ComplianceConfig | undefined
+  let loadedConfig: PrunelleConfig = {}
   let plugins: Awaited<ReturnType<typeof loadConfig>>['plugins'] = []
   try {
     const cfg = await loadConfig(root)
+    loadedConfig = cfg
     plugins = resolvePlugins(cfg.plugins)
     site = cfg.site
     compliance = cfg.compliance
@@ -223,6 +229,8 @@ export async function checkProject(rootDir: string, options: { skipTypecheck?: b
       routesDir = resolve(root, cfg.routesDir)
     if (cfg.outDir !== undefined)
       outDir = resolve(root, cfg.outDir)
+    if (cfg.publicDir !== undefined)
+      publicDir = resolve(root, cfg.publicDir)
     if (cfg.assetPrefix !== undefined)
       assetPrefix = cfg.assetPrefix.replace(/\/$/, '')
   }
@@ -265,9 +273,19 @@ export async function checkProject(rootDir: string, options: { skipTypecheck?: b
 
   // Exact route discovery matching `prunelle build` (`walkRoutes` skips `_components/` dirs, `.d.ts`, `.test.ts`)
   const routeFiles = existsSync(routesDir) ? walkRoutes(routesDir).sort() : []
+  for (const unknown of findUnknownStatusPages(root, routeFiles))
+    errors.push(formatDiagnostic(`${relPosix(root, unknown.file)}:1:1`, `prunelle check: ${unknown.message}`))
   const routeFileSet = new Set(routeFiles)
   const specialFiles = routeFiles.filter(f => SPECIAL_ROUTE_FILES.has(basename(f)))
   const pageFiles = routeFiles.filter(f => !basename(f).startsWith('_') && analyses.has(f) && hasRouteHandlerExport(analyses.get(f)!))
+  const matcherDiscovery = discoverRouteMatchers({
+    root,
+    routesDir,
+    routeFiles: [...specialFiles, ...pageFiles],
+    loadAnalysis: load,
+  })
+  for (const problem of matcherDiscovery.problems)
+    errors.push(formatDiagnostic(`${relPosix(root, problem.file)}:1:1`, `prunelle check: ${problem.message}`))
 
   // 3a. Unified island planning, state-read promotion, special-file checks & reachability checks (shared with `prunelle build`)
   const islands = analyzeIslands({
@@ -288,6 +306,13 @@ export async function checkProject(rootDir: string, options: { skipTypecheck?: b
     if (isInNodeModules(file))
       continue
     const rel = relPosix(root, file)
+    for (const imp of analysis.imports) {
+      if (imp.source === '@prunellejs/auth') {
+        const removed = imp.specifiers.find(s => s.imported === 'createRateLimiter' || s.imported === 'RateLimiter')
+        if (removed !== undefined)
+          warnings.push(formatDiagnostic(locOf(root, file, sources, imp.start), `prunelle check: ${removed.imported} was removed from @prunellejs/auth in 0.2.0: use \`rateLimit\` on \`api.route()\`/\`action()\`, \`api.rateLimiter()\` in a plugin, or \`createRateLimitStore()\` from \`prunelle/server\`.`, 'warning'))
+      }
+    }
     for (const offset of serverNodeEnvReads(analysis, islands, file))
       warnings.push(formatDiagnostic(locOf(root, file, sources, offset), nodeEnvWarning(rel), 'warning'))
 
@@ -325,7 +350,15 @@ export async function checkProject(rootDir: string, options: { skipTypecheck?: b
   // 3c. French web law compliance checks (CSS third-party URLs, LCEN legal notice, RGAA accessibility statement)
   warnings.push(...collectProjectComplianceWarnings({ root, srcDir, routesDir, routeFiles, analyses, compliance, site }))
 
-  // 3d. Plugin check(ctx) hooks
+  // 3d. Form field / schema checks & public action protection warnings (#4, #5)
+  const formCheck = await checkAppForms({ root, routesDir, routeFiles, graph, sources })
+  errors.push(...formCheck.errors)
+  warnings.push(...formCheck.warnings)
+
+  // 3e. Broken internal link checks (#3)
+  warnings.push(...await checkAppLinks({ root, routesDir, publicDir, assetPrefix, site, config: loadedConfig, plugins, routeFiles, analyses, sources }))
+
+  // 3f. Plugin check(ctx) hooks
   await runPluginChecks(plugins, { root, routesDir, outDir, assetPrefix, site }, errors, warnings)
 
   const typecheck = options.skipTypecheck === true ? { ran: false as const, reason: "skipped by --no-typecheck" } : runTypecheck(root, errors)

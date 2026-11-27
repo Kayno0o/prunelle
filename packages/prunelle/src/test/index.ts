@@ -9,6 +9,7 @@ import { relPosix } from '../build/files'
 import { processSuffix, removeDeadProcessDirs } from '../build/output'
 import { ensureCacheGitignore } from '../build/precompress'
 import { resolveServerConfig } from '../server/index'
+import { FORM_TIMESTAMP_FIELD, honeypotFieldName, signFormTimestamp } from '../server/action-protect'
 import { startBuiltApp } from '../server/loader'
 
 const TEST_DIR_PREFIX = 'test-'
@@ -168,6 +169,13 @@ export async function testApp(options: TestAppOptions): Promise<TestApp> {
       const fd = new FormData()
       for (const [k, v] of Object.entries(fields))
         fd.append(k, v)
+      if (typeof action !== 'string' && action.protect !== undefined) {
+        const hp = honeypotFieldName(action.protect)
+        if (hp !== undefined && !Object.hasOwn(fields, hp))
+          fd.append(hp, '')
+        if (action.protect.minTime !== undefined && !Object.hasOwn(fields, FORM_TIMESTAMP_FIELD))
+          fd.append(FORM_TIMESTAMP_FIELD, signFormTimestamp(Date.now() - Math.max(0, action.protect.minTime) - 1000))
+      }
       const h = new Headers(headers)
       if (!h.has('origin'))
         h.set('origin', 'http://localhost')

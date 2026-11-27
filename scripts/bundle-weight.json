@@ -10,7 +10,7 @@
     "/table": 10840
   },
   "examples/noticeboard": {
-    "/": 15798,
+    "/": 15822,
     "/login": 9587,
     "/notices/:id": 9587
   },

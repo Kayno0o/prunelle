@@ -1,11 +1,15 @@
 // Prunelle SSR runtime: flat string concatenation with fast-path escaping and zero-overhead islands.
 
 import type { Html, HydrateStrategy, PrunelleChild } from '../jsx-runtime'
+import type { ServerAction } from '../server/action'
+import type { FieldConstraint } from '../server/form-schema'
 import { isBlockedAttr, isStringBoolAttr, isUnsafeUrlAttr } from '../attrs'
 import { renderOnServer } from '../reactivity/index'
+import { renderProtectFields } from '../server/action-protect'
+import { extractFormSchema, lookupFieldConstraint } from '../server/form-schema'
 import { styleText } from '../style'
 import { assertRenderable } from '../unrenderable'
-import { currentRenderContext, PRUNELLE_STREAM_SCRIPT, renderIsland } from './context'
+import { currentFormFields, currentRenderContext, lookupFormAction, PRUNELLE_STREAM_SCRIPT, renderIsland, runWithFormFields } from './context'
 import { keepScrollTag } from './navigation'
 export { ssrStyleBlock } from './context'
 
@@ -143,6 +147,8 @@ export function ssrSpread(props: Record<string, unknown> | null | undefined, tag
   if (props == null || typeof props !== 'object')
     return ''
   let out = ''
+  let formPresent = 0
+  const trackForm = (tag === 'input' || tag === 'select' || tag === 'textarea') && currentFormFields() !== undefined
   for (const [rawKey, value] of Object.entries(props)) {
     if (rawKey === 'key' || rawKey === 'ref' || rawKey === '$hydrate' || rawKey === 'children')
       continue
@@ -151,8 +157,121 @@ export function ssrSpread(props: Record<string, unknown> | null | undefined, tag
     const name = rawKey === 'className' ? 'class' : rawKey === 'htmlFor' ? 'for' : rawKey
     if (isBlockedAttr(name))
       continue
+    if (trackForm && value !== undefined) {
+      const bit = FORM_ATTR_BITS[name.toLowerCase()]
+      if (bit !== undefined)
+        formPresent |= bit
+    }
     out += name === 'style' ? ssrStyle(value) : ssrAttr(name, value, tag)
   }
+  if (trackForm && typeof props.name === 'string')
+    out += ssrFormAttrs(tag, props.name, formPresent, props.type)
+  return out
+}
+
+const FORM_ATTR_BITS: Record<string, number> = {
+  type: 1,
+  required: 2,
+  minlength: 4,
+  maxlength: 8,
+  min: 16,
+  max: 32,
+  step: 64,
+  pattern: 128,
+}
+const TEXT_INPUT_TYPES = new Set(['text', 'search', 'url', 'tel', 'email', 'password'])
+const NON_REQUIRED_INPUT_TYPES = new Set(['hidden', 'submit', 'button', 'reset', 'image'])
+
+function resolveActionForForm(action: unknown): ServerAction<unknown, unknown> | undefined {
+  if (typeof action === 'function' && (action as { __pruAction?: boolean }).__pruAction === true)
+    return action as ServerAction<unknown, unknown>
+  if (typeof action === 'string') {
+    const found = lookupFormAction(action)
+    if (typeof found === 'function' && (found as { __pruAction?: boolean }).__pruAction === true)
+      return found as ServerAction<unknown, unknown>
+  }
+  return undefined
+}
+
+function formFieldsOf(act: ServerAction<unknown, unknown>): ReadonlyMap<string, FieldConstraint> | undefined {
+  if (act.schema === undefined)
+    return undefined
+  const extracted = extractFormSchema(act.schema)
+  return extracted.ok && extracted.fields.size > 0 ? extracted.fields : undefined
+}
+
+/** Wraps an action-bound `<form>` render during SSR: injects schema constraints for child fields and appends honeypot / signed timestamp inputs. */
+export function ssrForm(action: unknown, render: (action: unknown) => string): string {
+  const act = resolveActionForForm(action)
+  if (act === undefined)
+    return `${render(action)}</form>`
+  const hidden = renderProtectFields(act.protect)
+  const fields = formFieldsOf(act)
+  const body = fields !== undefined ? runWithFormFields(fields, () => render(action)) : render(action)
+  return `${body}${hidden}</form>`
+}
+
+/** Async variant of `ssrForm` for action-bound `<form>` elements containing `await`. */
+export async function ssrFormAsync(action: unknown, render: (action: unknown) => Promise<string>): Promise<string> {
+  const act = resolveActionForForm(action)
+  if (act === undefined)
+    return `${await render(action)}</form>`
+  const hidden = renderProtectFields(act.protect)
+  const fields = formFieldsOf(act)
+  const body = fields !== undefined ? await runWithFormFields(fields, () => render(action)) : await render(action)
+  return `${body}${hidden}</form>`
+}
+
+/** Emits schema-derived HTML5 constraint attributes on `<input>`, `<select>`, and `<textarea>` inside an action-bound `<form>`. */
+export function ssrFormAttrs(tag: 'input' | 'select' | 'textarea', name: unknown, present: number, inputType?: unknown): string {
+  const fields = currentFormFields()
+  if (fields === undefined || typeof name !== 'string' || name === '')
+    return ''
+  const c = lookupFieldConstraint(fields, name)
+  if (c === undefined)
+    return ''
+
+  let out = ''
+  const explicitType = typeof inputType === 'string' ? inputType.toLowerCase() : undefined
+  let effectiveType: string | undefined
+  if (tag === 'input') {
+    if (explicitType === undefined && (present & 1) === 0 && c.type !== undefined) {
+      out += ` type="${c.type}"`
+      effectiveType = c.type
+    }
+    else {
+      effectiveType = explicitType ?? 'text'
+    }
+  }
+
+  const skipRequired = tag === 'input' && (
+    NON_REQUIRED_INPUT_TYPES.has(effectiveType!)
+    || (effectiveType === 'checkbox' && c.isArray === true)
+  )
+  if (c.required === true && (present & 2) === 0 && !skipRequired)
+    out += ' required'
+
+  const supportsLength = tag === 'textarea' || (tag === 'input' && TEXT_INPUT_TYPES.has(effectiveType!))
+  if (supportsLength) {
+    if (c.minLength !== undefined && (present & 4) === 0)
+      out += ` minlength="${c.minLength}"`
+    if (c.maxLength !== undefined && (present & 8) === 0)
+      out += ` maxlength="${c.maxLength}"`
+  }
+
+  if (tag === 'input') {
+    if (effectiveType === 'number' || effectiveType === 'range') {
+      if (c.min !== undefined && (present & 16) === 0)
+        out += ` min="${c.min}"`
+      if (c.max !== undefined && (present & 32) === 0)
+        out += ` max="${c.max}"`
+      if (c.step !== undefined && (present & 64) === 0)
+        out += ` step="${c.step}"`
+    }
+    if (TEXT_INPUT_TYPES.has(effectiveType!) && c.pattern !== undefined && (present & 128) === 0)
+      out += ` pattern="${escAttr(c.pattern)}"`
+  }
+
   return out
 }
 

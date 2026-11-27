@@ -12,6 +12,7 @@ import type { BuildManifest } from './manifest'
 import type { PublicFiles } from './plugin-host'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
+import { checkAppForms } from '../cli/check-forms'
 import { collectProjectComplianceWarnings, shouldEmitWarning } from '../compiler/compliance'
 import { formatCodeFrame, formatDiagnostic, formatLoc } from '../compiler/shared'
 import { createAppContext, loadConfig, resolvePlugins, runWithAppContext } from '../plugins/index'
@@ -31,12 +32,13 @@ import { prerender } from './prerender'
 import { analyzeBundleWeights, checkJsBudget, formatBundleReport, formatBundleReportJson, islandOrigins } from './report'
 import { SERVER_ENTRY_FILE, serverEntrySource } from './server-entry'
 import { PRUNELLE_SRC_ROOT, resolvePrunelleSpecifier } from './resolve'
-import { assertNoRouteConflicts, fileToRoutePath, hasRouteHandlerExport, missingPathsProblem, normalizeRoutePattern, routeExportProblem, routeFileProblem, SPECIAL_ROUTE_FILES } from './routes'
+import { assertNoRouteConflicts, discoverRouteMatchers, fileToRoutePath, hasRouteHandlerExport, missingPathsProblem, normalizeRoutePattern, routeExportProblem, routeFileProblem, SPECIAL_ROUTE_FILES } from './routes'
 import { exportStatic } from './static'
+import { findUnknownStatusPages } from './status-pages'
 
 export type { BuildCache } from './graph'
 export { createBuildCache } from './graph'
-export type { ActionManifestEntry, BuildManifest, RouteManifestEntry } from './manifest'
+export type { ActionManifestEntry, BuildManifest, RouteManifestEntry, StatusPageKind, StatusPageManifestEntry } from './manifest'
 export { analyzeBundleWeights, checkJsBudget, formatBundleReport, formatBundleReportJson } from './report'
 export type { BundleReport, RouteBundleMetrics, RouteIsland } from './report'
 export { resolvePrunelleSpecifier } from './resolve'
@@ -281,6 +283,55 @@ function refreshCacheWatches(cache: BuildCache, graph: ModuleGraph, extraFiles: 
   }
 }
 
+function validateRoutesAndMatchers(root: string, routesDir: string, allRouteFiles: readonly string[], specialFiles: readonly string[], candidateFiles: readonly string[], graph: ModuleGraph): { pageFiles: string[], customMatchers: Map<string, string> } {
+  const unknownStatus = findUnknownStatusPages(root, allRouteFiles)
+  if (unknownStatus.length > 0)
+    throw new Error(`prunelle build: ${unknownStatus[0]!.message}`)
+  const routesRel = relPosix(root, routesDir)
+  for (const f of [...specialFiles, ...candidateFiles]) {
+    const analysis = graph.analyses.get(f)!
+    const problem = routeFileProblem(analysis, relPosix(root, f), routesRel) ?? routeExportProblem(analysis, relPosix(root, f))
+    if (problem !== undefined)
+      throw new Error(`prunelle build: ${problem}`)
+  }
+  // A file exporting only actions stays in routes/ for its folder's middleware.
+  const pageFiles = candidateFiles.filter(f => hasRouteHandlerExport(graph.analyses.get(f)!))
+  assertNoRouteConflicts(root, routesDir, pageFiles)
+  const { customFiles, problems } = discoverRouteMatchers({
+    root,
+    routesDir,
+    routeFiles: [...specialFiles, ...pageFiles],
+    loadAnalysis: file => graph.load(file),
+  })
+  if (problems.length > 0)
+    throw new Error(`prunelle build: ${problems[0]!.message}`)
+  return { pageFiles, customMatchers: customFiles }
+}
+
+function collectActionsByFile(graph: ModuleGraph, root: string, assetPrefix: string): ActionsByFile {
+  const actionsByFile: ActionsByFile = new Map()
+  for (const [file, analysis] of graph.analyses) {
+    if (analysis.exportedActions.length > 0) {
+      const rel = relPosix(root, file)
+      actionsByFile.set(file, analysis.exportedActions.map(exportName => ({
+        exportName,
+        url: `${assetPrefix}/action/${actionHash(rel, exportName)}`,
+      })))
+    }
+  }
+  return actionsByFile
+}
+
+async function validateAppForms(root: string, routesDir: string, routeFiles: readonly string[], graph: ModuleGraph, isDev: boolean): Promise<void> {
+  const formCheck = await checkAppForms({ root, routesDir, routeFiles, graph })
+  if (formCheck.errors.length > 0)
+    throw new Error(formCheck.errors.join('\n'))
+  if (!isDev) {
+    for (const warning of formCheck.warnings)
+      console.warn(warning)
+  }
+}
+
 async function runBuild(run: BuildRun): Promise<BuildManifest> {
   const { options, root, plugins, routesDir, outDir, assetPrefix, isDev, publicFiles } = run
   const clientDir = join(outDir, 'client')
@@ -306,30 +357,12 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
     graph.load(f)
   emitBuildWarnings(run, graph, allRouteFiles)
 
-  const routesRel = relPosix(root, routesDir)
-  for (const f of [...specialFiles, ...candidateFiles]) {
-    const analysis = graph.analyses.get(f)!
-    const problem = routeFileProblem(analysis, relPosix(root, f), routesRel) ?? routeExportProblem(analysis, relPosix(root, f))
-    if (problem !== undefined)
-      throw new Error(`prunelle build: ${problem}`)
-  }
-  // A file exporting only actions stays in routes/ for its folder's middleware.
-  const pageFiles = candidateFiles.filter(f => hasRouteHandlerExport(graph.analyses.get(f)!))
-  assertNoRouteConflicts(root, routesDir, pageFiles)
+  const { pageFiles, customMatchers } = validateRoutesAndMatchers(root, routesDir, allRouteFiles, specialFiles, candidateFiles, graph)
+  const customMatcherFiles = [...new Set(customMatchers.values())]
 
-  // Server actions, keyed by source file
-  const actionsByFile: ActionsByFile = new Map()
-  for (const [file, analysis] of graph.analyses) {
-    if (analysis.exportedActions.length > 0) {
-      const rel = relPosix(root, file)
-      actionsByFile.set(file, analysis.exportedActions.map(exportName => ({
-        exportName,
-        url: `${assetPrefix}/action/${actionHash(rel, exportName)}`,
-      })))
-    }
-  }
-
+  const actionsByFile = collectActionsByFile(graph, root, assetPrefix)
   const islands = planCheckedIslands(root, routesDir, graph, pageFiles, specialFiles, isStatic)
+  await validateAppForms(root, routesDir, allRouteFiles, graph, isDev)
 
   mkdirSync(clientDir, { recursive: true })
   mkdirSync(serverDir, { recursive: true })
@@ -342,14 +375,15 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
   const routeEntryFiles = new Set([...specialFiles, ...pageFiles])
   const standaloneActionFiles = [...actionsByFile.keys()].filter(f => !routeEntryFiles.has(f))
   // `_entry.js` imports all of these; each stays an entrypoint so its code lands in a content-named chunk that `prunelle dev` keeps loaded while it is unchanged.
-  const serverEntries = [...specialFiles, ...pageFiles, ...standaloneActionFiles, ...(hasConfigFile ? [configSrc] : [])]
-  const serverRoot = standaloneActionFiles.length > 0 || hasConfigFile ? root : routesDir
+  const bundledModules = [...specialFiles, ...pageFiles, ...standaloneActionFiles, ...customMatcherFiles]
+  const serverEntries = [...bundledModules, ...(hasConfigFile ? [configSrc] : [])]
+  const serverRoot = standaloneActionFiles.length > 0 || customMatcherFiles.length > 0 || hasConfigFile ? root : routesDir
   const toOutRel = (srcFile: string): string =>
     relPosix(outDir, join(serverDir, relative(serverRoot, srcFile).replace(/\.(tsx|ts)$/, '.js')))
   const serverEntry = {
     file: join(serverRoot, SERVER_ENTRY_FILE),
     source: serverEntrySource({
-      modules: [...specialFiles, ...pageFiles, ...standaloneActionFiles].map(file => ({ file, key: toOutRel(file), source: relPosix(root, file) })),
+      modules: bundledModules.map(file => ({ file, key: toOutRel(file), source: relPosix(root, file) })),
       config: hasConfigFile ? { file: configSrc, source: relPosix(root, configSrc) } : undefined,
       assembler: join(PRUNELLE_SRC_ROOT, 'server/app-entry.ts'),
     }),
@@ -387,7 +421,7 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
   }
   const builtClientAssets = new Set(assets)
 
-  const { routes, globalStyles } = buildRouteEntries({
+  const { routes, statusPages, globalStyles } = buildRouteEntries({
     graph,
     islands,
     islandChunks: client.islandChunks,
@@ -395,10 +429,14 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
     islandCssUrl: client.islandCssUrl,
     routesDir,
     pageFiles,
+    specialFiles,
     pluginCssFiles,
     isStatic,
     toOutRel,
   })
+  const paramMatchers = customMatchers.size > 0
+    ? Object.fromEntries([...customMatchers.entries()].map(([name, file]) => [name, toOutRel(file)]))
+    : undefined
 
   // public/ files are listed in the manifest and copied into outDir/public (`prunelle dev` serves public/ directly instead)
   const outPublicDir = join(outDir, 'public')
@@ -438,10 +476,11 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
     globalStyles,
     ...(host.headTags.length > 0 ? { headTags: host.headTags } : {}),
     routes,
-
     ...(hasRootLayout ? { rootLayoutFile: toOutRel(rootLayoutSrc) } : {}),
     errorFile: hasErrorFile ? toOutRel(errorSrc) : undefined,
     notFoundFile: hasNotFoundFile ? toOutRel(notFoundSrc) : undefined,
+    ...(statusPages.length > 0 ? { statusPages } : {}),
+    ...(paramMatchers !== undefined ? { paramMatchers } : {}),
     actions: buildActionEntries(actionsByFile, routesDir, toOutRel),
     islands: Object.fromEntries(client.islandChunks),
     assets,

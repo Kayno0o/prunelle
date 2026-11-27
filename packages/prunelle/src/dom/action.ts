@@ -88,7 +88,10 @@ export function useAction<Input, Output>(
     fieldErrors,
     data,
     get action() {
-      return action.url || String(action)
+      const u = action.url || String(action)
+      if ('__pruAction' in action)
+        (globalThis as { __pruAct?: (url: string, act: unknown) => void }).__pruAct?.(u, action)
+      return u
     },
     onSubmit(event) {
       event.preventDefault()

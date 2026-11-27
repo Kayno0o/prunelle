@@ -10,7 +10,7 @@
     "packages/plugin-content/src/components.ts::parseLiteralValue": 240,
     "packages/plugin-mcp/src/rpc.ts::createRpcDispatcher": 191,
     "packages/prunelle/src/build/bundle.ts::buildClient": 164,
-    "packages/prunelle/src/build/index.ts::runBuild": 159,
+    "packages/prunelle/src/build/index.ts::runBuild": 151,
     "packages/prunelle/src/compiler/data-keys.ts::analyzeDefaultDataKeys": 192,
     "packages/prunelle/src/compiler/dom.ts::compileDom": 454,
     "packages/prunelle/src/compiler/dom.ts::compileDom.compileElementTree": 204,
@@ -21,12 +21,12 @@
     "packages/prunelle/src/compiler/scope.ts::walkScoped.visit": 231,
     "packages/prunelle/src/compiler/server-only.ts::findPrivateEnv": 158,
     "packages/prunelle/src/compiler/ssr-helpers.ts::emitSsrElementAttrs": 154,
-    "packages/prunelle/src/compiler/ssr.ts::compileSsr": 283,
+    "packages/prunelle/src/compiler/ssr.ts::compileSsr": 278,
     "packages/prunelle/src/dev/index.ts::devServer": 155,
     "packages/prunelle/src/dom/island.ts::defineIslandElement": 162,
     "packages/prunelle/src/dom/loop.ts::loop": 223,
     "packages/prunelle/src/dom/loop.ts::loop.effect()": 163,
-    "packages/prunelle/src/server/index.ts::createServerFromEmbedded": 356,
+    "packages/prunelle/src/server/index.ts::createServerFromEmbedded": 354,
     "packages/ui/src/CommandPalette.tsx::CommandPalette": 163
   },
   "functionComplexity": {
@@ -39,6 +39,6 @@
     "packages/prunelle/src/compiler/server-only.ts::findPrivateEnv.visit": 43,
     "packages/prunelle/src/compiler/ssr-helpers.ts::emitSsrElementAttrs": 71,
     "packages/prunelle/src/dom/loop.ts::loop.effect().untrack()": 42,
-    "packages/prunelle/src/server/index.ts::createServerFromEmbedded.handleInternal": 54
+    "packages/prunelle/src/server/index.ts::createServerFromEmbedded.handleInternal": 48
   }
 }

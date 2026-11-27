@@ -1,15 +1,19 @@
 // Unified server actions: works as both progressive <form action={fn} method="post"> and typed island RPC.
 
+import type { ActionProtectOptions } from './action-protect'
 import type { Cookies } from './cookies'
 import type { PrunelleLocals } from './index'
 import type { RateLimit, RateLimiter } from './rate-limit'
 import type { TrustProxy } from './security'
 import type { InferInput, InferOutput, StandardSchemaIssue, StandardSchemaV1, ValidationFailure, ValidationResult } from './standard-schema'
+import { assertActionProtect, needsProtectBody, verifyActionProtection } from './action-protect'
 import { wantsJson } from './http'
 import { assertRateLimit, hitFor, tooManyRequests } from './rate-limit'
 import { currentRequest } from './request-scope'
 import { isTrustedOrigin } from './security'
 import { validateSchema } from './standard-schema'
+
+export type { ActionProtectOptions } from './action-protect'
 
 declare module './index' {
   interface PrunelleLocals {
@@ -69,6 +73,8 @@ export interface ActionOptions {
   flashFields?: readonly string[] | undefined
   /** How often one client may submit it: past `max` per `windowMs`, a call from script gets a 429 with `Retry-After` and a form comes back with the error. */
   rateLimit?: RateLimit<ActionContext> | undefined
+  /** Public form spam & abuse protection: rate limit, hidden honeypot field, and minimum render-to-submit time. */
+  protect?: ActionProtectOptions | undefined
 }
 
 export interface ActionErrorFlash {
@@ -103,6 +109,7 @@ export interface ServerAction<Input, Output> {
   readonly schema: StandardSchemaV1 | undefined
   readonly flashFields: readonly string[] | undefined
   readonly rateLimit: RateLimit<ActionContext> | undefined
+  readonly protect: ActionProtectOptions | undefined
   readonly handler: (input: never, ctx: ActionContext) => Output | Response | Promise<Output | Response>
   toString(): string
 }
@@ -132,8 +139,11 @@ export function action(
     ? (maybeHandlerOrOpts as (input: never, ctx: ActionContext) => unknown)
     : ((_input: never, ctx: ActionContext) => (schemaOrHandler as (c: ActionContext) => unknown)(ctx))
   const options = hasSchema ? maybeOpts : (maybeHandlerOrOpts as ActionOptions | undefined)
-  if (options?.rateLimit !== undefined)
-    assertRateLimit(options.rateLimit, 'an action')
+  if (options?.protect !== undefined)
+    assertActionProtect(options.protect)
+  const effectiveRateLimit = options?.protect?.rateLimit ?? options?.rateLimit
+  if (effectiveRateLimit !== undefined && options?.protect?.rateLimit === undefined)
+    assertRateLimit(effectiveRateLimit, 'an action')
 
   const fn = (async (input: unknown) => {
     const scope = currentRequest()
@@ -148,7 +158,8 @@ export function action(
     __pruAction: { value: true, enumerable: false },
     schema: { value: schema, enumerable: false },
     flashFields: { value: options?.flashFields, enumerable: false },
-    rateLimit: { value: options?.rateLimit, enumerable: false },
+    rateLimit: { value: effectiveRateLimit, enumerable: false },
+    protect: { value: options?.protect, enumerable: false },
     handler: { value: handler, enumerable: false },
     url: { value: '', writable: true, enumerable: true },
     toString: {
@@ -409,20 +420,32 @@ export async function executeAction(
 
   let rawBody: unknown
   let input: unknown
-  if (act.schema !== undefined) {
+  const wantsBody = act.schema !== undefined || needsProtectBody(act.protect)
+  if (wantsBody) {
     try {
       rawBody = await parseActionBody(request)
     }
     catch {
       return Response.json({ ok: false, status: 400, error: 'Invalid request body' }, { status: 400 })
     }
+  }
 
-    let checked = await validateSchema(act.schema, rawBody)
-    if (!checked.ok && !isJsonBody(request) && rawBody !== null && typeof rawBody === 'object' && !Array.isArray(rawBody))
-      checked = await retryWithFormArrays(act.schema, rawBody as Record<string, unknown>, checked)
+  const protectedBody = verifyActionProtection(act.protect, rawBody)
+  const cleanBody = protectedBody.cleanedBody
+  if (!protectedBody.ok) {
+    const redirected = flashAndRedirect(protectedBody.error, undefined, cleanBody)
+    if (redirected !== undefined)
+      return redirected
+    return Response.json({ ok: false, status: 400, error: protectedBody.error }, { status: 400 })
+  }
+
+  if (act.schema !== undefined) {
+    let checked = await validateSchema(act.schema, cleanBody)
+    if (!checked.ok && !isJsonBody(request) && cleanBody !== null && typeof cleanBody === 'object' && !Array.isArray(cleanBody))
+      checked = await retryWithFormArrays(act.schema, cleanBody as Record<string, unknown>, checked)
     if (!checked.ok) {
       // Zero-JS progressive HTML <form> submit: flash fieldErrors + safe submitted values (<4KB) and redirect 303 back to trusted Referer
-      const redirected = flashAndRedirect('Validation failed', checked.fieldErrors, rawBody)
+      const redirected = flashAndRedirect('Validation failed', checked.fieldErrors, cleanBody)
       if (redirected !== undefined)
         return redirected
       return Response.json(
@@ -436,7 +459,7 @@ export async function executeAction(
   // Counted once the body is read, so a refused form comes back with what was typed in it.
   const retryAfter = limiter !== undefined && act.rateLimit !== undefined ? hitFor(limiter, act.rateLimit, ctx) : 0
   if (retryAfter > 0) {
-    const redirected = flashAndRedirect('Too many requests', undefined, rawBody)
+    const redirected = flashAndRedirect('Too many requests', undefined, cleanBody)
     if (redirected === undefined)
       return tooManyRequests(retryAfter)
     redirected.headers.set('retry-after', String(retryAfter))
@@ -460,7 +483,7 @@ export async function executeAction(
   if (result instanceof Response) {
     const denied = deniedResponses?.get(result)
     if (denied !== undefined) {
-      const redirected = flashAndRedirect(denied.message, denied.fieldErrors, rawBody)
+      const redirected = flashAndRedirect(denied.message, denied.fieldErrors, cleanBody)
       if (redirected !== undefined)
         return redirected
     }

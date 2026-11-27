@@ -3,6 +3,7 @@
 
 import type { CatchProps, ConsentGateProps } from '../context'
 import type { Html, PrunelleChild } from '../jsx-runtime'
+import type { FieldConstraint } from '../server/form-schema'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { registerServerContextBridge } from '../context'
 import { raw, ssrChild } from './index'
@@ -55,6 +56,8 @@ export interface RenderContext {
   consent: { has(category: string): boolean } | undefined
   /** Reports an error a `<Catch>` rendered its fallback for, to the app's error hook. */
   onCaught: ((error: unknown) => void) | undefined
+  /** Actions referenced via `useAction(fn).action` during this request, keyed by action URL. */
+  formActions: Map<string, unknown> | undefined
 }
 
 interface RenderScope {
@@ -63,12 +66,25 @@ interface RenderScope {
   outerContexts: ReadonlyMap<symbol, unknown> | undefined
   island: string | undefined
   inTarget: boolean
+  formFields: ReadonlyMap<string, FieldConstraint> | undefined
 }
 
 const STORAGE_KEY = Symbol.for('pru.render.storage')
 const SCOPE_STORAGE_KEY = Symbol.for('pru.render.scope.storage')
 const renderStorage: AsyncLocalStorage<RenderContext> = ((globalThis as Record<symbol, AsyncLocalStorage<RenderContext> | undefined>)[STORAGE_KEY] ??= new AsyncLocalStorage<RenderContext>())
 const scopeStorage: AsyncLocalStorage<RenderScope> = ((globalThis as Record<symbol, AsyncLocalStorage<RenderScope> | undefined>)[SCOPE_STORAGE_KEY] ??= new AsyncLocalStorage<RenderScope>())
+let fallbackFormAction: { url: string, action: unknown } | undefined
+let fallbackFormFields: ReadonlyMap<string, FieldConstraint> | undefined
+
+;(globalThis as { __pruAct?: (url: string, action: unknown) => void }).__pruAct = (url, action) => {
+  if (url === '')
+    return
+  const ctx = renderStorage.getStore()
+  if (ctx !== undefined)
+    (ctx.formActions ??= new Map()).set(url, action)
+  else
+    fallbackFormAction = { url, action }
+}
 
 function activeScope(ctx: RenderContext): RenderScope {
   const scope = scopeStorage.getStore()
@@ -80,6 +96,38 @@ function activeScope(ctx: RenderContext): RenderScope {
     outerContexts: ctx.outerContexts,
     island: ctx.island,
     inTarget: ctx.inTarget,
+    formFields: undefined,
+  }
+}
+
+export function lookupFormAction(url: string): unknown {
+  const ctx = renderStorage.getStore()
+  if (ctx !== undefined)
+    return ctx.formActions?.get(url)
+  return fallbackFormAction?.url === url ? fallbackFormAction.action : undefined
+}
+
+export function currentFormFields(): ReadonlyMap<string, FieldConstraint> | undefined {
+  const ctx = renderStorage.getStore()
+  return ctx !== undefined ? activeScope(ctx).formFields : fallbackFormFields
+}
+
+export function runWithFormFields<T>(fields: ReadonlyMap<string, FieldConstraint>, fn: () => T): T {
+  const ctx = renderStorage.getStore()
+  if (ctx !== undefined)
+    return scopeStorage.run({ ...activeScope(ctx), formFields: fields }, fn)
+  const prev = fallbackFormFields
+  fallbackFormFields = fields
+  try {
+    const out = fn()
+    if (out instanceof Promise)
+      return out.finally(() => { fallbackFormFields = prev }) as T
+    fallbackFormFields = prev
+    return out
+  }
+  catch (err) {
+    fallbackFormFields = prev
+    throw err
   }
 }
 
@@ -165,6 +213,7 @@ export function createRenderContext(
     inlineStyles: undefined,
     consent,
     onCaught,
+    formActions: undefined,
   }
 }
 

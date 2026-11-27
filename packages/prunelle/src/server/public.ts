@@ -1,7 +1,7 @@
 // `prunelle/server`: what an app's routes, actions and middleware use, and `createServer` to run a built app inside another program. Anything not listed here stays internal.
 
 export { action, getActionError } from './action'
-export type { ActionContext, ActionErrorFlash, ActionOptions, ActionResult, ServerAction } from './action'
+export type { ActionContext, ActionErrorFlash, ActionOptions, ActionProtectOptions, ActionResult, ServerAction } from './action'
 export type { ConsentConfig, RequestConsent } from './consent'
 export type { CookieOptions, Cookies } from './cookies'
 export { defineEnv, nodeEnv } from './env'

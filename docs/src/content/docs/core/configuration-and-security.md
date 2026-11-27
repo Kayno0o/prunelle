@@ -1,6 +1,6 @@
 ---
 title: Configuration & Security
-description: prunelle.config.ts options, default strict CSP with automatic SHA-256 hashes, HSTS, reverse-proxy trust, body limits, error hooks, and typed environment variables.
+description: prunelle.config.ts options, strict hashed CSP, HSTS, proxy trust, health checks, request IDs, RGAA/RGPD compliance, and typed env vars.
 section: core
 order: 6
 ---
@@ -39,12 +39,13 @@ A key prunelle does not read fails the build, `prunelle check` and `prunelle dev
 | `trustedOrigins` | `undefined` | Extra origins allowed by CSRF checks (for example, `['https://app.example.com']`). |
 | `trustProxy` | `false` | Reverse proxies in front of Prunelle: `true` for 1 hop, a number for `N` hops (e.g. `2` for CDN + nginx). |
 | `maxRequestBodySize` | `1048576` (1 MiB) | Maximum request body size before returning `413 Payload Too Large`. |
-| `navigation` | `{ viewTransitions: true, prefetch: 'moderate', prerender: false }` | How a change from one page to the next feels, with no client JS: see [Page changes](/core/routing-and-layouts#page-changes). |
+| `navigation` | `{ viewTransitions: true, prefetch: 'moderate', prerender: false }` | How a change from one page to the next feels, with no client JS: see [Page changes](/docs/core/routing-and-layouts#page-changes). |
 | `consent` | `undefined` | One-declaration CNIL/RGPD consent categories, cookie name (`'pru_consent'`), retention (`15552000` s = 180 days), and `POST` endpoint (`'/_pru/consent'`). |
 | `compliance` | `undefined` | French web law check overrides: `{ ignore?, publicBody?, legalNotice? }`. |
 | `streamTimeout` | `30000` | Milliseconds a `<Suspense>` boundary may wait before failing. |
 | `compress` | `true` in prod, `false` in dev | Sends the `.br` and `.gz` files `prunelle build` wrote beside assets, `public/` files and prerendered pages, and compresses the rest on the fly (zstd, gzip), streamed pages included. |
-| `onError` | `undefined` | Hook called on unhandled errors in routes, actions, or plugins (`source: 'route' \| 'action' \| 'plugin'`). Without one, Prunelle logs each unhandled error, its stack, method and path to stderr in both `prunelle start` and `prunelle dev`. A hook that throws is logged with its owner, and the other hooks still run. |
+| `healthCheck` | `undefined` | One function or named map of checks contributing to `/_pru/health` (returning `false` or throwing turns `/_pru/health` to `503`). |
+| `onError` | `undefined` | Hook called on unhandled errors in routes, actions, or plugins (`{ error, request, source, requestId }`). Without one, Prunelle logs each unhandled error, its request ID, stack, method and path to stderr in both `prunelle start` and `prunelle dev`. A hook that throws is logged with its owner, and the other hooks still run. |
 | `plugins` | `[]` | Array of `PrunellePlugin` instances. |
 
 ## Security headers & strict CSP
@@ -102,6 +103,19 @@ Pass `category` for any non-essential cookie (for example, `{ category: 'analyti
 | `rgaa/img-alt` | `<img>` missing an `alt` attribute (`alt=""` is accepted for decorative images). |
 | `rgaa/form-label` | `<input>` (except `hidden`/`submit`/`reset`/`button`/`image`), `<select>`, or `<textarea>` without an enclosing `<label>`, matching `<label for>`, `aria-label`, `aria-labelledby`, or `title`. |
 | `rgaa/accessible-name` | Empty or icon-only `<button>` or `<a>` with no visible text, `aria-label`, `aria-labelledby`, `title`, or labelled child image/icon. |
+| `rgaa/duplicate-id` | Duplicate literal `id` attribute within the same component. |
+| `rgaa/positive-tabindex` | Positive `tabindex` (`> 0`), which disrupts natural keyboard focus order (use `0` or `-1`). |
+| `rgaa/nested-control` | Interactive element (`<a>`, `<button>`, `<input>`, `<select>`, `<textarea>`, `<summary>`) nested inside `<a>`, `<button>`, or `<summary>`. |
+| `rgaa/link-as-button` | `<a>` without `href` that has an `onClick` handler (use `<button type="button">` or add `href`). |
+| `rgaa/unknown-role` | Literal `role="..."` containing a token that is not a valid concrete WAI-ARIA role. |
+| `rgaa/unknown-aria` | `aria-*` attribute name that is not a valid WAI-ARIA attribute. |
+| `rgaa/invalid-aria-value` | Literal `aria-*` value that does not match its WAI-ARIA type (boolean, tristate, token enum, or numeric). |
+| `rgaa/skipped-heading` | Downward heading level jump greater than 1 within a component (for example `<h1>` directly followed by `<h3>`). |
+| `rgaa/table-without-header` | Data `<table>` with no `<th>` header cell (unless `role="presentation"` or `role="none"`). |
+| `rgaa/fieldset-without-legend` | `<fieldset>` without a `<legend>` element. |
+| `rgaa/click-without-key` | `onClick` on a non-interactive HTML element without `onKeyDown`, `onKeyUp`, or `onKeyPress`. |
+| `rgaa/autofocus` | `autofocus` / `autoFocus` attribute that moves keyboard focus unexpectedly on page load. |
+| `rgaa/meta-refresh` | `<meta http-equiv="refresh">` automatic redirect or reload. |
 | `rgpd/third-party-url` | Third-party URL on `<script src>`, `<link rel="stylesheet\|preload\|preconnect\|dns-prefetch">`, `<iframe src>`, or CSS `@import`/`url(...)` outside `<ConsentGate>` (same-origin `site` and `localhost` are excluded). |
 | `lcen/legal-notice` | Page app missing a legal notice route (`/mentions-legales`, `/legal`, `/legal-notice`, `/imprint`, `/impressum`, `/cgu`, `/cgv`, or custom `compliance.legalNotice`). Skipped for API-only apps. |
 | `rgaa/accessibility-statement` | When `compliance: { publicBody: true }` is set, missing an accessibility statement route (`/accessibilite`, `/accessibility`, `/declaration-accessibilite`, or `/accessibility-statement`). |
