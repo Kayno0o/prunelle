@@ -546,6 +546,7 @@ describe('a page loaded before a deploy still finds the client files it links (#
     }
   })
 
+  // Compiling two binaries takes past bun's 5 s default when CI runs share the host.
   it('embeds them in a compiled binary for one deploy', async () => {
     const dir = appWith({})
     const binPath = join(dir, 'server-bin')
@@ -574,7 +575,7 @@ describe('a page loaded before a deploy still finds the client files it links (#
       proc.kill()
       await proc.exited
     }
-  })
+  }, 30_000)
 
   it('keeps them in a --static export for one deploy', async () => {
     const dir = appWith({})

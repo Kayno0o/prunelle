@@ -800,6 +800,7 @@ describe('compression done by the build (#3668)', () => {
     expect(await res.text()).toBe('the app\'s own brotli')
   })
 
+  // Compiling the binary takes past bun's 5 s default when CI runs share the host.
   it('serves the sidecars from a compiled binary', async () => {
     const dir = await builtApp()
     const binPath = join(dir, 'server-bin')
@@ -826,7 +827,7 @@ describe('compression done by the build (#3668)', () => {
       proc.kill()
       await proc.exited
     }
-  })
+  }, 30_000)
 })
 
 describe('files served as they are (#3667)', () => {
