@@ -123,13 +123,15 @@ function upgradeCommand(cwd: string): Commands[string] {
       const res = upgradeProject(root)
       for (const file of res.changed)
         console.log(`  ${file}`)
-      console.log(`prunelle upgrade rewrote ${res.changed.length} files`)
-      if (res.changed.some(file => file === 'package.json' || file.endsWith('/package.json')) && values['no-install'] !== true) {
+      console.log(`prunelle upgrade rewrote ${res.changed.length} file${res.changed.length === 1 ? '' : 's'}`)
+      // The dependencies moved: the first run for this app, which renames its cookies; a later run only fixes what an older prunelle left.
+      const moved = res.changed.some(file => file === 'package.json' || file.endsWith('/package.json'))
+      if (moved && values['no-install'] !== true) {
         const install = Bun.spawnSync(['bun', 'install'], { cwd: root, stdout: 'inherit', stderr: 'inherit' })
         if (install.exitCode !== 0)
           return 1
       }
-      if (res.changed.length > 0)
+      if (moved)
         console.log('Signed-in users sign in again and visitors answer the cookie banner again: prunelle names its cookies pru_session and pru_consent.')
       for (const line of res.manual)
         console.error(line)

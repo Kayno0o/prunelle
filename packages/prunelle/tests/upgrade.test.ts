@@ -222,6 +222,18 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
       'Next: prunelle check',
     ])
     expect(await checkProject(dir, { skipTypecheck: true })).toMatchObject({ ok: true, errors: [] })
+
+    // Run again for a file the first run left, the cookies are already renamed.
+    writeFileSync(join(dir, 'AGENTS.md'), 'Read `node_modules/@kayjs/kay/llms.txt`.\n')
+    out.length = 0
+    const again = spyOn(console, 'log').mockImplementation((line: string) => out.push(line))
+    try {
+      expect(await runCli(['upgrade', dir, '--no-install'])).toBe(0)
+    }
+    finally {
+      again.mockRestore()
+    }
+    expect(out).toEqual(['  AGENTS.md', 'prunelle upgrade rewrote 1 file', 'Next: prunelle check'])
   })
 
   it('upgrades each package a bun workspace lists, from its root, again once on prunelle', () => {
