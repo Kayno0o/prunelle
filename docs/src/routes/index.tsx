@@ -1,8 +1,10 @@
+import { join } from 'node:path'
+import { shareCard } from '@prunellejs/images'
 import { Head } from 'prunelle'
 import pkg from '../../../packages/prunelle/package.json'
 import { Mark } from '../components/Mark'
 import { RunningHead } from '../components/RunningHead'
-import { getNavGroups } from '../content'
+import { DOCS_ROOT, getNavGroups } from '../content'
 import { highlight } from '../highlight'
 
 export const prerender = true
@@ -20,11 +22,17 @@ const BENCH = [
 
 export default function HomePage() {
   const groups = getNavGroups()
+  const ogImage = shareCard({
+    title: 'prunelle, a web framework for Bun',
+    badge: `Version ${pkg.version}`,
+    image: join(DOCS_ROOT, 'src/prunelle-card.svg'),
+  })
 
   return (
     <>
       <Head>
         <title>prunelle, a web framework for Bun</title>
+        <meta property="og:image" content={ogImage} />
       </Head>
       <RunningHead left="A web framework for Bun" right={`Version ${pkg.version}`} />
 

@@ -69,3 +69,13 @@ seo({
 ```
 
 `@prunellejs/seo` emits immutable hashed `.woff2` files, injects `<link rel="preload" as="font">` + `@font-face` CSS, applies `titleTemplate`, adds canonical URLs, and generates `/sitemap.xml`.
+
+### `prunelle check` SEO validations
+
+When `@prunellejs/seo` is enabled, `prunelle check` warns with file, line, and fix on:
+- Missing `site` (`[seo/missing-site]`)
+- Pages without a `<title>` or meta description (`[seo/missing-title]`, `[seo/missing-description]`)
+- Titles over 60 characters or descriptions over 160 characters (`[seo/long-title]`, `[seo/long-description]`)
+- Duplicate titles or descriptions across static or prerendered pages (`[seo/duplicate-title]`, `[seo/duplicate-description]`)
+- `noindex` pages still included in the sitemap (`[seo/noindex-in-sitemap]`)
+- Missing share image (`og:image` / `seo({ image })`) when `site` is set (`[seo/missing-image]`)

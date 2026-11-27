@@ -25,6 +25,15 @@
 
 - `jsonLd(schema)` returns a branded `Html` value for `<Head>`: `<Head>{jsonLd({ '@type': 'Article', headline: title })}</Head>`.
 
+## Validation (`prunelle check`)
+
+- Warns with `[seo/missing-site]` when neither `prunelle.config.ts` `site` nor `seo({ site })` is set.
+- Warns with `[seo/missing-title]` and `[seo/missing-description]` on page routes without `<title>` or `<meta name="description">` (respecting ancestor `_layout.tsx` and `seo({ description })`).
+- Warns with `[seo/long-title]` (> 60 chars, including `titleTemplate`) and `[seo/long-description]` (> 160 chars) on static routes, `seo()` defaults, and prerendered HTML.
+- Warns with `[seo/duplicate-title]` and `[seo/duplicate-description]` when two static routes or prerendered pages share the same title or description.
+- Warns with `[seo/noindex-in-sitemap]` when a route or prerendered page sets `noindex` while still included in `sitemap.xml` (not in `sitemapExclude` and `sitemap !== false`).
+- Warns with `[seo/missing-image]` when `site` is configured and a page has neither `seo({ image })` nor `<meta property="og:image">`.
+
 ## Snippet
 
 ```ts

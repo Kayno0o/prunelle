@@ -20,18 +20,28 @@ import {
   Switch,
   Tabs,
 } from '@prunellejs/ui'
+import { join } from 'node:path'
+import { shareCard } from '@prunellejs/images'
 import { Head } from 'prunelle'
 import { GrammarDemo } from '../components/GrammarDemo'
 import { RunningHead } from '../components/RunningHead'
+import { DOCS_ROOT } from '../content'
 
 export const prerender = true
 
 export default function GrammarsPage() {
+  const ogImage = shareCard({
+    title: 'UI Style Grammars',
+    badge: '@prunellejs/ui',
+    image: join(DOCS_ROOT, 'src/prunelle-card.svg'),
+  })
+
   return (
     <>
       <Head>
         <title>UI Style Grammars</title>
         <meta name="description" content="Switch @prunellejs/ui between Prunelle, Orbit, Editorial, Workshop, Console, Soft, and Bare in pure CSS with zero JS styling runtime." />
+        <meta property="og:image" content={ogImage} />
       </Head>
       <RunningHead left="@prunellejs/ui" right="Grammars" />
 

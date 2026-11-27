@@ -8,7 +8,7 @@ export default defineConfig({
   lang: 'en',
   plugins: [
     ui({ grammar: 'editorial' }),
-    seo({ site: 'https://example.com', titleTemplate: '%s — __APP_NAME__' }),
+    seo({ site: 'https://example.com', titleTemplate: '%s — __APP_NAME__', description: 'Articles & notes from __APP_NAME__', image: '/og.png' }),
     content({
       feeds: [{
         path: '/rss.xml',

@@ -1,6 +1,6 @@
 ---
 title: "@prunellejs/content"
-description: Zero-dependency Markdown collections powered by Bun.markdown and Bun.YAML with Standard Schema frontmatter, Shiki highlighting, MDX-lite TSX components, and RSS.
+description: Zero-dependency Markdown collections with Bun.markdown and Bun.YAML, Standard Schema frontmatter, Shiki highlighting, MDX-lite TSX, and RSS.
 section: plugins
 order: 3
 ---

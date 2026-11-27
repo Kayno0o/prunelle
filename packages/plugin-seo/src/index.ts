@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { basename, extname, join, resolve } from 'node:path'
 import { definePlugin, I18N_CONFIG_SERVICE } from 'prunelle/config'
 import { escAttr, escJson, raw } from 'prunelle/server'
+import { checkSeo } from './check'
 
 export interface FontEntry {
   family: string
@@ -413,6 +414,10 @@ export function seo(options: SeoPluginOptions = {}): PrunellePlugin {
       return resolveSite(ctx.site) === undefined
         ? ['no `site`, so pages go out with no canonical link, no absolute `og:image` and no sitemap: set `site` in `prunelle.config.ts` (or pass it to `seo()`).']
         : []
+    },
+
+    check(ctx) {
+      checkSeo(ctx, options, activeSite)
     },
 
     onError({ request }) {

@@ -1,4 +1,5 @@
 import { Badge, Card, CardBody, CardFooter, CardHeader, Cluster, Stack } from '@prunellejs/ui'
+import { Head } from 'prunelle'
 import { posts } from '../posts'
 
 export const prerender = true
@@ -7,6 +8,9 @@ export default async function BlogIndex() {
   const list = posts.all()
   return (
     <Stack gap="lg">
+      <Head>
+        <title>Articles</title>
+      </Head>
       <h1 class="page-title">Articles</h1>
       {list.map(post => (
         <Card key={post.slug}>
