@@ -40,6 +40,8 @@ const SOURCE_FILE_RE = /\.(?:tsx?|mts)$/
 const STYLE_OR_SCRIPT_RE = /\.(?:css|js|mjs)$/
 const CONFIG_FILE_RE = /^(?:tsconfig(?:\.[\w-]+)?\.json|bunfig\.toml|\.gitignore|\.dockerignore)$/
 const BUILD_FILE_RE = /^(?:Dockerfile(?:\.[\w-]+)?|[\w-]+\.Dockerfile|[Jj]ustfile|Makefile|(?:docker-)?compose(?:\.[\w-]+)?\.ya?ml)$/
+// The agent instructions `prunelle new` writes, which name the llms.txt to read and the CLI to run (#42).
+const AGENT_FILE_RE = /^(?:AGENTS|CLAUDE)\.md$/
 const CI_DIRS = ['.forgejo/workflows', '.github/workflows', '.gitea/workflows']
 const CACHE_DIRS = ['.kay-cache', '.kay-dev']
 const PRUNELLE_SOURCE_RE = /^prunelle(\/.*)?$/
@@ -66,7 +68,7 @@ export function upgradeProject(root: string): UpgradeResult {
       write(file, text, upgradePackageJson(text))
     else if (CONFIG_FILE_RE.test(file))
       write(file, text, apply(text, PATH_RULES))
-    else if (BUILD_FILE_RE.test(file))
+    else if (BUILD_FILE_RE.test(file) || AGENT_FILE_RE.test(file))
       write(file, text, apply(apply(text, PATH_RULES), [CLI_RULE]))
   }
   for (const dir of CI_DIRS) {
@@ -104,12 +106,12 @@ export function upgradeProject(root: string): UpgradeResult {
 const DEP_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
 const V1_RANGE_RE = /^[~^>=\s]*1\./
 
-// kay's core at a 1.x range, as `@kayjs/kay` or an `npm:@kayjs/kay@` alias: an app of `.kay` files prunelle cannot take.
 function dependsOnKay(root: string): boolean {
   const json = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as Record<string, Record<string, string> | undefined>
   return DEP_FIELDS.some(field => Object.entries(json[field] ?? {}).some(([name, range]) => name.startsWith('@kayjs/') || range.startsWith('npm:@kayjs/')))
 }
 
+// kay's core at a 1.x range, as `@kayjs/kay` or an `npm:@kayjs/kay@` alias: an app of `.kay` files prunelle cannot take.
 function kayV1Dependency(root: string): string | undefined {
   if (!existsSync(join(root, 'package.json')))
     return undefined

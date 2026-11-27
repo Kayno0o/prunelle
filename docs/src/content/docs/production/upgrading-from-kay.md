@@ -22,6 +22,7 @@ Run from the root of a bun workspace, it also rewrites each package the `workspa
 - **Imports and the names they bring.** `@kayjs/kay/server` becomes `prunelle/server`, and every name with kay in it is renamed where the file uses it: `KayPlugin` becomes `PrunellePlugin`, `KayLocals` becomes `PrunelleLocals`, a `declare module` block included. A name the file exports, or one that already exists in it, keeps its old name as an alias.
 - **Names the browser receives**, where scripts and styles spell them: `data-kay-*` attributes, the `kay-island` and `kay-s` tags, `/_kay/` paths, `x-kay-*` headers, the `kay:navigate`, `kay:region` and `kay:consent` events, and the `kay_session` and `kay_consent` cookies. Each takes the `pru` prefix: `data-pru-*`, `pru-island`, `/_pru/`.
 - **Build and CI files.** In `tsconfig.json`, `bunfig.toml`, `.gitignore`, a `Dockerfile`, `Justfile`, `Makefile`, compose file and the Forgejo, Gitea or GitHub workflows, the package, the CLI, the config file and the cache folders take their new names.
+- **Agent instructions.** `AGENTS.md` and `CLAUDE.md` take the same names, so they send agents to `node_modules/prunelle/llms.txt`.
 
 It also deletes the `.kay-cache` and `.kay-dev` folders, which only held build output.
 
