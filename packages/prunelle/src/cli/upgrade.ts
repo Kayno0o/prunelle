@@ -1,5 +1,6 @@
 // `prunelle upgrade`: moves an app written for kay v2 (`@kayjs/kay`) onto prunelle: its dependencies, config file, imports, the names it imports and the names the browser receives.
 
+import type { Dirent } from 'node:fs'
 import { existsSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import pkg from '../../package.json' with { type: 'json' }
@@ -91,7 +92,8 @@ export function upgradeProject(root: string): UpgradeResult {
       changed.push(`${dir}/`)
     }
   }
-  for (const member of workspaceMembers(root)) {
+  // A member with no kay dependency, a plain Bun app or a tool, has nothing to move.
+  for (const member of workspaceMembers(root).filter(m => dependsOnKay(join(root, m)))) {
     const res = upgradeProject(join(root, member))
     changed.push(...res.changed.map(file => `${member}/${file}`))
     manual.push(...res.manual.map(line => `${member}/${line}`))
@@ -103,6 +105,11 @@ const DEP_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies', 'opti
 const V1_RANGE_RE = /^[~^>=\s]*1\./
 
 // kay's core at a 1.x range, as `@kayjs/kay` or an `npm:@kayjs/kay@` alias: an app of `.kay` files prunelle cannot take.
+function dependsOnKay(root: string): boolean {
+  const json = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as Record<string, Record<string, string> | undefined>
+  return DEP_FIELDS.some(field => Object.entries(json[field] ?? {}).some(([name, range]) => name.startsWith('@kayjs/') || range.startsWith('npm:@kayjs/')))
+}
+
 function kayV1Dependency(root: string): string | undefined {
   if (!existsSync(join(root, 'package.json')))
     return undefined
@@ -149,11 +156,23 @@ function rootFiles(root: string): string[] {
   return readdirSync(root, { withFileTypes: true }).filter(e => e.isFile()).map(e => e.name).sort()
 }
 
+// The entries of `dir`, none for a folder the user cannot read: a container's data, never source they edit.
+function readableEntries(dir: string): Dirent[] {
+  try {
+    return readdirSync(dir, { withFileTypes: true })
+  }
+  catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'EACCES' || (err as NodeJS.ErrnoException).code === 'EPERM')
+      return []
+    throw err
+  }
+}
+
 // A folder holding its own package.json is another package, upgraded on its own.
 function sourceFiles(root: string, dir = root, out: string[] = []): string[] {
   if (dir !== root && existsSync(join(dir, 'package.json')))
     return out
-  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+  for (const entry of readableEntries(dir)) {
     if (isNotSourceDir(entry.name))
       continue
     const path = join(dir, entry.name)

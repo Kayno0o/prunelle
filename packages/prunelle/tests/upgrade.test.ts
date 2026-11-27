@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it, spyOn } from 'bun:test'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import pkg from '../package.json' with { type: 'json' }
@@ -189,10 +189,13 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
 
   it('upgrades each package a bun workspace lists, from its root', () => {
     const kayDeps = (field: string) => `${JSON.stringify({ name: 'member', [field]: { '@kayjs/kay': '^2.0.0-beta.8' } })}\n`
-    const legacy = `${JSON.stringify({ name: 'legacy', scripts: { dev: 'kay dev' }, dependencies: { 'kay': 'npm:@kayjs/kay@~1.112.2', '@kayjs/ui': '~1.112.2' } })}\n`
+    const legacy = `${JSON.stringify({ name: 'legacy', scripts: { dev: 'kay dev' }, dependencies: { kay: 'npm:@kayjs/kay@~1.112.2' } })}\n`
     const dir = appWith({
-      'package.json': `${JSON.stringify({ name: 'mono', private: true, workspaces: ['apps/**', 'shell/', 'legacy'] })}\n`,
+      'package.json': `${JSON.stringify({ name: 'mono', private: true, workspaces: ['apps/**', 'shell/', 'legacy', 'plain'] })}\n`,
       'legacy/package.json': legacy,
+      'plain/package.json': `${JSON.stringify({ name: 'plain', devDependencies: { '@types/bun': '^1.4.4' } })}\n`,
+
+      'plain/compose.yaml': '# Not in .env.example, which kay check would refuse.\n',
       'legacy/kay.config.ts': 'export default {}\n',
       'tsconfig.json': '{ "compilerOptions": { "jsxImportSource": "@kayjs/kay" } }\n',
       'apps/web/package.json': kayDeps('dependencies'),
@@ -211,6 +214,7 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
     expect(JSON.parse(read(dir, 'shell/package.json')).peerDependencies).toEqual({ prunelle: `^${pkg.version}` })
     expect(read(dir, 'apps/web/src/index.ts')).toBe('import { signal, gone } from \'prunelle\'\nexport const n = signal(gone)\n')
     expect(read(dir, 'tools/package.json')).toBe(kayDeps('dependencies'))
+    expect(read(dir, 'plain/compose.yaml')).toBe('# Not in .env.example, which kay check would refuse.\n')
     expect(read(dir, 'apps/web/node_modules/dep/package.json')).toBe(kayDeps('dependencies'))
   })
 
@@ -253,5 +257,20 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
     })
     expect(upgradeProject(dir)).toEqual({ changed: [], manual: [] })
     expect(read(dir, 'node_modules/lib/index.ts')).toBe('import { signal } from \'@kayjs/kay\'\n')
+  })
+
+  it('steps over a folder it cannot read, such as a container\'s data, and upgrades the rest', () => {
+    const dir = appWith({
+      'package.json': `${JSON.stringify({ name: 'app', dependencies: { '@kayjs/kay': '^2.1.0' } })}\n`,
+      'data-prod/db.sqlite': '',
+      'src/index.ts': 'import { signal } from \'@kayjs/kay\'\n',
+    })
+    chmodSync(join(dir, 'data-prod'), 0o000)
+    try {
+      expect(upgradeProject(dir).changed).toEqual(['package.json', 'src/index.ts'])
+    }
+    finally {
+      chmodSync(join(dir, 'data-prod'), 0o755)
+    }
   })
 })
