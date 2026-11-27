@@ -10,6 +10,8 @@ import { runWithAppContext } from '../plugins/context'
 import { enforceRequirements } from '../plugins/requires'
 import { normalizeConsentConfig, registerConsentRoute } from './consent'
 import { assertRateLimit, createRateLimitStore, hitFor, tooManyRequests } from './rate-limit'
+import type { RequestPath } from './request-path'
+import type { RouteMatch } from './router'
 import { Router } from './router'
 
 export interface PluginRouteDef {
@@ -18,6 +20,8 @@ export interface PluginRouteDef {
   csrf: boolean
   trustedOrigins: Set<string> | undefined
   trustProxy: TrustProxy
+  /** The catch-all takes an encoded separator for this method (`PluginRouteOptions.encodedSlashes`). */
+  encodedSlashes: boolean
 }
 
 interface ScopedMiddleware {
@@ -59,6 +63,14 @@ function middlewareAppliesToPath(scope: ScopedMiddleware['scope'], path: string,
   return normPath === normScope || normPath.startsWith(`${normScope}/`)
 }
 
+/** The methods of `match` that may answer `path`: for a path with an encoded separator, only those that set `encodedSlashes`; none left is no match. */
+export function takesEncoded(match: RouteMatch<Map<string, PluginRouteDef>> | undefined, path: RequestPath): RouteMatch<Map<string, PluginRouteDef>> | undefined {
+  if (match === undefined || path.encoded === undefined || path.encoded.size === 0)
+    return match
+  const data = new Map([...match.data].filter(([, def]) => def.encodedSlashes))
+  return data.size === 0 ? undefined : { data, params: match.params }
+}
+
 export function allowedPluginMethodsHeader(methods: ReadonlyMap<string, PluginRouteDef>): string {
   const allowed = new Set<string>()
   for (const m of methods.keys()) {
@@ -69,6 +81,19 @@ export function allowedPluginMethodsHeader(methods: ReadonlyMap<string, PluginRo
   if (allowed.has('GET'))
     allowed.add('HEAD')
   return [...allowed].join(', ')
+}
+
+function assertRouteFree(pluginName: string, upperMethod: string, normPath: string, byMethod: ReadonlyMap<string, PluginRouteDef>): void {
+  const directConflict = byMethod.get(upperMethod)
+  if (directConflict !== undefined)
+    throw new Error(`prunelle: plugin "${pluginName}" registered ${upperMethod} ${normPath}, which collides with "${directConflict.plugin}". Mount one of the plugins on a different path.`)
+  if (upperMethod === 'ALL' && byMethod.size > 0) {
+    const [existingMethod, existingDef] = byMethod.entries().next().value!
+    throw new Error(`prunelle: plugin "${pluginName}" registered ALL ${normPath}, which collides with ${existingMethod} ${normPath} from "${existingDef.plugin}". Mount one of the plugins on a different path.`)
+  }
+  const allConflict = byMethod.get('ALL')
+  if (allConflict !== undefined)
+    throw new Error(`prunelle: plugin "${pluginName}" registered ${upperMethod} ${normPath}, which collides with ALL ${normPath} from "${allConflict.plugin}". Mount one of the plugins on a different path.`)
 }
 
 export async function createServerPluginHost(options: ServerPluginHostOptions) {
@@ -89,25 +114,20 @@ export async function createServerPluginHost(options: ServerPluginHostOptions) {
   ): void => {
     const upperMethod = method.toUpperCase()
     const normPath = path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path
+    const encodedSlashes = routeOptions?.encodedSlashes === true
+    if (encodedSlashes && !normPath.split('/').some(seg => seg.startsWith('*')))
+      throw new Error(`prunelle: plugin "${pluginName}" set encodedSlashes on ${upperMethod} ${normPath}, which has no catch-all: only a \`*name\` segment takes an encoded /, so end the path with one, or drop the option.`)
     let byMethod = routeEntries.get(normPath)
     if (byMethod === undefined) {
       byMethod = new Map()
       routeEntries.set(normPath, byMethod)
-      router.add(normPath, byMethod)
+      router.add(normPath, byMethod, { encodedSlashes })
     }
     else {
-      const directConflict = byMethod.get(upperMethod)
-      if (directConflict !== undefined) {
-        throw new Error(`prunelle: plugin "${pluginName}" registered ${upperMethod} ${normPath}, which collides with "${directConflict.plugin}". Mount one of the plugins on a different path.`)
-      }
-      if (upperMethod === 'ALL' && byMethod.size > 0) {
-        const [existingMethod, existingDef] = byMethod.entries().next().value!
-        throw new Error(`prunelle: plugin "${pluginName}" registered ALL ${normPath}, which collides with ${existingMethod} ${normPath} from "${existingDef.plugin}". Mount one of the plugins on a different path.`)
-      }
-      const allConflict = byMethod.get('ALL')
-      if (allConflict !== undefined) {
-        throw new Error(`prunelle: plugin "${pluginName}" registered ${upperMethod} ${normPath}, which collides with ALL ${normPath} from "${allConflict.plugin}". Mount one of the plugins on a different path.`)
-      }
+      assertRouteFree(pluginName, upperMethod, normPath, byMethod)
+      // The path matches encoded separators once any method takes them; takesEncoded still refuses them to the others.
+      if (encodedSlashes)
+        router.add(normPath, byMethod, { encodedSlashes })
     }
     let routeTrustedOrigins = trustedOrigins
     if (routeOptions?.trustedOrigins !== undefined && routeOptions.trustedOrigins.length > 0) {
@@ -129,6 +149,7 @@ export async function createServerPluginHost(options: ServerPluginHostOptions) {
       csrf: routeOptions?.csrf ?? true,
       trustedOrigins: routeTrustedOrigins,
       trustProxy: routeOptions?.trustProxy ?? trustProxy,
+      encodedSlashes,
     })
   }
 

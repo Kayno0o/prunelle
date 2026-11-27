@@ -20,7 +20,13 @@ interface RoutePattern<T> {
   segments: CompiledSegment[]
   isStatic: boolean
   hasCatchAll: boolean
+  /** The catch-all takes a segment holding an encoded separator, left encoded. */
+  encodedSlashes: boolean
   data: T
+}
+
+export interface RouteOptions {
+  encodedSlashes?: boolean | undefined
 }
 
 export interface RouteMatch<T> {
@@ -57,7 +63,7 @@ function compareRoutes<T>(a: RoutePattern<T>, b: RoutePattern<T>): number {
   return 0
 }
 
-function compileRoutePattern<T>(path: string, data: T): RoutePattern<T> {
+function compileRoutePattern<T>(path: string, data: T, options?: RouteOptions): RoutePattern<T> {
   const norm = normalizePath(path)
   const clean = norm === '/' ? '' : norm.replace(/^\/|\/$/g, '')
   const rawSegments = clean === '' ? [] : clean.split('/')
@@ -81,7 +87,7 @@ function compileRoutePattern<T>(path: string, data: T): RoutePattern<T> {
     }
   }
 
-  return { path: norm, segments, isStatic, hasCatchAll, data }
+  return { path: norm, segments, isStatic, hasCatchAll, encodedSlashes: options?.encodedSlashes === true, data }
 }
 
 export class Router<T> {
@@ -89,8 +95,9 @@ export class Router<T> {
   readonly #dynamicRoutes: RoutePattern<T>[] = []
   #sorted = true
 
-  add(path: string, data: T): void {
-    const compiled = compileRoutePattern(path, data)
+  /** Adds the route at `path`, or replaces the one already there. */
+  add(path: string, data: T, options?: RouteOptions): void {
+    const compiled = compileRoutePattern(path, data, options)
     if (compiled.isStatic) {
       this.#staticRoutes.set(compiled.path, data)
     }
@@ -127,7 +134,8 @@ export class Router<T> {
 
     const parts = path.segments
     // A param never receives a separator, a NUL or a dot segment, encoded or not: joined into a path, it would walk out of the folder it names.
-    const refused = (k: number): boolean => path.encoded?.has(k) === true || parts[k] === '.' || parts[k] === '..'
+    const dotSegment = (k: number): boolean => parts[k] === '.' || parts[k] === '..'
+    const refused = (k: number): boolean => path.encoded?.has(k) === true || dotSegment(k)
 
     for (let i = 0; i < dynLen; i++) {
       const route = this.#dynamicRoutes[i]!
@@ -143,7 +151,7 @@ export class Router<T> {
         const seg = segs[j]!
         if (seg.kind === SegmentKind.CatchAll) {
           for (let k = j; k < parts.length; k++) {
-            if (refused(k))
+            if (route.encodedSlashes ? dotSegment(k) : refused(k))
               matched = false
           }
           break

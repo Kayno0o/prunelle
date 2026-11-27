@@ -713,6 +713,61 @@ describe('Audit #3526 Batch 1 — Server, Security, Compression, CLI & Dev', () 
       expect((await app.handle(new Request('http://localhost/fr/bad'))).status).toBe(400)
     })
 
+    it('gives a catch-all plugin route that opts in with encodedSlashes its encoded / left encoded, every other route and method still refusing it', async () => {
+      const dir = makeTemp('prunelle-encoded-slashes-')
+      mkdirSync(join(dir, 'src/routes'), { recursive: true })
+      writeFileSync(join(dir, 'src/routes/index.tsx'), `export default function Home() { return <h1>Hi</h1> }\n`)
+      await build({ root: dir })
+      const qr = definePlugin({
+        name: 'qr',
+        server(api) {
+          // The method that opts in comes second, after the path is known.
+          api.route('POST', '/qr/*text', () => new Response('posted'), { csrf: false })
+          api.route('GET', '/qr/*text', ctx => new Response(ctx.params.text), { encodedSlashes: true })
+          api.route('GET', '/tag/*text', ctx => new Response(ctx.params.text), { encodedSlashes: true })
+          api.route('GET', '/raw/*rest', ctx => new Response(ctx.params.rest))
+        },
+      })
+      const app = await createServer({ root: dir, plugins: [qr] })
+      const get = async (path: string, method = 'GET'): Promise<string> => {
+        const res = await app.handle(new Request(`http://localhost${path}`, { method }))
+        return `${res.status} ${await res.text()}`
+      }
+
+      expect(await get('/qr/https%3A%2F%2Fa.test%2Fx.svg')).toBe('200 https%3A%2F%2Fa.test%2Fx.svg')
+      expect(await get('/qr/a%20b/c')).toBe('200 a b/c')
+      expect(await get('/tag/a%2Fb')).toBe('200 a%2Fb')
+      expect(await get('/qr/%2e%2e/x')).toStartWith('404')
+      // The POST handler never sees it: the path names a resource only GET takes.
+      const post = await app.handle(new Request('http://localhost/qr/a%2Fb', { method: 'POST' }))
+      expect([post.status, post.headers.get('allow')]).toEqual([405, 'GET, HEAD'])
+      expect(await get('/raw/a%2Fb')).toStartWith('404')
+    })
+
+    it('refuses encodedSlashes on a plugin route with no catch-all, naming the route', async () => {
+      const dir = makeTemp('prunelle-encoded-slashes-param-')
+      mkdirSync(join(dir, 'src/routes'), { recursive: true })
+      writeFileSync(join(dir, 'src/routes/index.tsx'), `export default function Home() { return <h1>Hi</h1> }\n`)
+      await build({ root: dir })
+      const qr = definePlugin({
+        name: 'qr',
+        server(api) {
+          api.route('GET', '/qr/:text', ctx => new Response(ctx.params.text), { encodedSlashes: true })
+        },
+      })
+
+      await expect(createServer({ root: dir, plugins: [qr] })).rejects.toThrow('prunelle: plugin "qr" set encodedSlashes on GET /qr/:text, which has no catch-all: only a `*name` segment takes an encoded /, so end the path with one, or drop the option.')
+
+      const twice = definePlugin({
+        name: 'twice',
+        server(api) {
+          api.route('GET', '/qr/*text', () => new Response('first'))
+          api.route('GET', '/qr/*text', () => new Response('second'), { encodedSlashes: true })
+        },
+      })
+      await expect(createServer({ root: dir, plugins: [twice] })).rejects.toThrow('prunelle: plugin "twice" registered GET /qr/*text, which collides with "twice".')
+    })
+
     it('returns 404 for unlisted params on prerendered dynamic routes instead of SSR fallback', async () => {
       const dir = makeTemp('prunelle-audit-box10-')
       mkdirSync(join(dir, 'src/routes/posts'), { recursive: true })

@@ -89,6 +89,11 @@ export interface PluginRouteOptions {
   trustProxy?: TrustProxy | undefined
   /** How often one client may call the route: past `max` per `windowMs`, it answers 429 with `Retry-After` before the handler runs. */
   rateLimit?: RateLimit<RequestContext> | undefined
+  /**
+   * Let the route's catch-all take a segment with an encoded `/`, `\` or NUL (`%2F`, `%5C`, `%00`), which every route refuses by default.
+   * Such a segment reaches the param still encoded, never as a separator: for a route that reads it as text (a QR code of a URL), never one that joins it into a file path.
+   */
+  encodedSlashes?: boolean | undefined
 }
 
 export interface MiddlewareOptions {

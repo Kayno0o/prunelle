@@ -31,7 +31,7 @@ import { addedInlineStyleHashes, createDocumentHooks, createHtmlHeaders, mergeSt
 import { createErrorNotifier, createFallbackPages, devErrorResponse } from './errors'
 import { applyHstsHeader, DEFAULT_MAX_REQUEST_BODY_SIZE, enforceRequestBodyLimit, finalizeResponse, isNotFound, makeRequestContext, runChain, wantsJson } from './http'
 import { allowedMethodsHeader, pickPageIslandProps, stripHeadBody } from './page'
-import { allowedPluginMethodsHeader, createServerPluginHost } from './plugin-host'
+import { allowedPluginMethodsHeader, createServerPluginHost, takesEncoded } from './plugin-host'
 
 import { hasRegionHeader, invalidRegionResponse, requestedRegion, respondRegion, withRegionVary } from './region'
 import { decodeRequestPath, literalPath } from './request-path'
@@ -503,7 +503,7 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
 
       // Custom plugin routes run behind path-matched plugin middlewares so ctx.locals is available without cross-scope leaks.
       const method = request.method.toUpperCase()
-      const pluginMatch = pluginRouter.match(effective)
+      const pluginMatch = takesEncoded(pluginRouter.match(effective), effective)
       const directPluginDef = pluginMatch?.data.get(method) ?? pluginMatch?.data.get('ALL')
       const headFallbackPluginDef = directPluginDef === undefined && method === 'HEAD' ? pluginMatch?.data.get('GET') : undefined
       const routeDef = directPluginDef ?? headFallbackPluginDef
