@@ -1,15 +1,21 @@
 import { Head } from 'prunelle'
+import { RunningHead } from '../components/RunningHead'
 
 export default function NotFoundPage() {
   return (
-    <main class="docs-container" style="padding:5rem 1.5rem">
+    <>
       <Head>
         <title>Not found</title>
       </Head>
-      <p style="font-family:var(--ui-font-mono);font-size:0.78rem;color:var(--ui-accent);margin-bottom:0.5rem">404</p>
-      <h1 style="font-family:var(--ui-font-display);font-size:2.4rem;margin:0 0 1rem">Page not found</h1>
-      <p style="color:var(--ui-subtext);margin-bottom:1.5rem">That docs page moved or does not exist.</p>
-      <a data-ui="button" data-tone="accent" href="/docs/getting-started/introduction">Go to Docs →</a>
-    </main>
+      <RunningHead left="Errata" right="404" />
+      <main class="lost">
+        <h1>This page isn't here.</h1>
+        <p class="lead">It may have moved when the chapters were renumbered, or the link has a typo.</p>
+        <div class="actions">
+          <a data-ui="button" data-tone="accent" href="/">Back to the contents</a>
+          <a class="text-link" href="/docs/getting-started/introduction">Read the docs</a>
+        </div>
+      </main>
+    </>
   )
 }

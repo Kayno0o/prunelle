@@ -11,8 +11,8 @@ export function SearchIsland({ items }: { items: SearchDocItem[] }) {
   return (
     <CommandPalette
       $hydrate="idle"
-      triggerLabel="Search (⌘K)"
-      placeholder="Jump to a doc page…"
+      triggerLabel="Search"
+      placeholder="Jump to a chapter…"
       items={items.map(item => ({
         id: item.id,
         label: item.label,

@@ -12,7 +12,8 @@ import langTsx from '@shikijs/langs/tsx'
 import langTypescript from '@shikijs/langs/typescript'
 import langYaml from '@shikijs/langs/yaml'
 
-const surface = '#e4e9f1'
+// Listings sit on the page itself, so every light colour is checked against the paper.
+const paper = '#f8f4ee'
 
 function luminance(hex: string): number {
   const [r = 0, g = 0, b = 0] = [1, 3, 5].map((at) => {
@@ -25,7 +26,7 @@ function luminance(hex: string): number {
 function readable(hex: string): string {
   const channels = [1, 3, 5].map(at => Number.parseInt(hex.slice(at, at + 2), 16))
   let darker = hex
-  for (let scale = 1; (luminance(surface) + 0.05) / (luminance(darker) + 0.05) < 4.5; scale -= 0.01) {
+  for (let scale = 1; (luminance(paper) + 0.05) / (luminance(darker) + 0.05) < 4.5; scale -= 0.01) {
     darker = `#${channels.map(c => Math.round(c * scale).toString(16).padStart(2, '0')).join('')}`
   }
   return darker
@@ -41,11 +42,11 @@ interface Palette {
   type: string
 }
 
-function orbitTheme(name: string, type: 'light' | 'dark', c: Palette): ThemeRegistration {
+function bookTheme(name: string, type: 'light' | 'dark', c: Palette): ThemeRegistration {
   return {
     name,
     type,
-    colors: { 'editor.background': type === 'light' ? surface : '#10141e', 'editor.foreground': c.text },
+    colors: { 'editor.background': 'transparent', 'editor.foreground': c.text },
     tokenColors: [
       { scope: ['comment', 'punctuation.definition.comment'], settings: { foreground: c.comment } },
       { scope: ['keyword', 'storage', 'keyword.operator.new', 'keyword.control'], settings: { foreground: c.keyword } },
@@ -58,28 +59,28 @@ function orbitTheme(name: string, type: 'light' | 'dark', c: Palette): ThemeRegi
   }
 }
 
-const dark = orbitTheme('orbit-dark', 'dark', {
-  text: '#dbe0ea',
-  comment: '#7f889c',
-  keyword: '#f5b83d',
-  string: '#9fc2f2',
-  tag: '#e8a6c8',
-  fn: '#8fd3c7',
-  type: '#f2d29b',
+const dark = bookTheme('prunelle-dark', 'dark', {
+  text: '#f8f4ee',
+  comment: '#b5a6c2',
+  keyword: '#e5c068',
+  string: '#7cc79a',
+  tag: '#f2a65a',
+  fn: '#8fb8ea',
+  type: '#edd085',
 })
 
-const light = orbitTheme(
-  'orbit-light',
+const light = bookTheme(
+  'prunelle-light',
   'light',
   Object.fromEntries(
     Object.entries({
-      text: '#141b2b',
-      comment: '#566176',
-      keyword: '#95580a',
-      string: '#2b5a9a',
-      tag: '#9a3a6c',
-      fn: '#1f6f62',
-      type: '#7a5a12',
+      text: '#18111d',
+      comment: '#5a4b63',
+      keyword: '#7a3667',
+      string: '#2c6b3a',
+      tag: '#8a5a00',
+      fn: '#2b5c8a',
+      type: '#692857',
     }).map(([k, hex]) => [k, readable(hex)]),
   ) as unknown as Palette,
 )

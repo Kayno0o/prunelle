@@ -18,17 +18,14 @@ const draftSize = async (html: string): Promise<number> => (await brotliAsync(ht
 
 const kb = (bytes: number): string => `${(bytes / 1024).toFixed(1)} KB`
 
-// The footer shows what a first visit downloads, measured by prunelle's own first-load figure, and how much of it the hashed /_pru/ files a browser keeps for the next page make up.
+// The colophon states what a first visit downloads, measured by prunelle's own first-load figure: the JavaScript, then everything.
 export function pageWeight(): PrunellePlugin {
   let locate: Locate | undefined
-  let cacheable = (_url: string): boolean => false
 
   return {
     name: 'docs-page-weight',
     server(api) {
       locate = distLocator({ clientDir: join(api.outDir, 'client'), assetPrefix: api.assetPrefix, publicDirs: [join(api.outDir, 'public'), join(api.root, 'public')] })
-      const prefix = `${api.assetPrefix.replace(/\/$/, '')}/`
-      cacheable = url => url.startsWith(prefix)
     },
     async transformHtml(html) {
       if (!SLOT_RE.test(html) || locate === undefined)
@@ -36,8 +33,8 @@ export function pageWeight(): PrunellePlugin {
       const urls = firstLoadUrls(html)
       const javascript = runsJavaScript(html)
       const format = (load: FirstLoad) =>
-        `<span class="docs-weight" data-page-weight>This page: ${kb(load.total)} (${kb(load.cached)} cached)${javascript ? '' : ', no JavaScript'}.</span>`
-      const measure = (htmlBytes: number) => measureFirstLoad(urls, locate!, htmlBytes, cacheable)
+        `<span data-page-weight>This page: <b>${javascript ? kb(load.js) : '0 KB'}</b> of JS, ${kb(load.total)} in all.</span>`
+      const measure = (htmlBytes: number) => measureFirstLoad(urls, locate!, htmlBytes)
       // The line adds a few bytes to the page it reports, so the page is measured again with a draft figure in place.
       const first = format(measure(await draftSize(html)))
       const final = format(measure(await brotliSize(html.replace(SLOT_RE, () => first))))

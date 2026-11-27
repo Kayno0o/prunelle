@@ -1,4 +1,5 @@
 import type { PrunelleChild } from 'prunelle'
+import { Mark } from '../components/Mark'
 import { SearchIsland } from '../components/SearchIsland'
 import { getFlatNav } from '../content'
 
@@ -10,41 +11,37 @@ export default function Layout({ children, url }: { children: PrunelleChild, url
     href: item.href,
     section: item.sectionLabel,
   }))
-  const isDocs = pathname.startsWith('/docs')
-  const isGrammars = pathname === '/grammars'
 
   return (
     <>
-      <header class="docs-header">
-        <div class={isDocs ? 'docs-shell-width docs-nav' : 'docs-container docs-nav'}>
-          <a class="docs-brand" href="/">
-            <img src="/favicon.svg" width="24" height="24" alt="" />
-            prunelle
-            <span class="docs-ver">v0.1</span>
-          </a>
-          <nav class="docs-nav-links" aria-label="Main navigation">
-            <a href="/docs/getting-started/introduction" aria-current={isDocs ? 'page' : undefined}>Docs</a>
-            <a href="/grammars" aria-current={isGrammars ? 'page' : undefined}>UI Grammars</a>
-            <a class="docs-nav-hide-sm" href="/#ecosystem">Ecosystem</a>
-            <a class="docs-nav-hide-sm" href="/#benchmarks">Benchmarks</a>
-            <a class="docs-nav-hide-sm" href="/llms.txt" style="font-family:var(--ui-font-mono);font-size:0.8rem">llms.txt</a>
-            <SearchIsland items={searchItems} />
-          </nav>
-        </div>
+      <header class="mast">
+        <a class="brand" href="/">
+          <Mark />
+          prunelle
+        </a>
+        <nav class="mast-nav" aria-label="Main navigation">
+          <a href="/docs/getting-started/introduction" aria-current={pathname.startsWith('/docs') ? 'page' : undefined}>Docs</a>
+          <a href="/grammars" aria-current={pathname === '/grammars' ? 'page' : undefined}>Grammars</a>
+          <a class="mast-hide-sm" href="/llms.txt">llms.txt</a>
+          <SearchIsland items={searchItems} />
+        </nav>
       </header>
       {children}
-      <footer class="docs-footer">
-        <div class={isDocs ? 'docs-shell-width docs-footer-row' : 'docs-container docs-footer-row'}>
-          <span>
-            Built with <a href="https://github.com/Kayno0o/prunelle">prunelle</a>, exported as static files.{' '}
-            <span class="docs-weight" data-page-weight=""></span>
-          </span>
-          <span style="font-family:var(--ui-font-mono);display:flex;gap:1rem">
-            <a href="/llms.txt" style="text-decoration:none">llms.txt</a>
-            <a href="https://github.com/Kayno0o/prunelle" style="text-decoration:none">GitHub</a>
-            <span>MIT</span>
-          </span>
-        </div>
+      <footer class="colophon">
+        <a class="brand" href="/">
+          <Mark />
+          prunelle
+        </a>
+        <p>
+          Titles in Fraunces, text in your system's sans.
+          {' '}
+          <span data-page-weight=""></span>
+          {' '}
+          MIT,
+          {' '}
+          <a href="https://github.com/Kayno0o/prunelle">source on GitHub</a>
+          .
+        </p>
       </footer>
     </>
   )

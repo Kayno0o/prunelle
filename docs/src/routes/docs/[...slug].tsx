@@ -3,11 +3,12 @@ import type { RequestContext } from 'prunelle/server'
 import { join } from 'node:path'
 import { shareCard } from '@prunellejs/images'
 import { Head } from 'prunelle'
-import { type DocFrontmatter, docs, DOCS_ROOT, getFlatNav, getNavGroups, type NavItem, SECTIONS } from '../../content'
+import { RunningHead } from '../../components/RunningHead'
+import { type DocFrontmatter, docs, DOCS_ROOT, getFlatNav, getNavGroups, type NavGroup, type NavItem, numberChapter } from '../../content'
 
 export const prerender = true
 
-const COPY_CODE_SCRIPT = `document.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('.docs-code-copy'):null;if(!b)return;var p=b.closest('.docs-code');var pre=p&&p.querySelector('pre');var t=pre?pre.textContent||'':'';(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t):Promise.reject()).catch(function(){var a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}).finally(function(){b.textContent='Copied';b.setAttribute('data-copied','true');clearTimeout(b._t);b._t=setTimeout(function(){b.textContent='Copy';b.removeAttribute('data-copied')},1800)})});`
+const COPY_CODE_SCRIPT = `document.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('.listing-copy'):null;if(!b)return;var p=b.closest('.listing');var pre=p&&p.querySelector('pre');var t=pre?pre.textContent||'':'';(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t):Promise.reject()).catch(function(){var a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}).finally(function(){b.textContent='Copied';clearTimeout(b._t);b._t=setTimeout(function(){b.textContent='Copy'},1800)})});`
 
 export function paths(): string[] {
   return docs.paths('/docs')
@@ -15,8 +16,9 @@ export function paths(): string[] {
 
 interface DocPageData {
   entry: ContentEntry<DocFrontmatter>
-  sectionLabel: string
-  groups: ReturnType<typeof getNavGroups>
+  chapter: NavItem
+  html: string
+  groups: NavGroup[]
   prev: NavItem | undefined
   next: NavItem | undefined
   ogImage: string
@@ -29,128 +31,106 @@ export async function load(ctx: RequestContext): Promise<DocPageData | Response>
     return new Response('Doc page not found', { status: 404 })
 
   await entry.render()
-  const groups = getNavGroups()
   const flat = getFlatNav()
   const idx = flat.findIndex(item => item.slug === entry.slug)
-  const sectionLabel = SECTIONS.find(s => s.id === entry.data.section)?.label ?? entry.data.section
+  const chapter = flat[idx]!
   const ogImage = shareCard({
     title: entry.data.title,
-    badge: sectionLabel,
+    badge: chapter.partLabel,
     image: join(DOCS_ROOT, 'src/prunelle-card.svg'),
   })
 
   return {
     entry,
-    sectionLabel,
-    groups,
+    chapter,
+    html: numberChapter(entry.html, chapter.chapter),
+    groups: getNavGroups(),
     prev: idx > 0 ? flat[idx - 1] : undefined,
-    next: idx >= 0 && idx < flat.length - 1 ? flat[idx + 1] : undefined,
+    next: idx < flat.length - 1 ? flat[idx + 1] : undefined,
     ogImage,
   }
 }
 
+function Contents({ groups, chapter, sections }: { groups: NavGroup[], chapter: NavItem, sections: Array<{ id: string, text: string }> }) {
+  return (
+    <>
+      {groups.map(group => (
+        <div key={group.id}>
+          <div class="part">{`${group.part}. ${group.label}`}</div>
+          <ol>
+            {group.items.map(item => (
+              <li key={item.slug}>
+                <a class="ch" href={item.href} aria-current={item.slug === chapter.slug ? 'page' : undefined}>
+                  <i>{item.chapter}</i>
+                  <span>{item.title}</span>
+                </a>
+                {item.slug === chapter.slug && sections.length > 0 && (
+                  <ol class="sections">
+                    {sections.map((h, n) => (
+                      <li key={h.id}>
+                        <a class="ch" href={`#${h.id}`}>
+                          <i>{`${item.chapter}.${n + 1}`}</i>
+                          <span>{h.text}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ))}
+    </>
+  )
+}
+
 export default function DocPage({ data }: { data: DocPageData }) {
-  const { entry, sectionLabel, groups, prev, next, ogImage } = data
-  const tocHeadings = entry.headings.filter(h => h.level === 2 || h.level === 3)
+  const { entry, chapter, html, groups, prev, next, ogImage } = data
+  const sections = entry.headings.filter(h => h.level === 2)
 
   return (
-    <div class="docs-shell-width docs-layout">
+    <>
       <Head>
         <title>{entry.data.title}</title>
         <meta name="description" content={entry.data.description} />
         <meta property="og:image" content={ogImage} />
       </Head>
+      <RunningHead left={chapter.partLabel} right={entry.data.title} />
 
-      <aside class="docs-sidebar" aria-label="Documentation sections">
-        <div class="docs-sidebar-sticky">
-          {groups.map(group => (
-            <div key={group.id} class="sb-group">
-              <div class="sb-title">{group.label}</div>
-              <ul class="sb-list">
-                {group.items.map(item => (
-                  <li key={item.slug}>
-                    <a href={item.href} aria-current={item.slug === entry.slug ? 'page' : undefined}>
-                      {item.title}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      <article class="docs-article">
-        <details class="docs-mobile-nav">
-          <summary>Menu — {sectionLabel}</summary>
-          <div class="docs-mobile-nav-body">
-            {groups.map(group => (
-              <div key={group.id} class="sb-group">
-                <div class="sb-title">{group.label}</div>
-                <ul class="sb-list">
-                  {group.items.map(item => (
-                    <li key={item.slug}>
-                      <a href={item.href} aria-current={item.slug === entry.slug ? 'page' : undefined}>
-                        {item.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </details>
-
-        <div class="docs-crumb">
-          {sectionLabel} <span>/</span> {entry.data.title}
-        </div>
-        <h1>{entry.data.title}</h1>
-        <p class="docs-article-lead">{entry.data.description}</p>
-
-        <div class="docs-prose" innerHTML={entry.html} />
-        <script>{COPY_CODE_SCRIPT}</script>
-
-        <nav class="docs-pager" aria-label="Page pagination">
-          {prev !== undefined
-            ? (
-                <a class="docs-pager-card" href={prev.href}>
-                  <div class="docs-pager-dir">← Previous</div>
-                  <div class="docs-pager-name">{prev.title}</div>
-                </a>
-              )
-            : <span />}
-          {next !== undefined && (
-            <a class="docs-pager-card docs-pager-next" href={next.href}>
-              <div class="docs-pager-dir">Next →</div>
-              <div class="docs-pager-name">{next.title}</div>
-            </a>
-          )}
+      <div class="book">
+        <nav class="contents" aria-label="Contents">
+          <Contents groups={groups} chapter={chapter} sections={sections} />
         </nav>
-      </article>
 
-      <aside class="docs-toc" aria-label="On this page">
-        <div class="docs-toc-sticky">
-          {tocHeadings.length > 0 && (
-            <>
-              <div class="docs-toc-title">On this page</div>
-              <ul class="docs-toc-list">
-                {tocHeadings.map(h => (
-                  <li key={h.id} style={h.level === 3 ? 'padding-left:0.75rem' : undefined}>
-                    <a href={`#${h.id}`}>{h.text}</a>
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-          <div class="docs-toc-meta">
-            <a href="/llms.txt"><span>→</span> View llms.txt (1-page ref)</a>
-            <a href="/grammars"><span>→</span> Live UI Grammars</a>
-            <a href={`https://github.com/Kayno0o/prunelle/blob/main/docs/src/content/docs/${entry.slug}.md`}>
-              <span>→</span> Edit on GitHub
-            </a>
-          </div>
-        </div>
-      </aside>
-    </div>
+        <article class="chapter">
+          <header class="chapter-head">
+            <span class="chapter-num" aria-hidden="true">{chapter.chapter}</span>
+            <h1>{entry.data.title}</h1>
+            <p class="lead">{entry.data.description}</p>
+          </header>
+
+          <div class="prose" innerHTML={html} />
+          <script>{COPY_CODE_SCRIPT}</script>
+
+          <nav class="turn" aria-label="Previous and next chapters">
+            {prev !== undefined
+              ? (
+                  <a href={prev.href} rel="prev">
+                    Previous
+                    <b>{`${prev.chapter} ${prev.title}`}</b>
+                  </a>
+                )
+              : <span />}
+            {next !== undefined && (
+              <a href={next.href} rel="next">
+                Next
+                <b>{`${next.chapter} ${next.title}`}</b>
+              </a>
+            )}
+          </nav>
+        </article>
+      </div>
+    </>
   )
 }
