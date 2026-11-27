@@ -145,6 +145,7 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
   it('points the agent instructions at prunelle\'s llms.txt, plugins and CLI, leaving other notes alone (#42)', () => {
     const dir = appWith({
       'AGENTS.md': lines(
+        'Built with Kay v2 (`@kayjs/kay@^2.0.0-beta.8`, `@kayjs/ui@~2.0.0-beta.8`).',
         'Built with kay v2. Read `node_modules/@kayjs/kay/llms.txt` before writing kay code, and `node_modules/@kayjs/ui/llms.txt`.',
         'Find an icon with `bunx kay icons-find <words>`; the settings live in `kay.config.ts`.',
       ),
@@ -153,6 +154,7 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
     })
     expect(upgradeProject(dir).changed).toEqual(['AGENTS.md', 'CLAUDE.md'])
     expect(read(dir, 'AGENTS.md')).toBe(lines(
+      `Built with prunelle (\`prunelle@^${pkg.version}\`, \`@prunellejs/ui@^${pkg.version}\`).`,
       'Built with prunelle. Read `node_modules/prunelle/llms.txt` before writing prunelle code, and `node_modules/@prunellejs/ui/llms.txt`.',
       'Find an icon with `bunx prunelle icons-find <words>`; the settings live in `prunelle.config.ts`.',
     ))

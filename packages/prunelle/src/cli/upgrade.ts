@@ -18,11 +18,13 @@ export interface UpgradeResult {
 
 // The specifiers and file names every kind of file may name.
 const PATH_RULES: [RegExp, string][] = [
+  // A kay v2 version written beside a package, as notes do, names no prunelle release: the current one replaces it.
+  [/(@kayjs\/[\w-]+)@[\^~]?2\.\d+\.\d+[\w.-]*/g, `$1@^${pkg.version}`],
   [/@kayjs\/kay(?![\w-])/g, 'prunelle'],
   [/@kayjs\//g, '@prunellejs/'],
   [/\.kay-(cache|dev)\b/g, '.prunelle-$1'],
   [/\bkay\.config\b/g, 'prunelle.config'],
-  [/\bkay v2\b/g, 'prunelle'],
+  [/\bkay v2\b/gi, 'prunelle'],
 ]
 // The names kay sent the browser, as app code and styles may spell them.
 const WIRE_RULES: [RegExp, string][] = [
