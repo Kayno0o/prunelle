@@ -327,4 +327,141 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
       chmodSync(join(dir, 'data-prod'), 0o755)
     }
   })
+
+  it('leaves built scripts in public/ and custom publicDir untouched (#43)', () => {
+    const vendorJs = 'document.querySelector("[data-kay-hydrate]"); fetch("/_kay/chunk.js");\n'
+    const dir = appWith({
+      'public/vendor.js': vendorJs,
+      'public/nested/app.js': 'customElements.define("kay-island", class extends HTMLElement {})\n',
+      'src/app.ts': 'export const sel = "[data-kay-hydrate]"\n',
+    })
+    expect(upgradeProject(dir).changed).toEqual(['src/app.ts'])
+    expect(read(dir, 'public/vendor.js')).toBe(vendorJs)
+    expect(read(dir, 'public/nested/app.js')).toBe('customElements.define("kay-island", class extends HTMLElement {})\n')
+    expect(read(dir, 'src/app.ts')).toBe('export const sel = "[data-pru-hydrate]"\n')
+
+    const custom = appWith({
+      'kay.config.ts': 'import { defineConfig } from \'@kayjs/kay/config\'\nexport default defineConfig({ publicDir: \'./static\' })\n',
+      'static/widget.js': vendorJs,
+      'src/app.ts': 'export const sel = "/_kay/events"\n',
+    })
+    expect(upgradeProject(custom).changed).toEqual(['kay.config.ts -> prunelle.config.ts', 'prunelle.config.ts', 'src/app.ts'])
+    expect(read(custom, 'static/widget.js')).toBe(vendorJs)
+    expect(read(custom, 'src/app.ts')).toBe('export const sel = "/_pru/events"\n')
+  })
+
+  it('upgrades an app pinning kay v2 through an npm alias and rewrites its imports, types and tsconfig (#41)', () => {
+    const dir = appWith({
+      'package.json': `${JSON.stringify({
+        name: 'aliased-app',
+        dependencies: {
+          'kay': 'npm:@kayjs/kay@^2.0.0-alpha.5',
+          'my-ui': 'npm:@kayjs/ui@^2.0.0-beta.1',
+          'hono': '^4.0.0',
+        },
+        devDependencies: {
+          'prunelle': '^0.0.1',
+          'kay-dev': 'npm:@kayjs/kay@^2.0.0-alpha.5',
+        },
+      }, null, 2)}\n`,
+      'tsconfig.json': '{\n  // kept\n  "compilerOptions": { "jsxImportSource": "kay", "types": ["kay/ambient", "my-ui/ambient"] }\n}\n',
+      'src/env.d.ts': '/// <reference types="kay/ambient" />\ndeclare module \'kay/server\' { interface KayLocals { user?: string } }\n',
+      'src/app.ts': lines(
+        'import type { KayPlugin as Plugin, KayConfig } from \'kay/config\'',
+        'import { defineConfig } from "kay/config"',
+        'import { signal } from \'kay\'',
+        'import * as k from \'kay/server\'',
+        'import { Button } from \'my-ui\'',
+        'const plugins: Plugin[] = []',
+        'export const config: KayConfig = defineConfig({ plugins })',
+        'export const n = signal(0)',
+        'export const ui = Button',
+        'export type Locals = import(\'kay/server\').KayLocals',
+        'export type App = k.KayApp',
+        'const kayName = \'kay\'',
+        'const pathText = \'kay/server\'',
+        '// kay stays in comments',
+        'export const lazy = () => import(\'kay/test\')',
+        'export { KayApp, type KayPlugin as Plugin } from \'kay/server\'',
+        'export * from \'kay/config\'',
+      ),
+    })
+
+    expect(upgradeProject(dir)).toEqual({
+      changed: ['package.json', 'src/app.ts', 'src/env.d.ts', 'tsconfig.json'],
+      manual: [],
+    })
+    expect(JSON.parse(read(dir, 'package.json'))).toEqual({
+      name: 'aliased-app',
+      dependencies: {
+        '@prunellejs/ui': `^${pkg.version}`,
+        'hono': '^4.0.0',
+        'prunelle': `^${pkg.version}`,
+      },
+      devDependencies: {
+        prunelle: `^${pkg.version}`,
+      },
+    })
+    expect(read(dir, 'tsconfig.json')).toBe('{\n  // kept\n  "compilerOptions": { "jsxImportSource": "prunelle", "types": ["prunelle/ambient", "@prunellejs/ui/ambient"] }\n}\n')
+    expect(read(dir, 'src/env.d.ts')).toBe('/// <reference types="prunelle/ambient" />\ndeclare module \'prunelle/server\' { interface PrunelleLocals { user?: string } }\n')
+    expect(read(dir, 'src/app.ts')).toBe(lines(
+      'import type { PrunellePlugin as Plugin, PrunelleConfig } from \'prunelle/config\'',
+      'import { defineConfig } from "prunelle/config"',
+      'import { signal } from \'prunelle\'',
+      'import * as k from \'prunelle/server\'',
+      'import { Button } from \'@prunellejs/ui\'',
+      'const plugins: Plugin[] = []',
+      'export const config: PrunelleConfig = defineConfig({ plugins })',
+      'export const n = signal(0)',
+      'export const ui = Button',
+      'export type Locals = import(\'prunelle/server\').PrunelleLocals',
+      'export type App = k.PrunelleApp',
+      'const kayName = \'kay\'',
+      'const pathText = \'kay/server\'',
+      '// kay stays in comments',
+      'export const lazy = () => import(\'prunelle/test\')',
+      'export { PrunelleApp as KayApp, type PrunellePlugin as Plugin } from \'prunelle/server\'',
+      'export * from \'prunelle/config\'',
+    ))
+  })
+
+  it('still refuses a kay v1 npm alias (#41)', () => {
+    const pkgJson = `${JSON.stringify({ name: 'old', dependencies: { kay: 'npm:@kayjs/kay@^1.0.0' } })}\n`
+    const dir = appWith({
+      'package.json': pkgJson,
+      'tsconfig.json': '{ "compilerOptions": { "jsxImportSource": "kay" } }\n',
+      'src/app.ts': 'import { signal } from \'kay\'\n',
+    })
+    expect(upgradeProject(dir)).toEqual({
+      changed: [],
+      manual: ['package.json:1: kay: npm:@kayjs/kay@^1.0.0 is kay v1: prunelle upgrade moves kay v2 apps, so this one is left as it is.'],
+    })
+    expect(read(dir, 'package.json')).toBe(pkgJson)
+    expect(read(dir, 'tsconfig.json')).toBe('{ "compilerOptions": { "jsxImportSource": "kay" } }\n')
+    expect(read(dir, 'src/app.ts')).toBe('import { signal } from \'kay\'\n')
+  })
+
+  it('adds .prunelle-cache/ to .gitignore and leaves git status clean after testApp runs (#39)', () => {
+    const dir = appWith({
+      'package.json': `${JSON.stringify({ name: 'app', dependencies: { '@kayjs/kay': '^2.0.0-alpha.9' } }, null, 2)}\n`,
+      '.gitignore': 'node_modules/\ndist/',
+      'src/routes/index.tsx': 'import { signal } from \'@kayjs/kay\'\nfunction Counter() { const n = signal(0); return <button type="button" onClick={() => n.value++}>{n.value}</button> }\nexport default function Home() { return <main><Counter /></main> }\n',
+      'run.ts': 'import { testApp } from \'prunelle/test\'\nconst t = await testApp({ root: import.meta.dir })\nif ((await t.get(\'/\')).status !== 200) process.exit(3)\n',
+    })
+    mkdirSync(join(dir, 'node_modules'), { recursive: true })
+    symlinkSync(join(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'), 'dir')
+
+    expect(upgradeProject(dir).changed).toContain('.gitignore')
+    expect(read(dir, '.gitignore')).toBe('node_modules/\ndist/\n.prunelle-cache/\n')
+
+    expect(Bun.spawnSync(['git', 'init'], { cwd: dir, stdout: 'ignore', stderr: 'ignore' }).exitCode).toBe(0)
+    const run = Bun.spawnSync(['bun', 'run.ts'], { cwd: dir, stdout: 'pipe', stderr: 'pipe' })
+    expect(run.exitCode).toBe(0)
+    expect(existsSync(join(dir, '.prunelle-cache/brotli-11'))).toBe(true)
+
+    const status = Bun.spawnSync(['git', 'status', '--porcelain'], { cwd: dir, stdout: 'pipe', stderr: 'pipe' })
+    expect(status.exitCode).toBe(0)
+    const linesOut = new TextDecoder().decode(status.stdout).split('\n').filter(Boolean)
+    expect(linesOut.filter(line => line.includes('.prunelle-cache'))).toEqual([])
+  })
 })

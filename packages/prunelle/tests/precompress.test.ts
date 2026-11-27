@@ -130,4 +130,16 @@ describe('brotli cache of the sidecars (#3684)', () => {
     expect(readdirSync(brotliCacheDir(root))).toHaveLength(1)
     expect(brotliDecompressSync(readFileSync(join(brotliCacheDir(root), readdirSync(brotliCacheDir(root))[0]!))).toString()).toBe(readFileSync(css, 'utf8'))
   })
+
+  it('writes a self-ignoring .gitignore inside .prunelle-cache/ so git status lists nothing in it (#39)', async () => {
+    const root = makeTemp('prunelle-39-')
+    expect(Bun.spawnSync(['git', 'init'], { cwd: root, stdout: 'ignore', stderr: 'ignore' }).exitCode).toBe(0)
+    await precompressFiles([pageIn(root, 'a.html')], 128, root)
+
+    expect(readFileSync(join(root, '.prunelle-cache/.gitignore'), 'utf8')).toBe('*\n')
+    const status = Bun.spawnSync(['git', 'status', '--porcelain'], { cwd: root, stdout: 'pipe', stderr: 'pipe' })
+    expect(status.exitCode).toBe(0)
+    const untracked = new TextDecoder().decode(status.stdout).split('\n').filter(Boolean)
+    expect(untracked.filter(line => line.includes('.prunelle-cache'))).toEqual([])
+  })
 })

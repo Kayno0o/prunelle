@@ -2,7 +2,7 @@
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
-import { dirname, extname, join } from 'node:path'
+import { basename, dirname, extname, join } from 'node:path'
 import { promisify } from 'node:util'
 import { brotliCompress, brotliCompressSync, constants as zlibConstants } from 'node:zlib'
 import { getAppContext } from '../plugins/context'
@@ -46,9 +46,22 @@ function readEntry(file: string): Buffer | undefined {
   }
 }
 
+/** Writes a self-ignoring `.gitignore` inside `.prunelle-cache/` so git never lists cached files as untracked (#39). */
+export function ensureCacheGitignore(cacheRoot: string): void {
+  const file = join(cacheRoot, '.gitignore')
+  if (existsSync(file))
+    return
+  mkdirSync(cacheRoot, { recursive: true })
+  writeFileSync(file, '*\n')
+}
+
 // Renamed into place, so a build running beside this one never reads half an entry.
 function writeEntry(file: string, packed: Uint8Array): void {
-  mkdirSync(dirname(file), { recursive: true })
+  const dir = dirname(file)
+  mkdirSync(dir, { recursive: true })
+  const parent = dirname(dir)
+  if (basename(parent) === '.prunelle-cache')
+    ensureCacheGitignore(parent)
   const tmp = `${file}.${process.pid}-${tmpCount++}.tmp`
   writeFileSync(tmp, packed)
   renameSync(tmp, file)

@@ -192,6 +192,31 @@ export default { plugins: [ui({ grammar: 'editorial' })] }
     }
   })
 
+  test('an app made with prunelle new shows no .prunelle-cache file in git status after tests run (#39)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'prunelle-39-new-'))
+    try {
+      const appDir = join(dir, 'demo-app')
+      expect(await runCli(['new', 'demo-app', '--template', 'minimal'], { cwd: dir })).toBe(0)
+      expect(readFileSync(join(appDir, '.gitignore'), 'utf8')).toContain('.prunelle-cache/')
+      mkdirSync(join(appDir, 'node_modules/@prunellejs'), { recursive: true })
+      symlinkSync(PRUNELLE_PKG_DIR, join(appDir, 'node_modules/prunelle'), 'dir')
+      writeFileSync(join(appDir, 'run.ts'), 'import { testApp } from \'prunelle/test\'\nconst t = await testApp({ root: import.meta.dir })\nif ((await t.get(\'/\')).status !== 200) process.exit(3)\n')
+
+      expect(Bun.spawnSync(['git', 'init'], { cwd: appDir, stdout: 'ignore', stderr: 'ignore' }).exitCode).toBe(0)
+      const run = Bun.spawnSync(['bun', 'run.ts'], { cwd: appDir, stdout: 'pipe', stderr: 'pipe' })
+      expect(run.exitCode).toBe(0)
+      expect(existsSync(join(appDir, '.prunelle-cache/brotli-11'))).toBe(true)
+
+      const status = Bun.spawnSync(['git', 'status', '--porcelain'], { cwd: appDir, stdout: 'pipe', stderr: 'pipe' })
+      expect(status.exitCode).toBe(0)
+      const untracked = new TextDecoder().decode(status.stdout).split('\n').filter(Boolean)
+      expect(untracked.filter(line => line.includes('.prunelle-cache'))).toEqual([])
+    }
+    finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
   test('prunelle dev honors prunelle.config.ts maxRequestBodySize, routesDir, publicDir, and assetPrefix', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'prunelle-3568-dev-'))
     try {

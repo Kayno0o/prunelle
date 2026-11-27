@@ -6,6 +6,7 @@ import { walk } from '../compiler/ast'
 import { SourceEditor } from '../compiler/patch'
 
 const KAY_SOURCE_RE = /^@kayjs\//
+const REF_TYPES_RE = /^(\s*\/\/\/\s*<reference\s+types=)(["'])([^"']+)\2(\s*\/>)/gm
 
 type Import = Extract<AstNode, { type: 'ImportDeclaration' }>
 type Specifier = Extract<AstNode, { type: 'ImportSpecifier' }>
@@ -25,17 +26,61 @@ export function prunelleName(name: string): string | undefined {
 }
 
 const nameOf = (node: { type: string, name?: string, value?: unknown }): string => node.type === 'Identifier' ? node.name! : String(node.value)
-const fromKay = (source: { value: unknown } | null | undefined): boolean => typeof source?.value === 'string' && KAY_SOURCE_RE.test(source.value)
 
-/** Rewrites the names `code` imports from `@kayjs/*`, run before its specifiers are renamed. */
-export function renameKayNames(file: string, code: string): string {
-  if (!code.includes('@kayjs/'))
+function resolveAlias(spec: string, aliases?: ReadonlyMap<string, string>): string | undefined {
+  if (aliases === undefined || aliases.size === 0)
+    return undefined
+  for (const [alias, target] of aliases) {
+    if (spec === alias)
+      return target
+    if (spec.startsWith(`${alias}/`))
+      return `${target}${spec.slice(alias.length)}`
+  }
+  return undefined
+}
+
+function hasKaySourceHint(code: string, aliases?: ReadonlyMap<string, string>): boolean {
+  if (code.includes('@kayjs/'))
+    return true
+  if (aliases === undefined || aliases.size === 0)
+    return false
+  for (const alias of aliases.keys()) {
+    if (code.includes(alias))
+      return true
+  }
+  return false
+}
+
+function rewriteTripleSlash(code: string, aliases?: ReadonlyMap<string, string>): string {
+  if (aliases === undefined || aliases.size === 0 || !code.includes('<reference'))
+    return code
+  return code.replace(REF_TYPES_RE, (full, pre: string, quote: string, spec: string, post: string) => {
+    const target = resolveAlias(spec, aliases)
+    return target === undefined ? full : `${pre}${quote}${target}${quote}${post}`
+  })
+}
+
+/** Rewrites the names `code` imports from `@kayjs/*` (and any npm aliases in `aliases`), plus alias module specifiers, run before `@kayjs/*` specifiers are renamed. */
+export function renameKayNames(file: string, code: string, aliases?: ReadonlyMap<string, string>): string {
+  if (!hasKaySourceHint(code, aliases))
     return code
   const program = parseTsx(file, code)
   const editor = new SourceEditor(code)
   const bindings = new Map<string, Binding>()
   const namespaces = new Set<string>()
   const skipped = new Set<number>()
+  const patchedSources = new Set<number>()
+  const fromKay = (source: { value?: unknown } | null | undefined): boolean =>
+    typeof source?.value === 'string' && (KAY_SOURCE_RE.test(source.value) || resolveAlias(source.value, aliases) !== undefined)
+  const rewriteSource = (source: { start: number, end: number, value?: unknown } | null | undefined): void => {
+    if (source === null || source === undefined || typeof source.value !== 'string' || patchedSources.has(source.start))
+      return
+    const target = resolveAlias(source.value, aliases)
+    if (target === undefined)
+      return
+    patchedSources.add(source.start)
+    editor.replace(source.start + 1, source.end - 1, target)
+  }
   const rename = (node: AstNode): void => {
     const renamed = node.type === 'Identifier' || node.type === 'JSXIdentifier' ? prunelleName(node.name) : undefined
     if (renamed !== undefined)
@@ -45,8 +90,11 @@ export function renameKayNames(file: string, code: string): string {
   for (const stmt of program.body) {
     if (stmt.type === 'ImportDeclaration' && fromKay(stmt.source))
       collectImport(stmt, bindings, namespaces)
-    if (stmt.type === 'TSModuleDeclaration' && stmt.id.type === 'Literal' && fromKay(stmt.id))
-      renameAugmented(stmt.body, rename)
+    if (stmt.type === 'TSModuleDeclaration' && stmt.id.type === 'Literal') {
+      rewriteSource(stmt.id)
+      if (fromKay(stmt.id))
+        renameAugmented(stmt.body, rename)
+    }
   }
 
   const names = new Set<string>()
@@ -56,13 +104,22 @@ export function renameKayNames(file: string, code: string): string {
       binding.pinned = true
   }
   walk(program.body, (node) => {
-    if (node.type === 'ImportDeclaration')
+    if (node.type === 'ImportDeclaration') {
+      rewriteSource(node.source)
       return false
+    }
     if (node.type === 'ExportNamedDeclaration' && node.source !== null) {
+      rewriteSource(node.source)
       if (fromKay(node.source))
         reexport(node.specifiers, editor)
       return false
     }
+    if (node.type === 'ExportAllDeclaration') {
+      rewriteSource(node.source)
+      return false
+    }
+    if (node.type === 'ImportExpression' && node.source.type === 'Literal')
+      rewriteSource(node.source)
     // Every keyed node (property, method, class field, type member) names its key, which is no reference.
     const keyed = node as AstNode & { key?: AstNode & { type: string, name?: string }, computed?: boolean, shorthand?: boolean }
     if (keyed.key !== undefined && keyed.computed === false) {
@@ -79,11 +136,14 @@ export function renameKayNames(file: string, code: string): string {
         rename(right)
       skipped.add(right.start)
     }
-    if (node.type === 'TSImportType' && fromKay(node.source) && node.qualifier !== null) {
-      let head: AstNode = node.qualifier
-      while (head.type === 'TSQualifiedName')
-        head = head.left
-      rename(head)
+    if (node.type === 'TSImportType') {
+      rewriteSource(node.source)
+      if (fromKay(node.source) && node.qualifier !== null) {
+        let head: AstNode = node.qualifier
+        while (head.type === 'TSQualifiedName')
+          head = head.left
+        rename(head)
+      }
     }
     if (node.type === 'ExportSpecifier')
       pin(nameOf(node.local))
@@ -109,7 +169,7 @@ export function renameKayNames(file: string, code: string): string {
     for (const ref of binding.refs)
       editor.replace(ref.start, ref.end, binding.renamed)
   }
-  return editor.toString()
+  return rewriteTripleSlash(editor.toString(), aliases)
 }
 
 function collectImport(stmt: Import, bindings: Map<string, Binding>, namespaces: Set<string>): void {

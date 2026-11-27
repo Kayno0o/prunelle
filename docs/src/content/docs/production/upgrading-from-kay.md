@@ -17,11 +17,11 @@ Run from the root of a bun workspace, it also rewrites each package the `workspa
 
 ## What it rewrites
 
-- **Dependencies.** `@kayjs/kay` becomes `prunelle` and each `@kayjs/<name>` becomes `@prunellejs/<name>`, all at the current prunelle version. A `kay` command in the `scripts` becomes `prunelle`.
+- **Dependencies.** `@kayjs/kay` becomes `prunelle` and each `@kayjs/<name>` becomes `@prunellejs/<name>` (including kay v2 npm aliases such as `"kay": "npm:@kayjs/kay@^2..."`), all at the current prunelle version. A `kay` command in the `scripts` becomes `prunelle`.
 - **The config file.** `kay.config.ts` moves to `prunelle.config.ts`.
-- **Imports and the names they bring.** `@kayjs/kay/server` becomes `prunelle/server`, and every name with kay in it is renamed where the file uses it: `KayPlugin` becomes `PrunellePlugin`, `KayLocals` becomes `PrunelleLocals`, a `declare module` block included. A name the file exports, or one that already exists in it, keeps its old name as an alias.
+- **Imports and the names they bring.** `@kayjs/kay/server` (and any kay v2 npm alias like `kay/server`) becomes `prunelle/server`, and every name with kay in it is renamed where the file uses it: `KayPlugin` becomes `PrunellePlugin`, `KayLocals` becomes `PrunelleLocals`, a `declare module` block included. A name the file exports, or one that already exists in it, keeps its old name as an alias. Files under `public/` (or your configured `publicDir`) are left untouched.
 - **Names the browser receives**, where scripts and styles spell them: `data-kay-*` attributes, the `kay-island` and `kay-s` tags, `/_kay/` paths, `x-kay-*` headers, the `kay:navigate`, `kay:region` and `kay:consent` events, and the `kay_session` and `kay_consent` cookies. Each takes the `pru` prefix: `data-pru-*`, `pru-island`, `/_pru/`.
-- **Build and CI files.** In `tsconfig.json`, `bunfig.toml`, `.gitignore`, a `Dockerfile`, `Justfile`, `Makefile`, compose file and the Forgejo, Gitea or GitHub workflows, the package, the CLI, the config file and the cache folders take their new names.
+- **Build and CI files.** In `tsconfig.json`, `bunfig.toml`, `.gitignore` (ensuring `.prunelle-cache/` is ignored), a `Dockerfile`, `Justfile`, `Makefile`, compose file and the Forgejo, Gitea or GitHub workflows, the package, the CLI, the config file and the cache folders take their new names.
 - **Agent instructions.** `AGENTS.md` and `CLAUDE.md` take the same names, so they send agents to `node_modules/prunelle/llms.txt`.
 
 It also deletes the `.kay-cache` and `.kay-dev` folders, which only held build output.

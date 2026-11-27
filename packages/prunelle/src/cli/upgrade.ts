@@ -2,11 +2,12 @@
 
 import type { Dirent } from 'node:fs'
 import { existsSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import pkg from '../../package.json' with { type: 'json' }
 import { isNotSourceDir, relPosix } from '../build/files'
 import { resolvePrunelleSpecifier } from '../build/resolve'
 import { parseTsx } from '../compiler/analyze'
+import { walk } from '../compiler/ast'
 import { renameKayNames } from './upgrade-names'
 
 export interface UpgradeResult {
@@ -40,6 +41,7 @@ const CLI_RULE: [RegExp, string] = [/(?<![\w.@/-])kay(?![\w.:/-])/g, 'prunelle']
 
 const SOURCE_FILE_RE = /\.(?:tsx?|mts)$/
 const STYLE_OR_SCRIPT_RE = /\.(?:css|js|mjs)$/
+const TSCONFIG_FILE_RE = /^tsconfig(?:\.[\w-]+)?\.json$/
 const CONFIG_FILE_RE = /^(?:tsconfig(?:\.[\w-]+)?\.json|bunfig\.toml|\.gitignore|\.dockerignore)$/
 const BUILD_FILE_RE = /^(?:Dockerfile(?:\.[\w-]+)?|[\w-]+\.Dockerfile|[Jj]ustfile|Makefile|(?:docker-)?compose(?:\.[\w-]+)?\.ya?ml)$/
 // The agent instructions `prunelle new` writes, which name the llms.txt to read and the CLI to run (#42).
@@ -47,14 +49,23 @@ const AGENT_FILE_RE = /^(?:AGENTS|CLAUDE)\.md$/
 const CI_DIRS = ['.forgejo/workflows', '.github/workflows', '.gitea/workflows']
 const CACHE_DIRS = ['.kay-cache', '.kay-dev']
 const PRUNELLE_SOURCE_RE = /^prunelle(\/.*)?$/
+const NPM_KAY_ALIAS_RE = /^npm:(@kayjs\/[\w-]+)(?:@.*)?$/
+const ESCAPE_RE = /[.*+?^${}()|[\]\\]/g
+const GITIGNORE_CACHE_RE = /(?:^|\/)\.prunelle-cache(?:\/|$|\s)/m
 
 const apply = (text: string, rules: readonly [RegExp, string][]): string => rules.reduce((out, [re, to]) => out.replace(re, to), text)
 
 /** Rewrites the app at `root` in place, and each package its bun workspace lists; installing the renamed dependencies is the caller's job. */
 export function upgradeProject(root: string): UpgradeResult {
+  return upgradeDir(root)
+}
+
+function upgradeDir(root: string, inheritedAliases?: ReadonlyMap<string, string>): UpgradeResult {
   const v1 = kayV1Dependency(root)
   if (v1 !== undefined)
     return { changed: [], manual: [`package.json:1: ${v1} is kay v1: prunelle upgrade moves kay v2 apps, so this one is left as it is.`] }
+  const aliases = kayAliases(root, inheritedAliases)
+  const isApp = hasKayOrPrunelle(root)
   const changed: string[] = []
   const manual: string[] = []
   const write = (file: string, before: string, after: string): void => {
@@ -68,6 +79,10 @@ export function upgradeProject(root: string): UpgradeResult {
     const text = readFileSync(join(root, file), 'utf8')
     if (file === 'package.json')
       write(file, text, upgradePackageJson(text))
+    else if (TSCONFIG_FILE_RE.test(file))
+      write(file, text, upgradeTsconfig(text, aliases))
+    else if (file === '.gitignore')
+      write(file, text, upgradeGitignore(text, isApp))
     else if (CONFIG_FILE_RE.test(file))
       write(file, text, apply(text, PATH_RULES))
     else if (BUILD_FILE_RE.test(file) || AGENT_FILE_RE.test(file))
@@ -82,9 +97,10 @@ export function upgradeProject(root: string): UpgradeResult {
       write(file, text, apply(apply(text, PATH_RULES), [CLI_RULE]))
     }
   }
-  for (const file of sourceFiles(root)) {
+  const publicDir = configuredPublicDir(root)
+  for (const file of sourceFiles(root, publicDir)) {
     const text = readFileSync(join(root, file), 'utf8')
-    const renamed = SOURCE_FILE_RE.test(file) ? renameKayNames(file, text) : text
+    const renamed = SOURCE_FILE_RE.test(file) ? renameKayNames(file, text, aliases) : text
     const next = apply(apply(renamed, PATH_RULES), WIRE_RULES)
     write(file, text, next)
     if (SOURCE_FILE_RE.test(file) && next !== text)
@@ -97,8 +113,8 @@ export function upgradeProject(root: string): UpgradeResult {
     }
   }
   // A member on neither kay nor prunelle, a plain Bun app or a tool, has nothing to move; one already on prunelle may keep names an earlier upgrade missed.
-  for (const member of workspaceMembers(root).filter(m => onKayOrPrunelle(join(root, m)))) {
-    const res = upgradeProject(join(root, member))
+  for (const member of workspaceMembers(root).filter(m => hasKayOrPrunelle(join(root, m)))) {
+    const res = upgradeDir(join(root, member), aliases)
     changed.push(...res.changed.map(file => `${member}/${file}`))
     manual.push(...res.manual.map(line => `${member}/${line}`))
   }
@@ -110,9 +126,79 @@ const V1_RANGE_RE = /^[~^>=\s]*1\./
 
 const KAY_OR_PRUNELLE_RE = /^(?:npm:)?(?:@kayjs\/|prunelle(?:@|$)|@prunellejs\/)/
 
-function onKayOrPrunelle(root: string): boolean {
+function hasKayOrPrunelle(root: string): boolean {
+  if (!existsSync(join(root, 'package.json')))
+    return false
   const json = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as Record<string, Record<string, string> | undefined>
   return DEP_FIELDS.some(field => Object.entries(json[field] ?? {}).some(([name, range]) => KAY_OR_PRUNELLE_RE.test(name) || KAY_OR_PRUNELLE_RE.test(range)))
+}
+
+function kayTargetPackage(name: string, version: string): string | undefined {
+  if (name.startsWith('@kayjs/'))
+    return apply(name, PATH_RULES)
+  const match = NPM_KAY_ALIAS_RE.exec(version)
+  return match === null ? undefined : apply(match[1]!, PATH_RULES)
+}
+
+function kayAliases(root: string, inherited?: ReadonlyMap<string, string>): Map<string, string> {
+  const aliases = new Map<string, string>(inherited)
+  if (!existsSync(join(root, 'package.json')))
+    return aliases
+  const json = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as Record<string, Record<string, string> | undefined>
+  for (const field of DEP_FIELDS) {
+    for (const [name, version] of Object.entries(json[field] ?? {})) {
+      if (name.startsWith('@kayjs/'))
+        continue
+      const match = NPM_KAY_ALIAS_RE.exec(version)
+      if (match !== null)
+        aliases.set(name, apply(match[1]!, PATH_RULES))
+    }
+  }
+  return aliases
+}
+
+function upgradeTsconfig(text: string, aliases: ReadonlyMap<string, string>): string {
+  let out = apply(text, PATH_RULES)
+  for (const [alias, target] of aliases) {
+    const escaped = alias.replace(ESCAPE_RE, '\\$&')
+    if (target === 'prunelle')
+      out = out.replace(new RegExp(`("jsxImportSource"\\s*:\\s*")${escaped}(")`, 'g'), `$1${target}$2`)
+    out = out.replace(/"types"\s*:\s*\[[^\]]*\]/g, block =>
+      block.replace(new RegExp(`"${escaped}((?:/[^"]*)?)"`, 'g'), `"${target}$1"`))
+  }
+  return out
+}
+
+function upgradeGitignore(text: string, addCache: boolean): string {
+  const next = apply(text, PATH_RULES)
+  if (!addCache || GITIGNORE_CACHE_RE.test(next))
+    return next
+  const eol = next.includes('\r\n') ? '\r\n' : '\n'
+  const sep = next === '' || next.endsWith('\n') ? '' : eol
+  return `${next}${sep}.prunelle-cache/${eol}`
+}
+
+// Reads `publicDir` statically from prunelle.config.ts (or kay.config.ts) so built scripts in `public/` are left alone (#43).
+function configuredPublicDir(root: string): string {
+  const file = existsSync(join(root, 'prunelle.config.ts'))
+    ? 'prunelle.config.ts'
+    : existsSync(join(root, 'kay.config.ts')) ? 'kay.config.ts' : undefined
+  if (file === undefined)
+    return resolve(root, 'public')
+  const program = parseTsx(file, readFileSync(join(root, file), 'utf8'))
+  let value: string | undefined
+  walk(program.body, (node) => {
+    if (value !== undefined)
+      return false
+    if (node.type === 'Property' && !node.computed && node.key.type === 'Identifier' && node.key.name === 'publicDir') {
+      if (node.value.type === 'Literal' && typeof node.value.value === 'string')
+        value = node.value.value
+      else if (node.value.type === 'TemplateLiteral' && node.value.expressions.length === 0)
+        value = node.value.quasis[0]?.value.cooked ?? node.value.quasis[0]?.value.raw
+    }
+    return true
+  })
+  return resolve(root, value ?? 'public')
 }
 
 // kay's core at a 1.x range, as `@kayjs/kay` or an `npm:@kayjs/kay@` alias: an app of `.kay` files prunelle cannot take.
@@ -174,18 +260,21 @@ function readableEntries(dir: string): Dirent[] {
   }
 }
 
-// A folder holding its own package.json is another package, upgraded on its own.
-function sourceFiles(root: string, dir = root, out: string[] = []): string[] {
+// A folder holding its own package.json is another package, upgraded on its own; `publicDir` holds built static files left untouched (#43).
+function sourceFiles(root: string, publicDir: string, dir = root, out: string[] = []): string[] {
   if (dir !== root && existsSync(join(dir, 'package.json')))
     return out
   for (const entry of readableEntries(dir)) {
     if (isNotSourceDir(entry.name))
       continue
     const path = join(dir, entry.name)
-    if (entry.isDirectory())
-      sourceFiles(root, path, out)
-    else if (SOURCE_FILE_RE.test(entry.name) || STYLE_OR_SCRIPT_RE.test(entry.name))
+    if (entry.isDirectory()) {
+      if (resolve(path) !== publicDir)
+        sourceFiles(root, publicDir, path, out)
+    }
+    else if (SOURCE_FILE_RE.test(entry.name) || STYLE_OR_SCRIPT_RE.test(entry.name)) {
       out.push(relPosix(root, path))
+    }
   }
   return out.sort()
 }
@@ -198,10 +287,17 @@ function upgradePackageJson(text: string): string {
   const range = `^${pkg.version}`
   for (const field of DEP_FIELDS) {
     const deps = json[field] as Record<string, string> | undefined
-    if (deps === undefined || !Object.keys(deps).some(name => name.startsWith('@kayjs/')))
+    if (deps === undefined || !Object.entries(deps).some(([name, version]) => kayTargetPackage(name, version) !== undefined))
       continue
-    const entries = Object.entries(deps).map(([name, version]) => name.startsWith('@kayjs/') ? [apply(name, PATH_RULES), range] : [name, version])
-    json[field] = Object.fromEntries(entries.sort(([a], [b]) => a!.localeCompare(b!)))
+    const next = new Map<string, string>()
+    for (const [name, version] of Object.entries(deps)) {
+      const target = kayTargetPackage(name, version)
+      if (target !== undefined)
+        next.set(target, range)
+      else if (!next.has(name))
+        next.set(name, version)
+    }
+    json[field] = Object.fromEntries([...next.entries()].sort(([a], [b]) => a.localeCompare(b)))
   }
   const scripts = json.scripts as Record<string, string> | undefined
   if (scripts !== undefined)

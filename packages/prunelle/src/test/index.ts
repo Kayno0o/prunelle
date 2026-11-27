@@ -2,11 +2,12 @@
 
 import type { BuildManifest, BuildOptions } from '../build/index'
 import type { PrunelleApp, ServerAction, ServerRuntimeConfig } from '../server/index'
-import { readdirSync, rmSync } from 'node:fs'
+import { existsSync, readdirSync, rmSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { build } from '../build/index'
 import { relPosix } from '../build/files'
 import { processSuffix, removeDeadProcessDirs } from '../build/output'
+import { ensureCacheGitignore } from '../build/precompress'
 import { resolveServerConfig } from '../server/index'
 import { startBuiltApp } from '../server/loader'
 
@@ -41,12 +42,17 @@ const ownOutDirs: string[] = []
 function ownOutDir(root: string): string {
   const cacheDir = join(root, '.prunelle-cache')
   removeDeadProcessDirs(cacheDir, TEST_DIR_PREFIX)
+  ensureCacheGitignore(cacheDir)
   if (ownOutDirs.length === 0) {
     process.once('exit', () => {
       for (const dir of ownOutDirs) {
         rmSync(dir, { recursive: true, force: true })
-        if (readdirSync(dirname(dir)).length === 0)
-          rmSync(dirname(dir), { recursive: true, force: true })
+        const parent = dirname(dir)
+        if (!existsSync(parent))
+          continue
+        const remaining = readdirSync(parent)
+        if (remaining.length === 0 || (remaining.length === 1 && remaining[0] === '.gitignore'))
+          rmSync(parent, { recursive: true, force: true })
       }
     })
   }
