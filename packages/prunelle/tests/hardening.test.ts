@@ -10,6 +10,7 @@ import { checkProject } from '../src/cli/check'
 import { scaffoldProject } from '../src/cli/new'
 import { compileDom, compileSsr } from '../src/compiler/index'
 import { testApp } from '../src/test/index'
+import type { BuiltIsland } from './built-island'
 
 const PRUNELLE_PKG_DIR = join(import.meta.dir, '..')
 const tempDirs: string[] = []
@@ -140,7 +141,7 @@ describe('Milestone 4: Compiler hardening (spreads, SVG, destructured .map, pru-
     GlobalRegistrator.register()
     try {
       const manifest = JSON.parse(readFileSync(join(dir, 'dist/manifest.json'), 'utf8'))
-      const runtimeAbs = join(dir, 'dist/client', manifest.runtimeScript.replace(/^\/_pru\//, ''))
+
       const drawerChunk = Object.values(manifest.islands)[0] as string
       const drawerAbs = join(dir, 'dist/client', drawerChunk.replace(/^\/_pru\//, ''))
 
@@ -154,9 +155,8 @@ describe('Milestone 4: Compiler hardening (spreads, SVG, destructured .map, pru-
       expect(slot).not.toBeNull()
       props.children = slot
 
-      const runtimeMod = await import(runtimeAbs) as { hydrate: (el: Element, fn: () => unknown) => () => void }
-      const drawerMod = await import(drawerAbs) as { default: (p: Record<string, unknown>) => unknown }
-      const dispose = runtimeMod.hydrate(islandEl, () => drawerMod.default(props))
+      const drawerMod = await import(drawerAbs) as BuiltIsland<[Record<string, unknown>]>
+      const dispose = drawerMod.hydrate(islandEl, () => drawerMod.default(props))
 
       const sec = islandEl.querySelector('section')!
       expect(sec.getAttribute('data-kind')).toBe('panel')

@@ -1,6 +1,6 @@
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
 import { describe, expect, it, spyOn } from 'bun:test'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { compileDom, compileSsr } from '../src/compiler/index'
@@ -10,12 +10,13 @@ import { defineIslandElement } from '../src/dom/island'
 import { parseIslandProps } from '../src/dom/revive'
 import { signal } from '../src/reactivity/index'
 import * as ssrRt from '../src/ssr/index'
+import { writeIslandChunk } from './built-island'
 
 describe('a failed island hydration (#3607)', () => {
   it('names the component in dev and only the chunk in production', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'pru-island-error-'))
     const chunk = join(dir, 'island-abc123.mjs')
-    writeFileSync(chunk, `export default function CartButton() { throw new Error('boom') }`)
+    writeIslandChunk(chunk, `export default function CartButton() { throw new Error('boom') }`)
     const nodeEnv = process.env.NODE_ENV
     GlobalRegistrator.register()
     const log = spyOn(console, 'error').mockImplementation(() => {})
@@ -57,7 +58,7 @@ describe('#3631 island props script, serialization, <pru-slot>, and $hydrate edg
     const seen: Record<string, unknown>[] = []
     ;(globalThis as Record<string, unknown>).__seen3631 = seen
     const chunk = join(dir, 'props-island.mjs')
-    writeFileSync(chunk, `export default function Demo(props) { globalThis.__seen3631.push(props); return null }`)
+    writeIslandChunk(chunk, `export default function Demo(props) { globalThis.__seen3631.push(props); return null }`)
     GlobalRegistrator.register()
     try {
       defineIslandElement()
@@ -164,7 +165,7 @@ describe('#3631 island props script, serialization, <pru-slot>, and $hydrate edg
     const modalChunk = join(dir, 'modal.mjs')
     const domModalCode = compileDom('Modal.tsx', modalSrc).code
     const domModalBody = domModalCode.replace(/^\s*import .*\n/gm, '').replace('export default function', 'export default function')
-    writeFileSync(modalChunk, `
+    writeIslandChunk(modalChunk, `
       const { template: __template, effect: __effect, delegate: __delegate, skipRange: __skipRange } = globalThis.__pruRt3631;
       const { show: __show, insert: __insert } = globalThis.__pruRt3631;
       const { signal } = globalThis.__pruRt3631;
@@ -225,7 +226,7 @@ describe('#3631 island props script, serialization, <pru-slot>, and $hydrate edg
     const mounts: string[] = []
     ;(globalThis as Record<string, unknown>).__vis3631 = mounts
     const chunk = join(dir, 'vis.mjs')
-    writeFileSync(chunk, `export default function Vis(p) { globalThis.__vis3631.push(p.id); return null }`)
+    writeIslandChunk(chunk, `export default function Vis(p) { globalThis.__vis3631.push(p.id); return null }`)
     GlobalRegistrator.register()
     try {
       const observed: { target: Element, cb: (entries: { isIntersecting: boolean }[]) => void }[] = []
@@ -274,7 +275,7 @@ describe('#3631 island props script, serialization, <pru-slot>, and $hydrate edg
   it('$hydrate="interaction" queues and replays the triggering click (including synthetic/AT click) after chunk loads', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'prunelle-3631-inter-'))
     const chunk = join(dir, 'inter.mjs')
-    writeFileSync(chunk, `
+    writeIslandChunk(chunk, `
       await new Promise(r => setTimeout(r, 15))
       export default function Counter() {
         const { template, delegate } = globalThis.__pruInter3631

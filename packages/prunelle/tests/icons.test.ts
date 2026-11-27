@@ -10,6 +10,7 @@ import { svgIcon } from '../../plugin-icons/src/svg-dir'
 import { build } from '../src/build/index'
 import { checkProject } from '../src/cli/check'
 import { createServer } from '../src/server/index'
+import type { BuiltIsland } from './built-island'
 
 const DEMO: IconSet = {
   prefix: 'demo',
@@ -119,12 +120,11 @@ async function withHydratedIsland(files: Record<string, string>, use: (host: HTM
 
   GlobalRegistrator.register()
   try {
-    const runtime = await import(chunk(manifest.runtimeScript!)) as { hydrate: (el: Element, render: () => Node | null) => () => void }
-    const island = await import(chunk(Object.values(manifest.islands)[0]!)) as { default: () => Node | null }
+    const island = await import(chunk(Object.values(manifest.islands)[0]!)) as BuiltIsland
     const host = document.createElement('div')
     host.innerHTML = /<pru-island[^>]*>([\s\S]*?)<\/pru-island>/.exec(html)![1]!
     document.body.appendChild(host)
-    use(host, () => runtime.hydrate(host, () => island.default()))
+    use(host, () => island.hydrate(host, () => island.default()))
   }
   finally {
     await GlobalRegistrator.unregister()

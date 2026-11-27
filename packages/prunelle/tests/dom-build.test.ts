@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, 
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { build } from '../src/build/index'
+import type { BuiltIsland } from './built-island'
 import { createServer } from '../src/server/index'
 
 const BENCH_ROOT = resolve(import.meta.dir, '../../../bench-app')
@@ -44,17 +45,15 @@ describe('end-to-end build, SSR, and DOM hydration', () => {
     // 3. Hydrate Counter & Table in Happy-DOM using the built runtime & chunks
     GlobalRegistrator.register()
     try {
-      const runtimePath = join(BENCH_ROOT, 'dist/client', manifest.runtimeScript!.replace('/_pru/', ''))
-      const { hydrate } = await import(runtimePath) as { hydrate: (el: Element, fn: () => Node | null) => () => void }
-
       // Load built client chunks directly
       const counterChunkRel = Object.values(manifest.islands).find(u => u.includes('counter'))!
       const tableChunkRel = Object.values(manifest.islands).find(u => u.includes('table'))!
       const counterPath = join(BENCH_ROOT, 'dist/client', counterChunkRel.replace('/_pru/', ''))
       const tablePath = join(BENCH_ROOT, 'dist/client', tableChunkRel.replace('/_pru/', ''))
 
-      const CounterMod = await import(counterPath) as { default: (p: { start: number }) => Node | null }
-      const TableMod = await import(tablePath) as { default: (p: object) => Node | null }
+      const CounterMod = await import(counterPath) as BuiltIsland<[{ start: number }]>
+      const TableMod = await import(tablePath) as BuiltIsland<[object]>
+      const { hydrate } = CounterMod
 
       // Hydrate Counter
       const counterHost = document.createElement('div')
@@ -194,14 +193,13 @@ describe('end-to-end build, SSR, and DOM hydration', () => {
     expect(res.status).toBe(200)
     const html = await res.text()
 
-    const runtimePath = join(dir, 'dist/client', manifest.runtimeScript!.replace('/_pru/', ''))
     const islandChunk = Object.values(manifest.islands).find(u => u.includes('mixed'))!
     const islandPath = join(dir, 'dist/client', islandChunk.replace('/_pru/', ''))
 
     GlobalRegistrator.register({ settings: { handleDisabledFileLoadingAsSuccess: true } })
     try {
-      const { hydrate } = await import(runtimePath) as { hydrate: (el: Element, fn: () => Node | null) => () => void }
-      const IslandMod = await import(islandPath) as { default: (p: { initialArmed?: boolean }) => Node | null }
+      const IslandMod = await import(islandPath) as BuiltIsland<[{ initialArmed?: boolean }]>
+      const { hydrate } = IslandMod
 
       // Extract exact SSR innerHTML of each <pru-island> without triggering custom-element HTTP imports
       const ssrFragments = [...html.matchAll(/<pru-island[^>]*>([\s\S]*?)<\/pru-island>/g)].map(m => m[1]!)
@@ -435,14 +433,18 @@ describe('end-to-end build, SSR, and DOM hydration', () => {
 
     const app = await createServer({ root: dir })
     try {
-      // `/later` hydrates its one island lazily: what it preloads comes from the runtime's own imports.
-      for (const path of ['/', '/rich', '/later']) {
+      const preloadsOf = async (path: string): Promise<string[]> => {
         const html = await (await app.handle(new Request(`http://localhost${path}`))).text()
-        const preloaded = [...html.matchAll(/<link rel="modulepreload" href="\/_pru\/([^"]+)">/g)].map(m => m[1]!).sort()
-        const runtime = manifest.runtimeScript!.replace(/^\/_pru\//, '')
+        return [...html.matchAll(/<link rel="modulepreload" href="\/_pru\/([^"]+)">/g)].map(m => m[1]!).sort()
+      }
+      const runtime = manifest.runtimeScript!.replace(/^\/_pru\//, '')
+      for (const path of ['/', '/rich']) {
+        const preloaded = await preloadsOf(path)
         expect(preloaded).toEqual([...filesOf(path, true)].filter(file => file !== runtime).sort())
         expect(preloaded.length).toBeGreaterThan(0)
       }
+      // `/later` hydrates its one island lazily, so a first visit downloads the loader alone, the DOM runtime coming with the island.
+      expect({ preloaded: await preloadsOf('/later'), loaderImports: [...filesOf('/later', true)].filter(file => file !== runtime) }).toEqual({ preloaded: [], loaderImports: [] })
     }
     finally {
       await app.dispose?.()
@@ -766,8 +768,7 @@ describe('end-to-end build, SSR, and DOM hydration', () => {
 
     GlobalRegistrator.register({ settings: { handleDisabledFileLoadingAsSuccess: true } })
     try {
-      const { hydrate } = await import(join(dir, 'dist/client', manifest.runtimeScript!.replace('/_pru/', ''))) as { hydrate: (el: Element, fn: () => Node | null) => () => void }
-      const Cart = (await import(join(dir, 'dist/client', manifest.islands[join(dir, 'src/components/Cart.tsx#default')]!.replace('/_pru/', '')))).default as () => Node | null
+      const { default: Cart, hydrate } = await import(join(dir, 'dist/client', manifest.islands[join(dir, 'src/components/Cart.tsx#default')]!.replace('/_pru/', ''))) as BuiltIsland
       const host = document.createElement('div')
       host.innerHTML = ssr
       document.body.appendChild(host)
@@ -895,8 +896,7 @@ describe('#3633 bundler, prerender, and --static regressions', () => {
 
     GlobalRegistrator.register({ settings: { handleDisabledFileLoadingAsSuccess: true } })
     try {
-      const { hydrate } = await import(join(dir, 'dist/client', runtimeUrl.replace('/_pru/', ''))) as { hydrate: (el: Element, fn: () => Node | null) => () => void }
-      const RuntimeMod = (await import(join(dir, 'dist/client', rtIslandUrl.replace('/_pru/', '')))).default as () => Node | null
+      const { default: RuntimeMod, hydrate } = await import(join(dir, 'dist/client', rtIslandUrl.replace('/_pru/', ''))) as BuiltIsland
       const host = document.createElement('div')
       host.innerHTML = ssrFragments[0]!
       document.body.appendChild(host)

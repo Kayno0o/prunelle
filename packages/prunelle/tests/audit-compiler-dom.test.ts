@@ -16,6 +16,7 @@ import { onCleanup, onMount, signal } from '../src/reactivity/index'
 import { store } from '../src/reactivity/store'
 import { createRenderContext, runWithRenderContext } from '../src/ssr/context'
 import * as ssrRt from '../src/ssr/index'
+import { writeIslandChunk } from './built-island'
 
 const domCore = { ...domIndex, ...domAttrs, ...domClaim }
 
@@ -701,7 +702,7 @@ describe('Audit #3526 Batch 2 — Compiler, SSR & DOM', () => {
       }
 
       const okChunk = join(tmp, 'ok-island.mjs')
-      writeFileSync(okChunk, `
+      writeIslandChunk(okChunk, `
         export default function Ok() {
           globalThis.__box37.onOkMount()
           globalThis.__box37.onCleanup(() => globalThis.__box37.onOkCleanup())
@@ -710,7 +711,7 @@ describe('Audit #3526 Batch 2 — Compiler, SSR & DOM', () => {
       `)
 
       const slowChunk = join(tmp, 'slow-island.mjs')
-      writeFileSync(slowChunk, `
+      writeIslandChunk(slowChunk, `
         await new Promise(r => setTimeout(r, 25))
         export default function Slow() {
           globalThis.__box37.onOkMount()
@@ -720,7 +721,7 @@ describe('Audit #3526 Batch 2 — Compiler, SSR & DOM', () => {
       `)
 
       const throwChunk = join(tmp, 'throw-island.mjs')
-      writeFileSync(throwChunk, `
+      writeIslandChunk(throwChunk, `
         export default function Broken() {
           globalThis.__box37.onCleanup(() => globalThis.__box37.onThrowCleanup())
           throw new Error('boom-during-render')

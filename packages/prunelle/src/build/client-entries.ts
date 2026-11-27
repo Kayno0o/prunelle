@@ -47,7 +47,6 @@ export function writeClientEntries(env: BundleEnv, entriesDir: string, options: 
     const runtimeLines: string[] = []
     if (env.islands.targets.size > 0) {
       runtimeLines.push(`import { defineIslandElement } from 'prunelle/internal/island';`)
-      runtimeLines.push(`export { hydrate${hasClientOnlyHydrate ? ', mount' : ''} } from 'prunelle/internal/dom';`)
       runtimeLines.push(`defineIslandElement();`)
     }
     for (const pe of pluginClientEntries)
@@ -64,12 +63,14 @@ export function writeClientEntries(env: BundleEnv, entriesDir: string, options: 
 
   out.entryPoints.push(...options.standaloneCss)
 
+  // Each island hands the loader the DOM runtime its chunk imports anyway, so a page whose islands all wait downloads the loader alone.
+  const domExports = `export { hydrate${hasClientOnlyHydrate ? ', mount' : ''} } from 'prunelle/internal/dom';\n`
   for (const [key, target] of env.islands.targets) {
     const entryPath = join(entriesDir, `${target.id}.ts`)
     const exportStmt = target.exportName === 'default'
       ? `export { default } from ${JSON.stringify(target.file)};\n`
       : `export { ${target.exportName} as default } from ${JSON.stringify(target.file)};\n`
-    writeEntry(entryPath, exportStmt)
+    writeEntry(entryPath, exportStmt + domExports)
     out.entryPoints.push(entryPath)
     out.islandEntryToKey.set(entryPath, key)
   }

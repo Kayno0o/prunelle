@@ -10,7 +10,7 @@ export interface SearchDocItem {
 export function SearchIsland({ items }: { items: SearchDocItem[] }) {
   return (
     <CommandPalette
-      $hydrate="idle"
+      $hydrate="interaction"
       triggerLabel="Search"
       placeholder="Jump to a chapter…"
       items={items.map(item => ({

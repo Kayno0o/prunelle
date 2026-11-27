@@ -1,7 +1,6 @@
 // Native <pru-island> Custom Element: the build defines which strategies an app uses, so the loader drops the code of the others.
 
-import { hydrate, mount } from './index'
-
+import type { hydrate, mount } from './index'
 
 declare const PRUNELLE_VISIBLE: boolean | undefined
 declare const PRUNELLE_IDLE: boolean | undefined
@@ -14,7 +13,8 @@ declare const PRUNELLE_REVIVE: string | undefined
 // Only props holding a Date, Map, Set or another tagged value load the revivers: plain JSON parses with no extra file.
 const reviver = (): Promise<typeof import('./revive')> => typeof PRUNELLE_REVIVE === 'undefined' ? import('./revive') : import(PRUNELLE_REVIVE)
 
-type IslandModule = { default: (props: Record<string, unknown>) => Node | DocumentFragment | null }
+// An island chunk also re-exports the DOM runtime it imports (`writeClientEntries`), `mount` only in an app with a client-only island.
+type IslandModule = { default: (props: Record<string, unknown>) => Node | DocumentFragment | null, hydrate: typeof hydrate, mount?: typeof mount }
 
 /** Finds this island's own `<script type="application/json" data-pru-props>` direct child. */
 function findOwnPropsScript(root: Element): Element | null {
@@ -262,8 +262,8 @@ export function defineIslandElement(): void {
         const idPrefix = this.getAttribute('i') ?? `c${clientIslandIdSeq++}-`
         const render = () => loaded.default(props)
         dispose = (typeof PRUNELLE_CLIENT_ONLY === 'undefined' || PRUNELLE_CLIENT_ONLY) && clientOnly
-          ? mount(this, render, idPrefix)
-          : hydrate(this, render, idPrefix)
+          ? loaded.mount!(this, render, idPrefix)
+          : loaded.hydrate(this, render, idPrefix)
         if (!this.isConnected || token !== this._t) {
           dispose()
           return
