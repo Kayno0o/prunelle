@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { build } from '../src/build/index'
 import { devServer } from '../src/dev/index'
-import { createServer } from '../src/server/index'
+import { createServer, definePlugin } from '../src/server/index'
 import { testApp } from '../src/test/index'
 
 const PRUNELLE_PKG_DIR = join(import.meta.dir, '..')
@@ -188,10 +188,99 @@ describe('stack traces name the source line (#3666)', () => {
     try {
       for (const path of tracedPaths)
         await app.handle(new Request(`http://localhost${path}`))
+      expect(stacks.length).toBe(3)
       expectSourceLines(stacks)
     }
     finally {
       quiet.mockRestore()
+      await app.dispose?.()
+    }
+  })
+})
+
+describe('production stderr logging when no onError is set (#30)', () => {
+  it('logs route, load, action, plugin route, and streamed Suspense errors with method, path and stack', async () => {
+    const dir = appWith({
+      'src/actions/fail.ts': `import { action } from 'prunelle/server'\nexport const failAction = action(async () => { throw new Error('action exploded') })\n`,
+      'src/routes/index.tsx': `import { failAction } from '../actions/fail'\nexport default function Home() { return <form action={failAction} method="post"><button type="submit">go</button></form> }\n`,
+      'src/routes/boom.tsx': `export default function Boom() { throw new Error('route exploded') }\n`,
+      'src/routes/load-boom.tsx': `export function load() { throw new Error('load exploded') }\nexport default function LoadBoom() { return <p>ok</p> }\n`,
+      'src/routes/stream-boom.tsx': `import { Suspense } from 'prunelle'\nasync function Broken(): Promise<string> { throw new Error('suspense exploded') }\nexport default function StreamBoom() { return <main><Suspense fallback={<p>wait</p>}><Broken /></Suspense></main> }\n`,
+    })
+    const plugin = definePlugin({
+      name: 'boom-plugin',
+      server(api) {
+        api.route('GET', '/plugin-boom', () => {
+          throw new Error('plugin exploded')
+        })
+      },
+    })
+    const manifest = await build({ root: dir, plugins: [plugin] })
+    const actionUrl = manifest.actions[0]!.url
+    const app = await createServer({ root: dir, plugins: [plugin] })
+    const log = spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const routeRes = await app.handle(new Request('http://localhost/boom'))
+      expect(routeRes.status).toBe(500)
+
+      const loadRes = await app.handle(new Request('http://localhost/load-boom'))
+      expect(loadRes.status).toBe(500)
+
+      const actionRes = await app.handle(new Request(`http://localhost${actionUrl}`, {
+        method: 'POST',
+        headers: { origin: 'http://localhost', accept: 'application/json' },
+      }))
+      expect(actionRes.status).toBe(500)
+
+      const pluginRes = await app.handle(new Request('http://localhost/plugin-boom'))
+      expect(pluginRes.status).toBe(500)
+
+      const streamRes = await app.handle(new Request('http://localhost/stream-boom'))
+      await streamRes.text()
+
+      expect(log).toHaveBeenCalledTimes(5)
+      const entries = log.mock.calls.map(([msg, err]) => ({
+        msg: String(msg),
+        stack: err instanceof Error ? err.stack ?? '' : String(err),
+      }))
+      expect(entries[0]!.msg).toContain('route GET /boom')
+      expect(entries[0]!.stack).toContain('route exploded')
+      expect(entries[1]!.msg).toContain('route GET /load-boom')
+      expect(entries[1]!.stack).toContain('load exploded')
+      expect(entries[2]!.msg).toContain(`action POST ${actionUrl}`)
+      expect(entries[2]!.stack).toContain('action exploded')
+      expect(entries[3]!.msg).toContain('plugin GET /plugin-boom')
+      expect(entries[3]!.stack).toContain('plugin exploded')
+      expect(entries[4]!.msg).toContain('route GET /stream-boom')
+      expect(entries[4]!.stack).toContain('suspense exploded')
+    }
+    finally {
+      log.mockRestore()
+      await app.dispose?.()
+    }
+  })
+
+  it('delivers every error to a configured onError hook without doubling it on stderr', async () => {
+    const dir = appWith({
+      'src/routes/boom.tsx': `export default function Boom() { throw new Error('handled exploded') }\n`,
+    })
+    await build({ root: dir })
+    const seen: string[] = []
+    const app = await createServer({
+      root: dir,
+      onError: ({ error, request, source }) => {
+        seen.push(`${source} ${request.method} ${new URL(request.url).pathname}: ${(error as Error).message}`)
+      },
+    })
+    const log = spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      const res = await app.handle(new Request('http://localhost/boom'))
+      expect(res.status).toBe(500)
+      expect(seen).toEqual(['route GET /boom: handled exploded'])
+      expect(log).not.toHaveBeenCalled()
+    }
+    finally {
+      log.mockRestore()
       await app.dispose?.()
     }
   })

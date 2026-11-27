@@ -28,7 +28,7 @@ export function devErrorResponse(error: unknown, request: Request): Response {
 }
 
 export interface ErrorNotifierOptions {
-  /** With no `onError` hook to hear an unhandled error, `console.error` does. */
+  /** With no `onError` hook to hear an unhandled error, `console.error` does (unless a `sink` captures it outside dev, as `testApp` and prerender do). */
   dev?: boolean | undefined
   /** Hears every unhandled error, hooks or not: how `testApp().errors` fills. */
   sink?: ((info: ServerErrorInfo) => void) | undefined
@@ -44,7 +44,7 @@ export function createErrorNotifier(onError: ((info: ServerErrorInfo) => void) |
   }
   return (error, request, source) => {
     options.sink?.({ error, request, source })
-    if (options.dev === true && errorHooks.length === 0)
+    if (errorHooks.length === 0 && (options.dev === true || options.sink === undefined))
       console.error(`prunelle: unhandled error in ${source} ${request.method} ${new URL(request.url).pathname}`, error)
     for (const { owner, hook } of errorHooks) {
       try {
