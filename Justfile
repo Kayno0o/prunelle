@@ -73,7 +73,7 @@ minor: (release "minor")
 # Cut next major release (vX.0.0)
 major: (release "major")
 
-# Bump all 13 packages in lockstep, verify, tag, push atomically, and watch Forgejo CI
+# Bump all 13 packages in lockstep, verify, tag, push atomically, watch Forgejo CI, then publish the release notes
 release level:
 	#!/usr/bin/env bash
 	set -euo pipefail
@@ -97,3 +97,4 @@ release level:
 	  exit 1
 	fi
 	ft watch
+	ft release notes
