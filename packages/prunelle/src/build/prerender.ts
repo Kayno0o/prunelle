@@ -5,7 +5,7 @@ import type { RouteManifestEntry } from './manifest'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, extname, resolve } from 'node:path'
 import { prerenderOrigin } from '../server/prerendered'
-import { inlineStyleHashes } from '../server/security'
+import { inlineStyleHashes, injectMetaCsp } from '../server/security'
 import { relPosix } from './files'
 import { runPluginHook } from './plugin-host'
 import { assertPathUrls } from './routes'
@@ -132,7 +132,7 @@ export async function prerender(options: PrerenderOptions) {
         mkdirSync(dirname(absOut), { recursive: true })
         if ((ct ?? '').toLowerCase().includes('text/html')) {
           const html = await res.text()
-          writeFileSync(absOut, html)
+          writeFileSync(absOut, isStatic ? injectMetaCsp(html, res.headers.get('content-security-policy')) : html)
           const hashes = inlineStyleHashes(html)
           if (hashes.length > 0)
             styleHashes[u] = hashes

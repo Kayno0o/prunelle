@@ -1,12 +1,14 @@
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
 import { afterAll, describe, expect, it } from 'bun:test'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { chromium } from 'playwright-core'
 import { analyzeBundleWeights, build, formatBundleReport } from '../src/build/index'
 import { createServer, definePlugin, PRUNELLE_ISLAND_STYLE_HASH, PRUNELLE_STREAM_SCRIPT_HASH, PRUNELLE_SUSPENSE_STYLE_HASH, withCspHashes } from '../src/server/index'
 import { createHtmlHeaders } from '../src/server/document'
-import { inlineStyleHashes } from '../src/server/security'
+import { type CspDirectives, DEFAULT_CSP, extendCsp } from '../src/server/public'
+import { buildSecurityHeaderEntries, inlineStyleHashes, injectMetaCsp, resolveCspPolicy, toMetaCsp } from '../src/server/security'
 import { PRUNELLE_STREAM_SCRIPT } from '../src/ssr/context'
 import { createNavigation } from '../src/ssr/navigation'
 
@@ -411,4 +413,311 @@ describe('the default CSP lets an app style its pages (#3582)', () => {
       expect(headers['content-security-policy']).toContain(h[0]!)
     }
   })
+})
+
+function extractMetaCsp(html: string): string | undefined {
+  return /<meta\b[^>]*http-equiv="Content-Security-Policy"[^>]*content="([^"]*)"/i.exec(html)?.[1]
+}
+
+function linkPrunelle(dir: string): void {
+  mkdirSync(join(dir, 'node_modules'), { recursive: true })
+  symlinkSync(join(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'), 'dir')
+}
+
+function findChromiumPath(): string {
+  const found = [process.env.BUN_CHROME_PATH, chromium.executablePath(), '/usr/bin/chromium', '/usr/bin/google-chrome']
+    .find((path): path is string => typeof path === 'string' && path.length > 0 && existsSync(path))
+  if (found === undefined)
+    throw new Error('Chromium executable not found for CSP browser verification test.')
+  return found
+}
+
+describe('extending the default CSP without copying the whole policy (#54)', () => {
+  it('merges directive additions onto DEFAULT_CSP while preserving other directives and default-src seeding', () => {
+    const extra: CspDirectives = {
+      'style-src': 'https://fonts.googleapis.com',
+      'font-src': ['https://fonts.gstatic.com', 'https://fonts.gstatic.com'],
+      'connect-src': ['https://api.example.com'],
+      'frame-ancestors': "'none'",
+      'object-src': 'https://embed.example.com',
+      'report-to': 'csp-endpoint',
+      'upgrade-insecure-requests': '',
+    }
+    const policy = extendCsp(extra)
+
+    expect(policy).toContain("default-src 'self'")
+    expect(policy).toContain("script-src 'self'")
+    expect(policy).toContain("style-src 'self' https://fonts.googleapis.com")
+    expect(policy).toContain("style-src-attr 'unsafe-inline'")
+    expect(policy).toContain("img-src 'self' data: blob:")
+    expect(policy).toContain("font-src 'self' data: https://fonts.gstatic.com")
+    // New fetch directive inherits 'self' from default-src so same-origin fetches keep working.
+    expect(policy).toContain("connect-src 'self' https://api.example.com")
+    // Tightening with 'none' replaces prior sources; extending a 'none' directive replaces 'none'.
+    expect(policy).toContain("frame-ancestors 'none'")
+    expect(policy).toContain('object-src https://embed.example.com')
+    expect(policy).not.toContain("object-src 'none'")
+    // Non-fetch directives do not seed 'self', and empty tokens emit valueless directives.
+    expect(policy).toContain('report-to csp-endpoint')
+    expect(policy).toContain('; upgrade-insecure-requests')
+    expect(policy).not.toContain("report-to 'self'")
+
+    // Hashes from withCspHashes land inside the extended directive.
+    const hashed = withCspHashes(policy, { styleHashes: [PRUNELLE_ISLAND_STYLE_HASH] })
+    expect(hashed).toContain(`style-src 'self' https://fonts.googleapis.com ${PRUNELLE_ISLAND_STYLE_HASH}`)
+  })
+
+  it('supports security.csp object form in resolveCspPolicy, buildSecurityHeaderEntries, and createServer', async () => {
+    const extra: CspDirectives = {
+      'style-src': 'https://fonts.googleapis.com',
+      'font-src': ['https://fonts.gstatic.com'],
+    }
+    expect(resolveCspPolicy({ csp: extra })).toBe(extendCsp(extra))
+    expect(resolveCspPolicy({ csp: false })).toBeUndefined()
+    expect(resolveCspPolicy(false)).toBeUndefined()
+    expect(resolveCspPolicy(undefined)).toBe(DEFAULT_CSP)
+
+    const entries = buildSecurityHeaderEntries({ csp: extra })
+    expect(entries.find(([k]) => k === 'content-security-policy')?.[1]).toBe(extendCsp(extra))
+
+    const dir = makeTemp('prunelle-extend-csp-')
+    mkdirSync(join(dir, 'src/routes/api'), { recursive: true })
+    mkdirSync(join(dir, 'src/components'), { recursive: true })
+    writeFileSync(join(dir, 'src/components/Counter.tsx'), `
+      import { signal } from 'prunelle'
+      export function Counter() {
+        const n = signal(0)
+        return <button type="button" onClick={() => n.value++}>{n.value}</button>
+      }
+    `)
+    writeFileSync(join(dir, 'src/routes/index.tsx'), `
+      import { Counter } from '../components/Counter'
+      export default function Home() {
+        return <main><style>{'main{padding:1rem}'}</style><Counter /></main>
+      }
+    `)
+    writeFileSync(join(dir, 'src/routes/api/ping.ts'), `
+      export function GET() {
+        return Response.json({ ok: true })
+      }
+    `)
+
+    await build({ root: dir })
+    const app = await createServer({ root: dir, security: { csp: extra } })
+
+    const pageRes = await app.handle(new Request('http://localhost/'))
+    const pageCsp = pageRes.headers.get('content-security-policy')!
+    const styleHash = inlineStyleHashes('<style>main{padding:1rem}</style>')[0]!
+    expect(pageCsp).toContain(`style-src 'self' https://fonts.googleapis.com`)
+    expect(pageCsp).toContain(PRUNELLE_ISLAND_STYLE_HASH)
+    expect(pageCsp).toContain(styleHash)
+    expect(pageCsp).toContain("font-src 'self' data: https://fonts.gstatic.com")
+    expect(pageCsp).toContain("object-src 'none'")
+    expect(pageCsp).toContain("frame-ancestors 'self'")
+
+    // Non-HTML responses also receive the extended CSP string (not an object).
+    const apiRes = await app.handle(new Request('http://localhost/api/ping'))
+    expect(apiRes.headers.get('content-security-policy')).toBe(extendCsp(extra))
+  })
+})
+
+describe('static export carries per-page CSP meta tags (#37)', () => {
+  it('strips meta-disallowed directives and injects CSP right after charset in <head>', () => {
+    const rawPolicy = `${DEFAULT_CSP}; report-uri /csp-report; sandbox allow-scripts`
+    const metaPolicy = toMetaCsp(rawPolicy)
+    expect(metaPolicy).not.toContain('frame-ancestors')
+    expect(metaPolicy).not.toContain('report-uri')
+    expect(metaPolicy).not.toContain('sandbox')
+    expect(metaPolicy).toContain("default-src 'self'")
+    expect(metaPolicy).toContain("object-src 'none'")
+
+    const doc = '<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0}</style></head><body>hi</body></html>'
+    const injected = injectMetaCsp(doc, rawPolicy)
+    expect(injected).toBe(`<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${metaPolicy}"><style>body{margin:0}</style></head><body>hi</body></html>`)
+
+    // Does not double-inject when a CSP meta tag already exists, and skips empty/null policies.
+    expect(injectMetaCsp(injected, rawPolicy)).toBe(injected)
+    expect(injectMetaCsp(doc, null)).toBe(doc)
+    expect(injectMetaCsp(doc, "frame-ancestors 'self'")).toBe(doc)
+
+    // Falls back to right after <head> when no charset meta is present.
+    const noCharset = '<html><head><title>x</title></head><body></body></html>'
+    expect(injectMetaCsp(noCharset, "default-src 'self'")).toBe(`<html><head><meta http-equiv="Content-Security-Policy" content="default-src 'self'"><title>x</title></head><body></body></html>`)
+  })
+
+  it('embeds hashed CSP on island, inline-style, plain, 404, base-path, and extended-CSP static pages, and skips it when disabled or non-static', async () => {
+    const makeApp = (prefix: string, configCode?: string) => {
+      const dir = makeTemp(prefix)
+      linkPrunelle(dir)
+      mkdirSync(join(dir, 'src/routes'), { recursive: true })
+      mkdirSync(join(dir, 'src/components'), { recursive: true })
+      mkdirSync(join(dir, 'src/styles'), { recursive: true })
+      writeFileSync(join(dir, 'src/styles/app.css'), 'body{font-family:sans-serif}\n')
+      writeFileSync(join(dir, 'src/components/Counter.tsx'), `
+        import { signal } from 'prunelle'
+        export function Counter() {
+          const count = signal(0)
+          return <button id="inc" type="button" onClick={() => count.value++}>count:{count.value}</button>
+        }
+      `)
+      writeFileSync(join(dir, 'src/routes/index.tsx'), `
+        import '../styles/app.css'
+        import { Counter } from '../components/Counter'
+        export const prerender = true
+        export default function IslandPage() {
+          return <main><h1>Island</h1><Counter /></main>
+        }
+      `)
+      writeFileSync(join(dir, 'src/routes/styled.tsx'), `
+        export const prerender = true
+        export default function StyledPage() {
+          return <main><style>{'#swatch{color:rgb(10, 20, 30)}'}</style><p id="swatch">Styled only</p></main>
+        }
+      `)
+      writeFileSync(join(dir, 'src/routes/plain.tsx'), `
+        export const prerender = true
+        export default function PlainPage() {
+          return <main><p id="plain">Zero JS, zero inline style</p></main>
+        }
+      `)
+      writeFileSync(join(dir, 'src/routes/_404.tsx'), `
+        export default function NotFound() {
+          return <main><style>{'.nf{color:crimson}'}</style><h1 class="nf">Not found</h1></main>
+        }
+      `)
+      if (configCode !== undefined)
+        writeFileSync(join(dir, 'prunelle.config.ts'), configCode)
+      return dir
+    }
+
+    // 1. Standard static export with island, inline-style, plain, and 404 pages + real Chromium check.
+    const staticDir = makeApp('prunelle-static-csp-')
+    await build({ root: staticDir, static: true })
+
+    const islandHtml = readFileSync(join(staticDir, 'dist/index.html'), 'utf8')
+    const styledHtml = readFileSync(join(staticDir, 'dist/styled/index.html'), 'utf8')
+    const plainHtml = readFileSync(join(staticDir, 'dist/plain/index.html'), 'utf8')
+    const notFoundHtml = readFileSync(join(staticDir, 'dist/404.html'), 'utf8')
+
+    const islandCsp = extractMetaCsp(islandHtml)
+    const styledCsp = extractMetaCsp(styledHtml)
+    const plainCsp = extractMetaCsp(plainHtml)
+    const notFoundCsp = extractMetaCsp(notFoundHtml)
+
+    expect(islandCsp).toBeDefined()
+    expect(islandCsp).toContain(PRUNELLE_ISLAND_STYLE_HASH)
+    expect(islandCsp).not.toContain('frame-ancestors')
+
+    const styledHash = inlineStyleHashes('<style>#swatch{color:rgb(10, 20, 30)}</style>')[0]!
+    expect(styledCsp).toBeDefined()
+    expect(styledCsp).toContain(styledHash)
+    expect(styledCsp).not.toContain(PRUNELLE_ISLAND_STYLE_HASH)
+    expect(styledCsp).not.toContain('frame-ancestors')
+
+    expect(plainCsp).toBeDefined()
+    expect(plainCsp).toContain("default-src 'self'")
+    expect(plainCsp).not.toContain(PRUNELLE_ISLAND_STYLE_HASH)
+    expect(plainCsp).not.toContain('frame-ancestors')
+
+    const nfHash = inlineStyleHashes('<style>.nf{color:crimson}</style>')[0]!
+    expect(notFoundCsp).toBeDefined()
+    expect(notFoundCsp).toContain(nfHash)
+    expect(notFoundCsp).not.toContain('frame-ancestors')
+
+    // CSP meta must appear before the first <style>, <script>, or <link> in <head>.
+    expect(islandHtml.indexOf('http-equiv="Content-Security-Policy"')).toBeLessThan(islandHtml.indexOf('<link '))
+    expect(styledHtml.indexOf('http-equiv="Content-Security-Policy"')).toBeLessThan(styledHtml.indexOf('<style>'))
+
+    // 2. Real Chromium load of the static export: island page, inline-style page, and plain 0-JS page all load with zero CSP violations.
+    const distRoot = join(staticDir, 'dist')
+    const server = Bun.serve({
+      port: 0,
+      hostname: '127.0.0.1',
+      fetch(req) {
+        const pathname = new URL(req.url).pathname
+        if (pathname === '/favicon.ico')
+          return new Response(null, { status: 204 })
+        const direct = join(distRoot, pathname.slice(1))
+        const full = pathname === '/'
+          ? join(distRoot, 'index.html')
+          : existsSync(direct) && statSync(direct).isFile()
+            ? direct
+            : join(distRoot, pathname.slice(1), 'index.html')
+        if (!existsSync(full) || !statSync(full).isFile())
+          return new Response(Bun.file(join(distRoot, '404.html')), { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } })
+        return new Response(Bun.file(full), { headers: { 'content-security-policy': "frame-ancestors 'self'" } })
+      },
+    })
+    const browser = await chromium.launch({ headless: true, executablePath: findChromiumPath() })
+    try {
+      const origin = `http://127.0.0.1:${server.port}`
+      for (const path of ['/', '/styled', '/plain']) {
+        const context = await browser.newContext()
+        const page = await context.newPage()
+        const problems: string[] = []
+        page.on('pageerror', err => problems.push(`pageerror: ${err.message}`))
+        page.on('console', (msg) => {
+          if (msg.type() === 'error' || msg.type() === 'warning')
+            problems.push(`${msg.type()}: ${msg.text()}`)
+        })
+        await page.addInitScript(() => {
+          document.addEventListener('securitypolicyviolation', (e) => {
+            console.error(`CSP violation: ${e.violatedDirective} blocked ${e.blockedURI}`)
+          })
+        })
+        await page.goto(`${origin}${path}`, { waitUntil: 'load', timeout: 10_000 })
+        if (path === '/') {
+          await page.waitForFunction(() => [...document.querySelectorAll('pru-island')].every(el => (el as HTMLElement & { _d?: unknown })._d !== undefined), undefined, { timeout: 10_000 })
+          await page.click('#inc')
+          expect(await page.locator('#inc').innerText()).toBe('count:1')
+        }
+        if (path === '/styled') {
+          const color = await page.evaluate(() => getComputedStyle(document.querySelector('#swatch')!).color)
+          expect(color).toBe('rgb(10, 20, 30)')
+        }
+        expect(problems, path).toEqual([])
+        await context.close()
+      }
+    }
+    finally {
+      await browser.close()
+      server.stop(true)
+    }
+
+    // 3. Base path (assetPrefix) static build still embeds CSP meta and loads assets under the prefix.
+    const prefixDir = makeApp('prunelle-static-csp-prefix-')
+    await build({ root: prefixDir, static: true, assetPrefix: '/blog/_pru' })
+    const prefixHtml = readFileSync(join(prefixDir, 'dist/index.html'), 'utf8')
+    expect(prefixHtml).toContain('/blog/_pru/')
+    expect(extractMetaCsp(prefixHtml)).toContain(PRUNELLE_ISLAND_STYLE_HASH)
+
+    // 4. security.csp: false and security: false emit NO CSP meta tag on pages or 404.
+    for (const cfg of [
+      `import { defineConfig } from 'prunelle/config'\nexport default defineConfig({ security: { csp: false } })\n`,
+      `import { defineConfig } from 'prunelle/config'\nexport default defineConfig({ security: false })\n`,
+    ]) {
+      const noCspDir = makeApp('prunelle-static-nocsp-', cfg)
+      await build({ root: noCspDir, static: true })
+      expect(extractMetaCsp(readFileSync(join(noCspDir, 'dist/index.html'), 'utf8'))).toBeUndefined()
+      expect(extractMetaCsp(readFileSync(join(noCspDir, 'dist/404.html'), 'utf8'))).toBeUndefined()
+    }
+
+    // 5. Extended CSP object in prunelle.config.ts lands in static meta CSP with hashes.
+    const extDir = makeApp(
+      'prunelle-static-extcsp-',
+      `import { defineConfig } from 'prunelle/config'\nexport default defineConfig({ security: { csp: { 'font-src': ['https://fonts.gstatic.com'], 'style-src': 'https://fonts.googleapis.com' } } })\n`,
+    )
+    await build({ root: extDir, static: true })
+    const extMeta = extractMetaCsp(readFileSync(join(extDir, 'dist/index.html'), 'utf8'))!
+    expect(extMeta).toContain(`style-src 'self' https://fonts.googleapis.com`)
+    expect(extMeta).toContain(PRUNELLE_ISLAND_STYLE_HASH)
+    expect(extMeta).toContain("font-src 'self' data: https://fonts.gstatic.com")
+    expect(extractMetaCsp(readFileSync(join(extDir, 'dist/404.html'), 'utf8'))).toContain("font-src 'self' data: https://fonts.gstatic.com")
+
+    // 6. Non-static (server) build with prerendered routes does NOT inject a meta CSP tag.
+    const serverDir = makeApp('prunelle-server-prerender-csp-')
+    await build({ root: serverDir })
+    const preHtml = readFileSync(join(serverDir, 'dist/prerendered/index.html'), 'utf8')
+    expect(extractMetaCsp(preHtml)).toBeUndefined()
+  }, 30_000)
 })

@@ -5,10 +5,9 @@ import { shareCard } from '@prunellejs/images'
 import { Head } from 'prunelle'
 import { RunningHead } from '../../components/RunningHead'
 import { type DocFrontmatter, docs, DOCS_ROOT, getFlatNav, getNavGroups, type NavGroup, type NavItem, numberChapter } from '../../content'
+import { COPY_CODE_SCRIPT } from '../../copy-code'
 
 export const prerender = true
-
-const COPY_CODE_SCRIPT = `document.addEventListener('click',function(e){var b=e.target&&e.target.closest?e.target.closest('.listing-copy'):null;if(!b)return;var p=b.closest('.listing');var pre=p&&p.querySelector('pre');var t=pre?pre.textContent||'':'';(navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(t):Promise.reject()).catch(function(){var a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()}).finally(function(){b.textContent='Copied';clearTimeout(b._t);b._t=setTimeout(function(){b.textContent='Copy'},1800)})});`
 
 export function paths(): string[] {
   return docs.paths('/docs')

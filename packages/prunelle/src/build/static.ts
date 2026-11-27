@@ -8,6 +8,7 @@ import { copyFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { resolvePlugins } from '../plugins/index'
 import { createDocumentHooks, createHtmlHeaders } from '../server/document'
+import { injectMetaCsp } from '../server/security'
 import { createNavigation } from '../ssr/navigation'
 import { createFallbackPages } from '../server/errors'
 import { walkAllFiles } from './files'
@@ -77,12 +78,12 @@ async function renderStaticNotFound(options: StaticExportOptions): Promise<strin
     const res = await buildNotFoundResponse(url, new Request(url))
     if (renderError !== undefined || res.status >= 500)
       throw pageFailure(`prunelle build: the _404 page of the static export answered HTTP ${res.status}`, renderError)
-    return await res.text()
+    return injectMetaCsp(await res.text(), res.headers.get('content-security-policy'))
   }
   const res = await options.app!.handle(new Request(`${origin}/__pru_404__`))
   if (res.status >= 500)
     throw pageFailure(`prunelle build: the _404 page of the static export answered HTTP ${res.status}`, undefined)
-  return await res.text()
+  return injectMetaCsp(await res.text(), res.headers.get('content-security-policy'))
 }
 
 export async function exportStatic(options: StaticExportOptions): Promise<void> {

@@ -44,7 +44,7 @@ A key prunelle does not read fails the build, `prunelle check` and `prunelle dev
 | `compliance` | `undefined` | French web law check overrides: `{ ignore?, publicBody?, legalNotice? }`. |
 | `streamTimeout` | `30000` | Milliseconds a `<Suspense>` boundary may wait before failing. |
 | `compress` | `true` in prod, `false` in dev | Sends the `.br` and `.gz` files `prunelle build` wrote beside assets, `public/` files and prerendered pages, and compresses the rest on the fly (zstd, gzip), streamed pages included. |
-| `onError` | `undefined` | Hook called on unhandled errors in routes, actions, or plugins (`source: 'route' \| 'action' \| 'plugin'`). A hook that throws is logged with its owner, and the other hooks still run. |
+| `onError` | `undefined` | Hook called on unhandled errors in routes, actions, or plugins (`source: 'route' \| 'action' \| 'plugin'`). Without one, Prunelle logs each unhandled error, its stack, method and path to stderr in both `prunelle start` and `prunelle dev`. A hook that throws is logged with its owner, and the other hooks still run. |
 | `plugins` | `[]` | Array of `PrunellePlugin` instances. |
 
 ## Security headers & strict CSP
@@ -56,17 +56,24 @@ Prunelle attaches safe security headers to every response out of the box:
 - `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
 - `Strict-Transport-Security`: Sent on HTTPS requests (`max-age=31536000; includeSubDomains` by default).
 
-Override individual headers or turn one off with `false`:
+Override individual headers, extend specific directives of `DEFAULT_CSP`, or turn one off with `false`:
 
 ```ts
 export default defineConfig({
   security: {
-    csp: "default-src 'self'; img-src 'self' https://cdn.example.com",
+    // Adds sources to the default policy without restating the other directives;
+    // automatic SHA-256 hashes still land in the extended directives.
+    csp: {
+      'style-src': ['https://fonts.googleapis.com'],
+      'font-src': ['https://fonts.gstatic.com'],
+    },
     frameOptions: 'DENY',
     hsts: false,
   },
 })
 ```
+
+Passing a directive object merges onto `DEFAULT_CSP` (new `*-src` fetch directives such as `connect-src` inherit `'self'` from `default-src` automatically, while passing `"'none'"` tightens a directive). Pass a full policy string to replace `DEFAULT_CSP` completely, or import `DEFAULT_CSP` and `extendCsp` from `prunelle/server` when building a policy in code.
 
 ## Reverse proxies (`trustProxy`)
 

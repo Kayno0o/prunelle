@@ -43,7 +43,7 @@ When a build lands, a running `prunelle start` loads it in the same process, wit
 
 A page loaded just before a deploy still links the previous build's scripts. So each build keeps the hashed client files the build before it made and it dropped, as hard links beside its own (copies where the filesystem refuses links), and serves them for one more deploy. A deferred island on that page still finds its chunk, and the build after that removes it. A `--static` export and a compiled binary keep them the same way, and routes, preloads and `--max-js` count only the new build's files.
 
-prunelle marks each folder it builds with a `.prunelle-output` file. It refuses to replace an `outDir` holding files it did not build, and names the folder, so a mistyped `outDir` never deletes your files. An empty folder, or a build from an older prunelle, is replaced as usual.
+prunelle marks each folder it builds with a `.prunelle-output` file. It refuses to replace an `outDir` holding files it did not build, and names the folder, so a mistyped `outDir` never deletes your files. An empty folder, a build from an older prunelle, or a kay v2 export (`_kay/`) is replaced as usual.
 
 ## 3. Static HTML Export (`prunelle build --static`)
 
@@ -56,5 +56,17 @@ Outputs a ready-to-host directory in `dist/` containing:
 - `404.html` (if `src/routes/_404.tsx` exists)
 - Hashed client CSS/JS/font assets under `dist/_pru/`
 - All `public/` files, RSS feeds, `sitemap.xml`, and generated OG `shareCard()` PNGs
+
+### Static export CSP and host headers
+
+Unless `security: false` or `security: { csp: false }` is set, every exported HTML page (including `404.html`) carries its own `<meta http-equiv="Content-Security-Policy">` tag with the exact SHA-256 hashes of that page's inline styles and scripts and no `'unsafe-inline'`.
+
+Browsers ignore `frame-ancestors`, `report-uri` and `sandbox` inside `<meta>` tags, so Prunelle strips them from the meta policy. Configure your static host or reverse proxy (Caddy, nginx, Cloudflare, etc.) to send the HTTP headers that cannot live in HTML:
+
+- `Content-Security-Policy: frame-ancestors 'self'` (intersects cleanly with each page's `<meta>` CSP)
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: SAMEORIGIN`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains` (on HTTPS)
 
 `prunelle start` serves an export too. It lists the files once at startup, so a request reads no directory: `/about` answers `about.html` or `about/index.html`, and a missing path answers `404.html` with status 404. Every file answers an `ETag`, a `304` to a matching `If-None-Match` and its length to a `HEAD`. A file edited or added in place is served a moment later, and a new `prunelle build --static` is picked up with no restart.

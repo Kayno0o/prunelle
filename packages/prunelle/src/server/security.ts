@@ -71,6 +71,35 @@ export function inlineStyleHashes(html: string): string[] {
   return hashes
 }
 
+interface ParsedCsp {
+  order: string[]
+  directives: Map<string, string[]>
+}
+
+function parseCsp(csp: string): ParsedCsp {
+  const directives = new Map<string, string[]>()
+  const order: string[] = []
+  for (const part of csp.split(';')) {
+    const trimmed = part.trim()
+    if (!trimmed)
+      continue
+    const tokens = trimmed.split(/\s+/)
+    const name = tokens[0]!.toLowerCase()
+    if (!directives.has(name)) {
+      order.push(name)
+      directives.set(name, tokens.slice(1))
+    }
+  }
+  return { order, directives }
+}
+
+function serializeCsp(parsed: ParsedCsp): string {
+  return parsed.order.map((name) => {
+    const tokens = parsed.directives.get(name)!
+    return tokens.length > 0 ? `${name} ${tokens.join(' ')}` : name
+  }).join('; ')
+}
+
 /** Augments a Content-Security-Policy header with exact SHA-256 hashes (no `'unsafe-inline'` required). */
 export function withCspHashes(
   csp: string,
@@ -81,18 +110,8 @@ export function withCspHashes(
   if (styleHashes.length === 0 && scriptHashes.length === 0)
     return csp
 
-  const rawParts = csp.split(';').map(s => s.trim()).filter(Boolean)
-  const directives = new Map<string, string[]>()
-  const order: string[] = []
-  for (const part of rawParts) {
-    const tokens = part.split(/\s+/)
-    const name = tokens[0]!.toLowerCase()
-    if (!directives.has(name)) {
-      order.push(name)
-      directives.set(name, tokens.slice(1))
-    }
-  }
-
+  const parsed = parseCsp(csp)
+  const { order, directives } = parsed
   const defaultSrc = directives.get('default-src') ?? ["'self'"]
   const addHashes = (dirName: string, hashes: readonly string[]) => {
     if (hashes.length === 0)
@@ -121,22 +140,151 @@ export function withCspHashes(
   if (directives.has('script-src-elem'))
     addHashes('script-src-elem', scriptHashes)
 
-  return order.map((name) => {
-    const tokens = directives.get(name)!
-    return tokens.length > 0 ? `${name} ${tokens.join(' ')}` : name
-  }).join('; ')
+  return serializeCsp(parsed)
 }
 
 export const DEFAULT_CSP = "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
 export const DEFAULT_HSTS = 'max-age=31536000; includeSubDomains'
 export const DEFAULT_PERMISSIONS_POLICY = 'camera=(), microphone=(), geolocation=()'
 
+export type CspDirectiveValue = string | readonly string[]
+
+export interface KnownCspDirectives {
+  'default-src'?: CspDirectiveValue | undefined
+  'script-src'?: CspDirectiveValue | undefined
+  'script-src-elem'?: CspDirectiveValue | undefined
+  'script-src-attr'?: CspDirectiveValue | undefined
+  'style-src'?: CspDirectiveValue | undefined
+  'style-src-elem'?: CspDirectiveValue | undefined
+  'style-src-attr'?: CspDirectiveValue | undefined
+  'img-src'?: CspDirectiveValue | undefined
+  'font-src'?: CspDirectiveValue | undefined
+  'connect-src'?: CspDirectiveValue | undefined
+  'media-src'?: CspDirectiveValue | undefined
+  'object-src'?: CspDirectiveValue | undefined
+  'frame-src'?: CspDirectiveValue | undefined
+  'child-src'?: CspDirectiveValue | undefined
+  'worker-src'?: CspDirectiveValue | undefined
+  'manifest-src'?: CspDirectiveValue | undefined
+  'base-uri'?: CspDirectiveValue | undefined
+  'form-action'?: CspDirectiveValue | undefined
+  'frame-ancestors'?: CspDirectiveValue | undefined
+  'sandbox'?: CspDirectiveValue | undefined
+  'report-to'?: CspDirectiveValue | undefined
+  'report-uri'?: CspDirectiveValue | undefined
+  'upgrade-insecure-requests'?: CspDirectiveValue | undefined
+}
+
+export type CspDirectives = Readonly<KnownCspDirectives & Record<string, CspDirectiveValue | undefined>>
+
+const isFetchDirective = (name: string): boolean =>
+  name.endsWith('-src') || name.endsWith('-src-elem') || name.endsWith('-src-attr')
+
+function splitCspTokens(value: CspDirectiveValue): string[] {
+  const parts = typeof value === 'string' ? [value] : value
+  const tokens: string[] = []
+  for (const part of parts) {
+    for (const token of part.split(/\s+/)) {
+      if (token.length > 0 && !tokens.includes(token))
+        tokens.push(token)
+    }
+  }
+  return tokens
+}
+
+function mergeCspDirective(parsed: ParsedCsp, name: string, tokens: readonly string[]): void {
+  const { order, directives } = parsed
+  const existing = directives.get(name)
+  if (existing === undefined) {
+    order.push(name)
+    if (tokens.length === 0) {
+      directives.set(name, [])
+    }
+    else if (tokens.includes("'none'")) {
+      directives.set(name, ["'none'"])
+    }
+    else if (isFetchDirective(name)) {
+      const seeded = (directives.get('default-src') ?? ["'self'"]).filter(t => t !== "'none'")
+      for (const token of tokens) {
+        if (!seeded.includes(token))
+          seeded.push(token)
+      }
+      directives.set(name, seeded)
+    }
+    else {
+      directives.set(name, [...tokens])
+    }
+    return
+  }
+  if (tokens.length === 0)
+    return
+  if (tokens.includes("'none'")) {
+    directives.set(name, ["'none'"])
+    return
+  }
+  const noneIdx = existing.indexOf("'none'")
+  if (noneIdx !== -1)
+    existing.splice(noneIdx, 1)
+  for (const token of tokens) {
+    if (!existing.includes(token))
+      existing.push(token)
+  }
+}
+
+/** Extends a Content-Security-Policy (default: `DEFAULT_CSP`) by merging additional sources into one or more directives. */
+export function extendCsp(extra: CspDirectives, base = DEFAULT_CSP): string {
+  const parsed = parseCsp(base)
+  for (const [rawName, rawValue] of Object.entries(extra)) {
+    if (rawValue === undefined)
+      continue
+    const name = rawName.trim().toLowerCase()
+    if (name.length === 0)
+      continue
+    mergeCspDirective(parsed, name, splitCspTokens(rawValue))
+  }
+  return serializeCsp(parsed)
+}
+
+// Directives browsers ignore (and log an error for) when delivered via <meta http-equiv="Content-Security-Policy"> (W3C CSP3 §4.2.1).
+const META_CSP_IGNORED = new Set(['frame-ancestors', 'report-uri', 'sandbox'])
+const EXISTING_META_CSP_RE = /<meta\b[^>]*\bhttp-equiv\s*=\s*(?:"content-security-policy"|'content-security-policy'|content-security-policy\b)/i
+const META_CHARSET_RE = /<meta\b[^>]*\bcharset\s*=\s*[^>]*>/i
+const HEAD_OPEN_RE = /<head\b[^>]*>/i
+const ESC_DOUBLE_ATTR_RE = /[&"<>]/g
+const DOUBLE_ATTR_MAP: Record<string, string> = { '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' }
+
+/** Strips directives browsers reject in a `<meta http-equiv="Content-Security-Policy">` element. */
+export function toMetaCsp(csp: string): string {
+  const parsed = parseCsp(csp)
+  parsed.order = parsed.order.filter(name => !META_CSP_IGNORED.has(name))
+  return serializeCsp(parsed)
+}
+
+/** Injects `<meta http-equiv="Content-Security-Policy">` at the top of `<head>` for static HTML exports. */
+export function injectMetaCsp(html: string, csp: string | null | undefined): string {
+  if (!csp || EXISTING_META_CSP_RE.test(html))
+    return html
+  const metaCsp = toMetaCsp(csp)
+  if (metaCsp.length === 0)
+    return html
+  const headMatch = HEAD_OPEN_RE.exec(html)
+  if (headMatch === null)
+    return html
+  const headEnd = headMatch.index + headMatch[0].length
+  const headCloseIdx = html.toLowerCase().indexOf('</head>', headEnd)
+  const headSlice = headCloseIdx === -1 ? html.slice(headEnd) : html.slice(headEnd, headCloseIdx)
+  const charsetMatch = META_CHARSET_RE.exec(headSlice)
+  const insertAt = charsetMatch !== null ? headEnd + charsetMatch.index + charsetMatch[0].length : headEnd
+  const escaped = metaCsp.replace(ESC_DOUBLE_ATTR_RE, ch => DOUBLE_ATTR_MAP[ch]!)
+  return `${html.slice(0, insertAt)}<meta http-equiv="Content-Security-Policy" content="${escaped}">${html.slice(insertAt)}`
+}
+
 export interface SecurityHeadersOptions {
   frameOptions?: 'DENY' | 'SAMEORIGIN' | false | undefined
   referrerPolicy?: string | false | undefined
   contentTypeOptions?: boolean | undefined
   permissionsPolicy?: string | false | undefined
-  csp?: string | false | undefined
+  csp?: string | CspDirectives | false | undefined
   hsts?: string | boolean | undefined
 }
 
@@ -289,10 +437,10 @@ export function verifyOrigin(
 }
 
 export function resolveCspPolicy(options: SecurityHeadersOptions | false | undefined): string | undefined {
-  if (options === false)
+  if (options === false || options?.csp === false)
     return undefined
-  if (options?.csp === false)
-    return undefined
+  if (typeof options?.csp === 'object')
+    return extendCsp(options.csp)
   return options?.csp ?? DEFAULT_CSP
 }
 
@@ -317,7 +465,8 @@ export function buildSecurityHeaderEntries(options: SecurityHeadersOptions | fal
     entries.push(['referrer-policy', opts.referrerPolicy ?? 'strict-origin-when-cross-origin'])
   if (opts.permissionsPolicy !== false)
     entries.push(['permissions-policy', opts.permissionsPolicy ?? DEFAULT_PERMISSIONS_POLICY])
-  if (opts.csp !== false)
-    entries.push(['content-security-policy', opts.csp ?? DEFAULT_CSP])
+  const csp = resolveCspPolicy(opts)
+  if (csp !== undefined)
+    entries.push(['content-security-policy', csp])
   return entries
 }

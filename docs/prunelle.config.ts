@@ -8,6 +8,7 @@ import { seo } from '@prunellejs/seo'
 import { ui } from '@prunellejs/ui/plugin'
 import { defineConfig } from 'prunelle/config'
 import { docs, SECTIONS } from './src/content'
+import { COPY_CODE_SCRIPT } from './src/copy-code'
 import { pageWeight } from './src/page-weight'
 
 const SITE = process.env.SITE_URL ?? 'https://prunelle.kaynooo.fr'
@@ -15,6 +16,7 @@ const SITE = process.env.SITE_URL ?? 'https://prunelle.kaynooo.fr'
 const docsAssets = {
   name: 'prunelle-docs-assets',
   css: ['src/docs.css'],
+  inlineScripts: [COPY_CODE_SCRIPT],
   build(ctx: BuildPluginContext) {
     const repoRoot = resolve(ctx.root, '..')
     // Emit root llms.txt at /llms.txt
