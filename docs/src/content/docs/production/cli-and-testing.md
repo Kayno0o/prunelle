@@ -85,11 +85,11 @@ describe('app routes', () => {
 - Pass `prebuilt: true` to reuse a build instead of making one: the latest `testApp()` build of the same app in this test process, or else the app's `dist/`.
 - Pass `dev: true` to see the failure in the response too, as `prunelle dev` does (see below).
 
-### Unhandled errors in dev
+### Unhandled errors
 
-An error that no `onError` hook and no `_error.tsx` handled answers with a bare `500 Internal Server Error`, so a production visitor never sees a message or a stack.
+An error that no `onError` hook and no `_error.tsx` handled answers with a bare `500 Internal Server Error`, so a production visitor never sees a message or a stack. When no `onError` hook is configured, Prunelle logs every unhandled route, action, plugin route, and streamed `<Suspense>` error—together with its method, path, and stack—to stderr (`console.error`) in both `prunelle start` and `prunelle dev`. Configuring `onError` handles them without doubling on stderr, and `testApp()` without `dev: true` captures them quietly in `app.errors`.
 
-With `dev: true` in `testApp()`, and always under `prunelle dev`, the response carries the real error instead. A request that asks for JSON gets `{ ok: false, status: 500, error, stack }`, and any other request gets the stack as plain text. An app with an `_error.tsx` still renders that page. The error is also logged with `console.error`, unless the app has an `onError` hook, which is then the one that hears it.
+With `dev: true` in `testApp()`, and always under `prunelle dev`, the response carries the real error instead. A request that asks for JSON gets `{ ok: false, status: 500, error, stack }`, and any other request gets the stack as plain text. An app with an `_error.tsx` still renders that page.
 
 Each frame of the stack names the file under `src/` and the line it was written on, for a `.tsx` page or component as for a `.ts` route. That also holds for the `error.stack` an `onError` hook gets under `prunelle start`, since `prunelle build` writes a source map beside each server file. A `--compile` binary is the exception: its frames point into the binary's own code.
 
@@ -121,7 +121,7 @@ it('counts clicks', async () => {
 ```
 
 - `browser.open(path)`: Opens a page in its own context and resolves when it has loaded.
-- `page.click(selector)`, `page.hover(selector)`, `page.fill(selector, value)`, `page.text(selector)`: Drive and read the page. `b.open(path, { reducedMotion: true })` opens the page for a visitor who asks for less motion.
+- `page.click(selector)`, `page.hover(selector)`, `page.fill(selector, value)`, `page.press(key)`, `page.text(selector)`: Drive and read the page (`press('Escape')`, `press('ArrowRight')`, `press('Tab')` go through the browser's keyboard pipeline, reaching focused elements and native actions like closing a modal `<dialog>`). `b.open(path, { reducedMotion: true })` opens the page for a visitor who asks for less motion.
 - `page.waitFor(selector | fn)`: Waits for a selector to match, or for a function run in the page to return a truthy value.
 - `page.evaluate(fn | expression)`: Runs code in the page and returns its result.
 - `page.errors`: Page errors, `console.error` messages and failed requests collected since the page opened.

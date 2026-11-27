@@ -23,6 +23,8 @@ export interface BrowserPage {
   /** Moves the pointer over the first element matching `selector`, as a visitor hovering a link does. */
   hover(selector: string): Promise<void>
   fill(selector: string, value: string): Promise<void>
+  /** Presses a key (`'Escape'`, `'ArrowRight'`, `'Tab'`) through the browser's keyboard input pipeline. */
+  press(key: string): Promise<void>
   /** The text content of the first element matching `selector`. */
   text(selector: string): Promise<string>
   close(): Promise<void>
@@ -53,6 +55,7 @@ interface Page {
   click(selector: string, options: { timeout: number }): Promise<void>
   hover(selector: string, options: { timeout: number }): Promise<void>
   fill(selector: string, value: string, options: { timeout: number }): Promise<void>
+  keyboard: { press(key: string): Promise<void> }
   locator(selector: string): { first: () => { innerText: (options: { timeout: number }) => Promise<string> } }
 }
 interface BrowserContext {
@@ -125,6 +128,9 @@ function wrapPage(page: Page, context: BrowserContext, timeout: number, url: str
     },
     async fill(selector, value) {
       await page.fill(selector, value, { timeout })
+    },
+    async press(key) {
+      await page.keyboard.press(key)
     },
     async text(selector) {
       return await page.locator(selector).first().innerText({ timeout })

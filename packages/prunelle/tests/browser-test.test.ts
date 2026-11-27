@@ -45,6 +45,31 @@ beforeAll(async () => {
       return <output id="polls">{polls.value}</output>
     }
   `)
+  writeFileSync(join(dir, 'src/components/Gallery.tsx'), `
+    import { signal } from 'prunelle'
+    export function Gallery() {
+      const index = signal(0)
+      let dialogEl: HTMLDialogElement | undefined
+      return (
+        <div>
+          <button id="open-gallery" type="button" onClick={() => dialogEl?.showModal()}>Open</button>
+          <dialog
+            id="gallery-dialog"
+            ref={(el: HTMLDialogElement) => { dialogEl = el }}
+            onKeyDown={(e: KeyboardEvent) => { if (e.key === 'ArrowRight') index.value++ }}
+          >
+            <button id="first-btn" type="button">First</button>
+            <button id="second-btn" type="button">Second</button>
+            <output id="slide-index">{index.value}</output>
+          </dialog>
+        </div>
+      )
+    }
+  `)
+  writeFileSync(join(dir, 'src/routes/gallery.tsx'), `
+    import { Gallery } from '../components/Gallery'
+    export default function GalleryPage() { return <main><Gallery /></main> }
+  `)
   writeFileSync(join(dir, 'src/routes/live.tsx'), `
     import { Poll } from '../components/Poll'
     export default function Live() { return <main><Poll /></main> }
@@ -89,6 +114,26 @@ describe('testBrowser (#3595)', () => {
   it('opens a page that keeps polling once its islands have hydrated', async () => {
     const page = await browser.open('/live')
     await page.waitFor(() => Number(document.getElementById('polls')?.textContent) > 0)
+    expect(page.errors).toEqual([])
+  }, 30_000)
+
+  it('presses keys through the browser input pipeline and lets Escape close a modal dialog (#50)', async () => {
+    const page = await browser.open('/gallery')
+    await page.click('#open-gallery')
+    await page.waitFor(() => (document.getElementById('gallery-dialog') as HTMLDialogElement | null)?.open === true)
+    expect(await page.text('#slide-index')).toBe('0')
+
+    await page.press('ArrowRight')
+    await page.waitFor(() => document.getElementById('slide-index')?.textContent === '1')
+    expect(await page.text('#slide-index')).toBe('1')
+
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('first-btn')
+    await page.press('Tab')
+    expect(await page.evaluate(() => document.activeElement?.id)).toBe('second-btn')
+
+    await page.press('Escape')
+    await page.waitFor(() => (document.getElementById('gallery-dialog') as HTMLDialogElement | null)?.open === false)
+    expect(await page.evaluate(() => (document.getElementById('gallery-dialog') as HTMLDialogElement).open)).toBe(false)
     expect(page.errors).toEqual([])
   }, 30_000)
 })
