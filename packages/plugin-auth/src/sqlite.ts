@@ -72,18 +72,32 @@ function rowToSession(row: SessionRow | null): AuthSession | undefined {
   }
 }
 
-export function sqliteAuthStore(dbOrPath: string | Database = ':memory:'): AuthStore & { readonly db: Database } {
-  const ownsDb = typeof dbOrPath === 'string'
-  if (ownsDb && dbOrPath !== ':memory:' && !dbOrPath.startsWith('file:'))
-    mkdirSync(dirname(dbOrPath), { recursive: true })
-  const db = ownsDb ? new Database(dbOrPath, { create: true }) : dbOrPath
-  let closed = false
+const AUTH_TABLES = ['users', 'sessions', 'oauth', 'tokens']
+const KAY_INDEXES = ['sessions_user', 'sessions_exp', 'oauth_user', 'tokens_exp']
 
+// A database kay created keeps its accounts: its kay_auth_* tables take prunelle's names, SQLite moving the foreign keys with them.
+function adoptKayTables(db: Database): void {
+  const tables = new Set(db.query<{ name: string }, []>(`SELECT name FROM sqlite_master WHERE type = 'table'`).all().map(row => row.name))
+  if (!tables.has('kay_auth_users') || tables.has('prunelle_auth_users'))
+    return
+  db.transaction(() => {
+    for (const table of AUTH_TABLES) {
+      if (tables.has(`kay_auth_${table}`))
+        db.exec(`ALTER TABLE kay_auth_${table} RENAME TO prunelle_auth_${table}`)
+    }
+    for (const index of KAY_INDEXES)
+      db.exec(`DROP INDEX IF EXISTS idx_kay_auth_${index}`)
+  })()
+}
+
+function createSchema(db: Database): void {
   db.exec(`
     PRAGMA busy_timeout = 5000;
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
-
+  `)
+  adoptKayTables(db)
+  db.exec(`
     CREATE TABLE IF NOT EXISTS prunelle_auth_users (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
@@ -125,6 +139,16 @@ export function sqliteAuthStore(dbOrPath: string | Database = ':memory:'): AuthS
     );
     CREATE INDEX IF NOT EXISTS idx_prunelle_auth_tokens_exp ON prunelle_auth_tokens(expires_at);
   `)
+}
+
+export function sqliteAuthStore(dbOrPath: string | Database = ':memory:'): AuthStore & { readonly db: Database } {
+  const ownsDb = typeof dbOrPath === 'string'
+  if (ownsDb && dbOrPath !== ':memory:' && !dbOrPath.startsWith('file:'))
+    mkdirSync(dirname(dbOrPath), { recursive: true })
+  const db = ownsDb ? new Database(dbOrPath, { create: true }) : dbOrPath
+  let closed = false
+
+  createSchema(db)
 
   const qUserById = db.query<UserRow, [string]>('SELECT * FROM prunelle_auth_users WHERE id = ?')
   const qUserByEmail = db.query<UserRow, [string]>('SELECT * FROM prunelle_auth_users WHERE email = ?')

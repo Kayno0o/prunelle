@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, test } from 'bun:test'
+import { Database } from 'bun:sqlite'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -365,6 +366,49 @@ describe('@prunelle/auth — Zero-dependency Bun-native Auth plugin', () => {
       mockOAuth.stop(true)
       delete (globalThis as Record<string, unknown>).__TEST_AUTH
     }
+  })
+
+  // The database a kay app wrote, rebuilt from prunelle's schema under kay's table and index names.
+  function kayDatabase(): Database {
+    const db = new Database(':memory:')
+    const store = sqliteAuthStore(db)
+    store.createUser({ id: 'u1', email: 'ada@example.com', role: 'user', emailVerified: true, createdAt: 1, updatedAt: 1 })
+    store.linkOAuthAccount({ provider: 'github', providerAccountId: '42', userId: 'u1', createdAt: 1 })
+    for (const table of ['users', 'sessions', 'oauth', 'tokens'])
+      db.exec(`ALTER TABLE prunelle_auth_${table} RENAME TO kay_auth_${table}`)
+    for (const [index, on] of [['sessions_user', 'sessions(user_id)'], ['sessions_exp', 'sessions(expires_at)'], ['oauth_user', 'oauth(user_id)'], ['tokens_exp', 'tokens(expires_at)']])
+      db.exec(`DROP INDEX idx_prunelle_auth_${index}; CREATE INDEX idx_kay_auth_${index} ON kay_auth_${on}`)
+    return db
+  }
+  const objects = (db: Database): string[] => db.query<{ name: string }, []>(`SELECT name FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY name`).all().map(row => row.name)
+
+  test('sqliteAuthStore opens a database kay created with its accounts and OAuth links, deleting a user still cascading', async () => {
+    const db = kayDatabase()
+    const store = sqliteAuthStore(db)
+    expect((await store.getUserByEmail('ada@example.com'))?.id).toBe('u1')
+    expect(await store.getOAuthAccount('github', '42')).toEqual({ provider: 'github', providerAccountId: '42', userId: 'u1', createdAt: 1 })
+    expect(objects(db)).toEqual([
+      'idx_prunelle_auth_oauth_user', 'idx_prunelle_auth_sessions_exp', 'idx_prunelle_auth_sessions_user', 'idx_prunelle_auth_tokens_exp',
+      'prunelle_auth_oauth', 'prunelle_auth_sessions', 'prunelle_auth_tokens', 'prunelle_auth_users',
+    ])
+    await store.deleteUser('u1')
+    expect(await store.getOAuthAccount('github', '42')).toBeUndefined()
+  })
+
+  test('sqliteAuthStore adopts a kay database made before kay stored tokens', async () => {
+    const db = kayDatabase()
+    db.exec(`DROP TABLE kay_auth_tokens`)
+    const store = sqliteAuthStore(db)
+    expect((await store.getUserByEmail('ada@example.com'))?.id).toBe('u1')
+    expect(objects(db)).toContain('prunelle_auth_tokens')
+  })
+
+  test('sqliteAuthStore leaves kay\'s tables alone once prunelle has its own', async () => {
+    const db = kayDatabase()
+    db.exec(`CREATE TABLE prunelle_auth_users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, name TEXT, avatar_url TEXT, role TEXT NOT NULL, email_verified INTEGER NOT NULL, password_hash TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)`)
+    const store = sqliteAuthStore(db)
+    expect(await store.getUserByEmail('ada@example.com')).toBeUndefined()
+    expect(objects(db)).toContain('kay_auth_users')
   })
 
   test('builds mailed sign-in links and OAuth callbacks from `site`, never from the request host', async () => {

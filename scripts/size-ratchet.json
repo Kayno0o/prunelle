@@ -1,6 +1,14 @@
 {
   "files": {},
   "functionLines": {
+    "packages/plugin-auth/src/index.ts::createAuth": 307,
+    "packages/plugin-auth/src/routes.ts::registerAuthRoutes": 198,
+    "packages/plugin-auth/src/session.ts::createSessionManager": 249,
+    "packages/plugin-auth/src/sqlite.ts::sqliteAuthStore": 186,
+    "packages/plugin-auth/src/store.ts::memoryAuthStore": 159,
+    "packages/plugin-content/src/collection.ts::defineCollection": 231,
+    "packages/plugin-content/src/components.ts::parseLiteralValue": 240,
+    "packages/plugin-mcp/src/rpc.ts::createRpcDispatcher": 191,
     "packages/prunelle/src/build/bundle.ts::buildClient": 164,
     "packages/prunelle/src/build/index.ts::runBuild": 159,
     "packages/prunelle/src/compiler/data-keys.ts::analyzeDefaultDataKeys": 192,
@@ -19,17 +27,10 @@
     "packages/prunelle/src/dom/loop.ts::loop": 223,
     "packages/prunelle/src/dom/loop.ts::loop.effect()": 163,
     "packages/prunelle/src/server/index.ts::createServerFromEmbedded": 356,
-    "packages/plugin-auth/src/index.ts::createAuth": 307,
-    "packages/plugin-auth/src/routes.ts::registerAuthRoutes": 198,
-    "packages/plugin-auth/src/session.ts::createSessionManager": 249,
-    "packages/plugin-auth/src/sqlite.ts::sqliteAuthStore": 227,
-    "packages/plugin-auth/src/store.ts::memoryAuthStore": 159,
-    "packages/plugin-content/src/collection.ts::defineCollection": 231,
-    "packages/plugin-content/src/components.ts::parseLiteralValue": 240,
-    "packages/plugin-mcp/src/rpc.ts::createRpcDispatcher": 191,
     "packages/ui/src/CommandPalette.tsx::CommandPalette": 163
   },
   "functionComplexity": {
+    "packages/plugin-mcp/src/schema.ts::compactSchemaNode": 63,
     "packages/prunelle/src/build/bundle.ts::buildClient": 54,
     "packages/prunelle/src/compiler/data-keys.ts::analyzeDefaultDataKeys.walkWithParents": 72,
     "packages/prunelle/src/compiler/dom-attrs.ts::compileElementAttributes": 59,
@@ -38,7 +39,6 @@
     "packages/prunelle/src/compiler/server-only.ts::findPrivateEnv.visit": 43,
     "packages/prunelle/src/compiler/ssr-helpers.ts::emitSsrElementAttrs": 71,
     "packages/prunelle/src/dom/loop.ts::loop.effect().untrack()": 42,
-    "packages/prunelle/src/server/index.ts::createServerFromEmbedded.handleInternal": 54,
-    "packages/plugin-mcp/src/schema.ts::compactSchemaNode": 63
+    "packages/prunelle/src/server/index.ts::createServerFromEmbedded.handleInternal": 54
   }
 }
