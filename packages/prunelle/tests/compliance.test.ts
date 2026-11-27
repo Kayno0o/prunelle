@@ -81,6 +81,322 @@ describe('RGAA static JSX compliance warnings (#3573)', () => {
   })
 })
 
+describe('RGAA extended static JSX compliance warnings (#7)', () => {
+  function rawRules(code: string): string[] {
+    return analyzeModule('Page.tsx', code).warnings.map(w => w.rule).filter((r): r is NonNullable<typeof r> => r !== undefined)
+  }
+
+  test('rgaa/duplicate-id flags duplicate literal ids within one component and resets per component or exclusive branch', () => {
+    expect(rulesOf('<div><section id="main">A</section><section id="main">B</section></div>')).toEqual(['rgaa/duplicate-id'])
+    expect(messagesOf('<div><p id="dup">A</p><span id="dup">B</span></div>')[0]).toContain('[rgaa/duplicate-id]')
+    expect(rulesOf('<div><p id={"same"}>A</p><p id={`same`}>B</p></div>')).toEqual(['rgaa/duplicate-id'])
+
+    // Distinct ids, dynamic ids, empty ids, custom component props, and separate components are fine
+    expect(rulesOf('<div><section id="a">A</section><section id="b">B</section></div>')).toEqual([])
+    expect(rulesOf('<div><section id={x}>A</section><section id={x}>B</section></div>', 'const x = "dyn"')).toEqual([])
+    expect(rulesOf('<div><Card id="1" /><Card id="1" /></div>', 'const Card = (_p: { id: string }) => <div />')).toEqual([])
+    expect(rawRules(`
+      export function First() { return <div id="shared">A</div> }
+      export function Second() { return <div id="shared">B</div> }
+    `)).toEqual([])
+    expect(rawRules(`
+      export default function Outer() {
+        const Inner = () => <div id="panel">Inner</div>
+        return <div id="panel"><Inner /></div>
+      }
+    `)).toEqual([])
+    // Exclusive ternary and early-return branches do not falsely collide
+    expect(rulesOf('<div>{ok ? <span id="status">Yes</span> : <span id="status">No</span>}</div>', 'const ok = true')).toEqual([])
+    expect(rawRules(`
+      export default function Page({ err }: { err?: string }) {
+        if (err) return <main id="page"><h1>Error</h1></main>
+        return <main id="page"><h1>Home</h1></main>
+      }
+    `)).toEqual([])
+
+    // Silencing
+    expect(rawRules(`
+      export default function Page() {
+        return <div><p id="dup">A</p>{/* prunelle-ignore rgaa/duplicate-id */}<p id="dup">B</p></div>
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/positive-tabindex flags positive literal tabindex/tabIndex and allows 0, -1, and dynamic expressions', () => {
+    expect(rulesOf('<div tabIndex={1}>Focus</div>')).toEqual(['rgaa/positive-tabindex'])
+    expect(rulesOf('<div tabindex="2">Focus</div>')).toEqual(['rgaa/positive-tabindex'])
+    expect(rulesOf('<div tabIndex={"3"}>Focus</div>')).toEqual(['rgaa/positive-tabindex'])
+    expect(messagesOf('<div tabIndex={5}>Focus</div>')[0]).toContain('[rgaa/positive-tabindex]')
+
+    expect(rulesOf('<div tabIndex={0}>OK</div>')).toEqual([])
+    expect(rulesOf('<div tabIndex={-1}>OK</div>')).toEqual([])
+    expect(rulesOf('<div tabindex="0">OK</div>')).toEqual([])
+    expect(rulesOf('<div tabindex="-1">OK</div>')).toEqual([])
+    expect(rulesOf('<div tabIndex={active ? 0 : -1}>OK</div>', 'const active = true')).toEqual([])
+
+    expect(rawRules(`
+      export default function Page() {
+        return <div tabIndex={1}>Focus</div> // prunelle-ignore rgaa/positive-tabindex
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/nested-control flags interactive elements nested inside <a>, <button>, or <summary>', () => {
+    expect(rulesOf('<a href="/home"><button type="button">Go</button></a>')).toEqual(['rgaa/nested-control'])
+    expect(rulesOf('<button type="button"><a href="/home">Go</a></button>')).toEqual(['rgaa/nested-control'])
+    expect(rulesOf('<button type="button"><input aria-label="Name" /></button>')).toEqual(['rgaa/nested-control'])
+    expect(rulesOf('<a href="/home"><select aria-label="Pick"><option>A</option></select></a>')).toEqual(['rgaa/nested-control'])
+    expect(rulesOf('<details><summary><button type="button">Toggle</button></summary></details>')).toEqual(['rgaa/nested-control'])
+    expect(rulesOf('<a href="/home"><div><textarea aria-label="Note" /></div></a>')).toEqual(['rgaa/nested-control'])
+    expect(messagesOf('<a href="/home"><button type="button">Go</button></a>')[0]).toContain('[rgaa/nested-control]')
+
+    // Sibling controls, hidden inputs, and non-interactive descendants are fine
+    expect(rulesOf('<div><a href="/home">Home</a><button type="button">Go</button></div>')).toEqual([])
+    expect(rulesOf('<button type="button"><input type="hidden" name="id" value="1" />Save</button>')).toEqual([])
+    expect(rulesOf('<a href="/home"><span>Go</span></a>')).toEqual([])
+    expect(rulesOf('<details><summary>More</summary><button type="button">Action</button></details>')).toEqual([])
+
+    expect(rawRules(`
+      export default function Page() {
+        return <a href="/home">{/* prunelle-ignore rgaa/nested-control */}<button type="button">Go</button></a>
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/link-as-button flags <a> with onClick and missing/empty href', () => {
+    expect(rulesOf('<a onClick={() => {}}>Do thing</a>')).toEqual(['rgaa/link-as-button'])
+    expect(rulesOf('<a href="" onClick={() => {}}>Do thing</a>')).toEqual(['rgaa/link-as-button'])
+    expect(rulesOf('<a href="   " onClick={() => {}}>Do thing</a>')).toEqual(['rgaa/link-as-button'])
+    expect(messagesOf('<a onClick={() => {}}>Do thing</a>')[0]).toContain('[rgaa/link-as-button]')
+
+    // Valid links, buttons, and spreads
+    expect(rulesOf('<a href="/next" onClick={() => {}}>Next</a>')).toEqual([])
+    expect(rulesOf('<a href={url} onClick={() => {}}>Next</a>', 'const url = "/next"')).toEqual([])
+    expect(rulesOf('<a {...props} onClick={() => {}}>Next</a>', 'const props = { href: "/next" }')).toEqual([])
+    expect(rulesOf('<button type="button" onClick={() => {}}>Do thing</button>')).toEqual([])
+
+    expect(rawRules(`
+      export default function Page() {
+        return <a onClick={() => {}}>Do thing</a> // prunelle-ignore rgaa/link-as-button
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/unknown-role flags invalid or abstract WAI-ARIA roles and allows valid single/fallback roles', () => {
+    expect(rulesOf('<div role="btn">Click</div>')).toEqual(['rgaa/unknown-role'])
+    expect(rulesOf('<div role="widget">Abstract</div>')).toEqual(['rgaa/unknown-role'])
+    expect(rulesOf('<div role="navigation bogus">Fallback</div>')).toEqual(['rgaa/unknown-role'])
+    expect(rulesOf('<div role="">Empty</div>')).toEqual(['rgaa/unknown-role'])
+    expect(messagesOf('<div role="btn">Click</div>')[0]).toContain('[rgaa/unknown-role]')
+
+    expect(rulesOf('<div role="button">Click</div>')).toEqual([])
+    expect(rulesOf('<div role="presentation">Layout</div>')).toEqual([])
+    expect(rulesOf('<div role="none">Layout</div>')).toEqual([])
+    expect(rulesOf('<div role="doc-tip" />')).toEqual(['rgaa/unknown-role'])
+    expect(rulesOf('<div role="switch button">Fallback</div>')).toEqual([])
+    expect(rulesOf('<div role="status">Saved</div>')).toEqual([])
+    expect(rulesOf('<div role={dynamicRole}>Dyn</div>', 'const dynamicRole = "region"')).toEqual([])
+
+    expect(rawRules(`
+      export default function Page() {
+        return <div role="btn">Click</div> // prunelle-ignore rgaa/unknown-role
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/unknown-aria flags misspelled or non-standard aria-* attributes', () => {
+    expect(rulesOf('<div aria-labeledby="title" />')).toEqual(['rgaa/unknown-aria'])
+    expect(rulesOf('<div aria-foo="bar" />')).toEqual(['rgaa/unknown-aria'])
+    expect(messagesOf('<div aria-labeledby="title" />')[0]).toContain('[rgaa/unknown-aria]')
+
+    expect(rulesOf('<div aria-labelledby="title" aria-describedby="desc" aria-description="Details" />')).toEqual([])
+    expect(rulesOf('<div aria-label="Menu" aria-controls="m1" aria-expanded={false} />')).toEqual([])
+
+    expect(rawRules(`
+      export default function Page() {
+        return <div aria-labeledby="title" /> // prunelle-ignore rgaa/unknown-aria
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/invalid-aria-value flags invalid literal values for boolean, tristate, enum, and numeric aria-* attrs', () => {
+    expect(rulesOf('<div aria-hidden="yes" />')).toEqual(['rgaa/invalid-aria-value'])
+    expect(rulesOf('<button type="button" aria-expanded="open">Menu</button>')).toEqual(['rgaa/invalid-aria-value'])
+    expect(rulesOf('<div role="checkbox" aria-checked="partial" />')).toEqual(['rgaa/invalid-aria-value'])
+    expect(rulesOf('<div aria-live="loud" />')).toEqual(['rgaa/invalid-aria-value'])
+    expect(rulesOf('<div aria-orientation="diagonal" />')).toEqual(['rgaa/invalid-aria-value'])
+    expect(rulesOf('<div aria-sort="up" />')).toEqual(['rgaa/invalid-aria-value'])
+    expect(rulesOf('<a href="/" aria-current="yes">Home</a>')).toEqual(['rgaa/invalid-aria-value'])
+    expect(rulesOf('<button type="button" aria-haspopup="popup">Open</button>')).toEqual(['rgaa/invalid-aria-value'])
+    expect(rulesOf('<input aria-label="Email" aria-invalid="bad" />')).toEqual(['rgaa/invalid-aria-value'])
+    expect(rulesOf('<input aria-label="City" aria-autocomplete="yes" />')).toEqual(['rgaa/invalid-aria-value'])
+    expect(rulesOf('<div role="heading" aria-level="two">Title</div>')).toEqual(['rgaa/invalid-aria-value'])
+    expect(rulesOf('<div role="slider" aria-valuenow="half" />')).toEqual(['rgaa/invalid-aria-value'])
+    expect(messagesOf('<div aria-hidden="yes" />')[0]).toContain('[rgaa/invalid-aria-value]')
+
+    // Valid literals, booleans, undefined, and dynamic expressions
+    expect(rulesOf('<div aria-hidden={true} />')).toEqual([])
+    expect(rulesOf('<div aria-hidden="false" />')).toEqual([])
+    expect(rulesOf('<button type="button" aria-expanded={false}>Menu</button>')).toEqual([])
+    expect(rulesOf('<div role="checkbox" aria-checked="mixed" />')).toEqual([])
+    expect(rulesOf('<div aria-live="polite" aria-atomic={true} aria-relevant="additions text" />')).toEqual([])
+    expect(rulesOf('<div aria-orientation="horizontal" aria-sort="ascending" />')).toEqual([])
+    expect(rulesOf('<a href="/" aria-current="page">Home</a>')).toEqual([])
+    expect(rulesOf('<a href="/" aria-current={false}>Home</a>')).toEqual([])
+    expect(rulesOf('<button type="button" aria-haspopup="menu">Menu</button>')).toEqual([])
+    expect(rulesOf('<input aria-label="Email" aria-invalid="spelling" aria-autocomplete="list" />')).toEqual([])
+    expect(rulesOf('<div role="heading" aria-level={2} aria-posinset="1" aria-setsize={-1} />')).toEqual([])
+    expect(rulesOf('<div role="slider" aria-valuemin={0} aria-valuemax="100" aria-valuenow="42.5" />')).toEqual([])
+    expect(rulesOf('<div aria-hidden={isHidden} aria-live={mode} aria-level={undefined} />', 'const isHidden = true; const mode = "polite"')).toEqual([])
+
+    expect(rawRules(`
+      export default function Page() {
+        return <div aria-live="loud" /> // prunelle-ignore rgaa/invalid-aria-value
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/skipped-heading flags heading jumps > 1 level down while allowing jumps up and per-component reset', () => {
+    expect(rulesOf('<main><h1>Title</h1><h3>Sub</h3></main>')).toEqual(['rgaa/skipped-heading'])
+    expect(rulesOf('<main><h2>Section</h2><h4>Deep</h4></main>')).toEqual(['rgaa/skipped-heading'])
+    expect(messagesOf('<main><h1>Title</h1><h3>Sub</h3></main>')[0]).toContain('[rgaa/skipped-heading]')
+
+    // Continuous hierarchy, jumping back up, starting at h2/h3, and separate components are fine
+    expect(rulesOf('<main><h1>Title</h1><h2>Sec</h2><h3>Sub</h3><h2>Sec 2</h2><h1>Other</h1></main>')).toEqual([])
+    expect(rulesOf('<section><h3>Card title</h3></section>')).toEqual([])
+    expect(rawRules(`
+      export function Hero() { return <h1>Hero</h1> }
+      export function Card() { return <h3>Card</h3> }
+    `)).toEqual([])
+
+    expect(rawRules(`
+      export default function Page() {
+        return <main><h1>Title</h1>{/* prunelle-ignore rgaa/skipped-heading */}<h3>Sub</h3></main>
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/table-without-header flags data <table> without <th> unless presentational or dynamically supplied', () => {
+    expect(rulesOf('<table><tbody><tr><td>A</td><td>B</td></tr></tbody></table>')).toEqual(['rgaa/table-without-header'])
+    expect(rulesOf('<table><tbody><tr><td>{name}</td></tr></tbody></table>', 'const name = "Alice"')).toEqual(['rgaa/table-without-header'])
+    expect(messagesOf('<table><tr><td>A</td></tr></table>')[0]).toContain('[rgaa/table-without-header]')
+
+    // Valid headers, presentation/none roles, dynamic rows/children, and header components
+    expect(rulesOf('<table><thead><tr><th>Name</th></tr></thead><tbody><tr><td>Alice</td></tr></tbody></table>')).toEqual([])
+    expect(rulesOf('<table><tr><th scope="row">Name</th><td>Alice</td></tr></table>')).toEqual([])
+    expect(rulesOf('<table role="presentation"><tr><td>A</td></tr></table>')).toEqual([])
+    expect(rulesOf('<table role="none"><tr><td>A</td></tr></table>')).toEqual([])
+    expect(rulesOf('<table>{children}</table>', 'const children = null')).toEqual([])
+    expect(rulesOf('<table><TableHead /><tbody><tr><td>A</td></tr></tbody></table>', 'const TableHead = () => <thead />')).toEqual([])
+
+    expect(rawRules(`
+      export default function Page() {
+        return <div>{/* prunelle-ignore rgaa/table-without-header */}<table><tr><td>A</td></tr></table></div>
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/fieldset-without-legend flags <fieldset> without <legend> unless dynamically supplied', () => {
+    expect(rulesOf('<fieldset><label>Name <input name="n" /></label></fieldset>')).toEqual(['rgaa/fieldset-without-legend'])
+    expect(rulesOf('<fieldset><label>{lbl} <input name="n" /></label></fieldset>', 'const lbl = "Name"')).toEqual(['rgaa/fieldset-without-legend'])
+    expect(messagesOf('<fieldset><input aria-label="x" /></fieldset>')[0]).toContain('[rgaa/fieldset-without-legend]')
+
+    expect(rulesOf('<fieldset><legend>Profile</legend><label>Name <input name="n" /></label></fieldset>')).toEqual([])
+    expect(rulesOf('<fieldset>{title && <legend>{title}</legend>}<input aria-label="x" /></fieldset>', 'const title = "Profile"')).toEqual([])
+    expect(rulesOf('<fieldset>{children}</fieldset>', 'const children = null')).toEqual([])
+    expect(rulesOf('<fieldset><GroupLegend /><input aria-label="x" /></fieldset>', 'const GroupLegend = () => <legend>G</legend>')).toEqual([])
+
+    expect(rawRules(`
+      export default function Page() {
+        return <fieldset><input aria-label="x" /></fieldset> // prunelle-ignore rgaa/fieldset-without-legend
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/click-without-key flags onClick on non-interactive elements without keyboard handler', () => {
+    expect(rulesOf('<div onClick={() => {}}>Click</div>')).toEqual(['rgaa/click-without-key'])
+    expect(rulesOf('<span onClick={() => {}}>Click</span>')).toEqual(['rgaa/click-without-key'])
+    expect(rulesOf('<li onClick={() => {}}>Item</li>')).toEqual(['rgaa/click-without-key'])
+    expect(messagesOf('<div onClick={() => {}}>Click</div>')[0]).toContain('[rgaa/click-without-key]')
+
+    // Keyboard handler, native interactive elements, presentational roles, and spreads are fine
+    expect(rulesOf('<div role="button" tabIndex={0} onClick={() => {}} onKeyDown={() => {}}>Click</div>')).toEqual([])
+    expect(rulesOf('<div onClick={() => {}} onKeyUp={() => {}}>Click</div>')).toEqual([])
+    expect(rulesOf('<div role="presentation" onClick={() => {}}>Backdrop</div>')).toEqual([])
+    expect(rulesOf('<div role="none" onClick={() => {}}>Backdrop</div>')).toEqual([])
+    expect(rulesOf('<div {...props} onClick={() => {}}>Click</div>', 'const props = {}')).toEqual([])
+    expect(rulesOf('<button type="button" onClick={() => {}}>Click</button>')).toEqual([])
+    expect(rulesOf('<a href="/x" onClick={() => {}}>Go</a>')).toEqual([])
+    expect(rulesOf('<dialog onClick={() => {}}>Modal</dialog>')).toEqual([])
+    expect(rulesOf('<summary onClick={() => {}}>More</summary>')).toEqual([])
+
+    expect(rawRules(`
+      export default function Page() {
+        return <div onClick={() => {}}>Click</div> // prunelle-ignore rgaa/click-without-key
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/autofocus flags autofocus/autoFocus unless explicitly false', () => {
+    expect(rulesOf('<input aria-label="Search" autoFocus />')).toEqual(['rgaa/autofocus'])
+    expect(rulesOf('<input aria-label="Search" autofocus />')).toEqual(['rgaa/autofocus'])
+    expect(rulesOf('<input aria-label="Search" autoFocus={true} />')).toEqual(['rgaa/autofocus'])
+    expect(messagesOf('<input aria-label="Search" autoFocus />')[0]).toContain('[rgaa/autofocus]')
+
+    expect(rulesOf('<input aria-label="Search" autoFocus={false} />')).toEqual([])
+    expect(rulesOf('<input aria-label="Search" autofocus={undefined} />')).toEqual([])
+    expect(rulesOf('<input aria-label="Search" />')).toEqual([])
+
+    expect(rawRules(`
+      export default function Page() {
+        return <input aria-label="Search" autoFocus /> // prunelle-ignore rgaa/autofocus
+      }
+    `)).toEqual([])
+  })
+
+  test('rgaa/meta-refresh flags <meta http-equiv="refresh"> case-insensitively', () => {
+    expect(rulesOf('<meta http-equiv="refresh" content="5;url=/other" />')).toEqual(['rgaa/meta-refresh'])
+    expect(rulesOf('<meta httpEquiv="Refresh" content="0;url=/other" />')).toEqual(['rgaa/meta-refresh'])
+    expect(messagesOf('<meta http-equiv="refresh" content="5" />')[0]).toContain('[rgaa/meta-refresh]')
+
+    expect(rulesOf('<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />')).toEqual([])
+    expect(rulesOf('<meta name="description" content="Hello" />')).toEqual([])
+
+    expect(rawRules(`
+      // prunelle-ignore-file rgaa/meta-refresh
+      export default function Page() {
+        return <meta http-equiv="refresh" content="5" />
+      }
+    `)).toEqual([])
+  })
+
+  test('compliance.ignore silences any of the new RGAA rules in prunelle check', async () => {
+    const dir = makeTemp('prunelle-rgaa-ignore-')
+    mkdirSync(join(dir, 'src/routes'), { recursive: true })
+    writeFileSync(join(dir, 'prunelle.config.ts'), `
+      export default {
+        compliance: {
+          legalNotice: false,
+          ignore: ['rgaa/autofocus', 'rgaa/positive-tabindex', 'rgaa/click-without-key'],
+        },
+      }
+    `)
+    writeFileSync(join(dir, 'src/routes/index.tsx'), `
+      export default function Home() {
+        return (
+          <main>
+            <input aria-label="Search" autoFocus tabIndex={2} />
+            <div onClick={() => {}}>Box</div>
+          </main>
+        )
+      }
+    `)
+    const res = await checkProject(dir, { skipTypecheck: true })
+    expect(res.ok).toBe(true)
+    expect(res.warnings).toEqual([])
+  })
+})
+
 describe('RGPD third-party URL warnings in TSX and CSS (#3573)', () => {
   test('flags external script, stylesheet/preload/preconnect/dns-prefetch link, and iframe unless inside <ConsentGate>', () => {
     expect(rulesOf('<script src="https://cdn.example.com/analytics.js" />')).toEqual(['rgpd/third-party-url'])

@@ -1,19 +1,30 @@
 // French web law compliance checks (RGAA, RGPD, LCEN): static TSX/CSS warnings and route-level checks with explicit silencing.
 
-import type { JSXAttribute, JSXAttributeItem, JSXChild, JSXElement, Node, Program } from 'oxc-parser'
+import type { JSXAttribute, JSXElement, Node, Program } from 'oxc-parser'
 import type { ModuleAnalysis } from './analyze'
+import type { RgaaJsxRule, RgaaScope } from './compliance-rgaa'
 import type { CompilerWarning } from './mistakes'
 import { existsSync, readFileSync } from 'node:fs'
 import { basename } from 'node:path'
 import { visitorKeys } from 'oxc-parser'
 import { relPosix, walkFiles } from '../build/files'
 import { fileToRoutePath } from '../build/routes'
-import { cleanJsxText, formatDiagnostic, formatLoc, isComponentTag, jsxTagName, unwrapParens, unwrapTsExpr } from './shared'
+import {
+  attrTargetKey,
+  checkRgaaElement,
+  cloneRgaaScope,
+  createRgaaScope,
+  findAttr,
+  hasNonEmptyAttr,
+  INTERACTIVE_ANCESTORS,
+  mergeRgaaScope,
+  RGAA_JSX_RULES,
+  staticStringValueOf,
+} from './compliance-rgaa'
+import { formatDiagnostic, formatLoc, isComponentTag, jsxTagName } from './shared'
 
 export type ComplianceRule =
-  | 'rgaa/img-alt'
-  | 'rgaa/form-label'
-  | 'rgaa/accessible-name'
+  | RgaaJsxRule
   | 'rgpd/third-party-url'
   | 'lcen/legal-notice'
   | 'rgaa/accessibility-statement'
@@ -28,15 +39,12 @@ export interface ComplianceConfig {
 }
 
 const COMPLIANCE_RULES = new Set<ComplianceRule>([
-  'rgaa/img-alt',
-  'rgaa/form-label',
-  'rgaa/accessible-name',
+  ...RGAA_JSX_RULES,
   'rgpd/third-party-url',
   'lcen/legal-notice',
   'rgaa/accessibility-statement',
 ])
 
-const NON_LABELLED_INPUT_TYPES = new Set(['hidden', 'submit', 'reset', 'button', 'image'])
 const THIRD_PARTY_LINK_RELS = new Set(['stylesheet', 'preload', 'preconnect', 'dns-prefetch'])
 const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0'])
 const DEFAULT_LEGAL_PATHS = new Set(['/mentions-legales', '/legal', '/legal-notice', '/imprint', '/impressum', '/cgu', '/cgv'])
@@ -175,147 +183,18 @@ export function shouldEmitWarning(warning: CompilerWarning, compliance?: Complia
   return true
 }
 
-function findAttr(attributes: readonly JSXAttributeItem[], name: string): JSXAttribute | undefined {
-  for (const attr of attributes) {
-    if (attr.type === 'JSXAttribute' && attr.name.type === 'JSXIdentifier' && attr.name.name === name)
-      return attr
-  }
-  return undefined
+interface AncestorState {
+  labelDepth: number
+  consentGateDepth: number
+  interactiveAncestor: string | undefined
 }
 
-function hasSpread(attributes: readonly JSXAttributeItem[]): boolean {
-  return attributes.some(a => a.type === 'JSXSpreadAttribute')
-}
-
-function staticStringValueOf(value: JSXAttribute['value']): string | undefined {
-  if (value === null)
-    return undefined
-  if (value.type === 'Literal' && typeof value.value === 'string')
-    return value.value
-  if (value.type === 'JSXExpressionContainer' && value.expression.type !== 'JSXEmptyExpression') {
-    const expr = unwrapTsExpr(value.expression)
-    if (expr.type === 'Literal' && typeof expr.value === 'string')
-      return expr.value
-    if (expr.type === 'TemplateLiteral' && expr.expressions.length === 0)
-      return expr.quasis[0]?.value.cooked ?? undefined
-  }
-  return undefined
-}
-
-function attrTargetKey(attr: JSXAttribute | undefined): string | undefined {
-  if (attr === undefined || attr.value === null)
-    return undefined
-  const str = staticStringValueOf(attr.value)
-  if (str !== undefined && str.trim() !== '')
-    return `s:${str}`
-  if (attr.value.type === 'JSXExpressionContainer' && attr.value.expression.type !== 'JSXEmptyExpression') {
-    const expr = unwrapTsExpr(attr.value.expression)
-    if (expr.type === 'Identifier')
-      return `i:${expr.name}`
-  }
-  return undefined
-}
-
-function hasNonEmptyAttr(attributes: readonly JSXAttributeItem[], name: string): boolean {
-  const attr = findAttr(attributes, name)
-  if (attr === undefined || attr.value === null)
-    return false
-  const str = staticStringValueOf(attr.value)
-  if (str !== undefined)
-    return str.trim() !== ''
-  if (attr.value.type === 'JSXExpressionContainer' && attr.value.expression.type !== 'JSXEmptyExpression') {
-    const expr = unwrapParens(attr.value.expression)
-    if (expr.type === 'Literal' && (expr.value === null || expr.value === false || expr.value === ''))
-      return false
-    if (expr.type === 'Identifier' && expr.name === 'undefined')
-      return false
-    return true
-  }
-  return false
-}
-
-function hasLabelAttr(attributes: readonly JSXAttributeItem[]): boolean {
-  return hasNonEmptyAttr(attributes, 'aria-label')
-    || hasNonEmptyAttr(attributes, 'aria-labelledby')
-    || hasNonEmptyAttr(attributes, 'title')
-}
-
-function isAriaHidden(attributes: readonly JSXAttributeItem[]): boolean {
-  const attr = findAttr(attributes, 'aria-hidden')
-  if (attr === undefined)
-    return false
-  if (attr.value === null)
-    return true
-  if (attr.value.type === 'Literal')
-    return attr.value.value === 'true'
-  if (attr.value.type === 'JSXExpressionContainer' && attr.value.expression.type !== 'JSXEmptyExpression') {
-    const expr = unwrapParens(attr.value.expression)
-    return expr.type === 'Literal' && (expr.value === true || expr.value === 'true')
-  }
-  return false
-}
-
-function hasMeaningfulExpression(expr: Node): boolean {
-  const inner = unwrapParens(expr)
-  if (inner.type === 'Literal')
-    return typeof inner.value === 'string' ? inner.value.trim() !== '' : typeof inner.value === 'number'
-  if (inner.type === 'Identifier' && inner.name === 'undefined')
-    return false
-  return true
-}
-
-function hasAccessibleName(children: readonly JSXChild[]): boolean {
-  for (const child of children) {
-    if (child.type === 'JSXText') {
-      if (cleanJsxText(child.value).trim() !== '')
-        return true
-    }
-    else if (child.type === 'JSXExpressionContainer') {
-      if (child.expression.type !== 'JSXEmptyExpression' && hasMeaningfulExpression(child.expression))
-        return true
-    }
-    else if (child.type === 'JSXFragment') {
-      if (hasAccessibleName(child.children))
-        return true
-    }
-    else if (child.type === 'JSXElement') {
-      const attrs = child.openingElement.attributes
-      if (isAriaHidden(attrs))
-        continue
-      const tag = jsxTagName(child.openingElement.name)
-      if (hasSpread(attrs) || hasLabelAttr(attrs))
-        return true
-      if (tag === 'img') {
-        if (hasNonEmptyAttr(attrs, 'alt'))
-          return true
-        continue
-      }
-      if (tag === 'svg') {
-        const hasTitle = child.children.some(c =>
-          c.type === 'JSXElement' && jsxTagName(c.openingElement.name) === 'title' && hasAccessibleName(c.children),
-        )
-        if (hasTitle)
-          return true
-        continue
-      }
-      if (isComponentTag(tag)) {
-        if (hasNonEmptyAttr(attrs, 'label') || hasAccessibleName(child.children))
-          return true
-        continue
-      }
-      if (hasAccessibleName(child.children))
-        return true
-    }
-  }
-  return false
-}
-
-function walkAst(value: unknown, enter: (node: Node) => void, exit?: (node: Node) => void): void {
+function walkAst(value: unknown, enter: (node: Node) => void): void {
   if (value === null || typeof value !== 'object')
     return
   if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i++)
-      walkAst(value[i], enter, exit)
+      walkAst(value[i], enter)
     return
   }
   const node = value as Node
@@ -325,9 +204,8 @@ function walkAst(value: unknown, enter: (node: Node) => void, exit?: (node: Node
   const keys = visitorKeys[node.type]
   if (keys !== undefined) {
     for (let i = 0; i < keys.length; i++)
-      walkAst((node as unknown as Record<string, unknown>)[keys[i]!], enter, exit)
+      walkAst((node as unknown as Record<string, unknown>)[keys[i]!], enter)
   }
-  exit?.(node)
 }
 
 function collectLabelTargets(program: Program): Set<string> {
@@ -386,52 +264,14 @@ function checkThirdPartyElement(
   })
 }
 
-function checkJsxElementCompliance(
-  element: JSXElement,
-  filename: string,
-  inLabel: boolean,
-  inConsentGate: boolean,
-  labelTargets: ReadonlySet<string>,
-  ignores: IgnoreMap,
-  warnings: CompilerWarning[],
-): void {
-  const tag = jsxTagName(element.openingElement.name)
-  if (tag === '' || isComponentTag(tag))
-    return
-  const attrs = element.openingElement.attributes
-  const spread = hasSpread(attrs)
-
-  if (tag === 'img' && !spread && findAttr(attrs, 'alt') === undefined && !isIgnoredAt(ignores, 'rgaa/img-alt', element.start)) {
-    warnings.push({
-      rule: 'rgaa/img-alt',
-      start: element.start,
-      message: `[rgaa/img-alt] <img> in ${filename} is missing an alt attribute: add alt="description" or alt="" for decorative images.`,
-    })
-  }
-
-  if ((tag === 'input' || tag === 'select' || tag === 'textarea') && !spread && !inLabel && !hasLabelAttr(attrs)) {
-    const inputType = tag === 'input' ? staticStringValueOf(findAttr(attrs, 'type')?.value ?? null)?.toLowerCase() : undefined
-    const idKey = attrTargetKey(findAttr(attrs, 'id'))
-    const linked = idKey !== undefined && labelTargets.has(idKey)
-    if ((inputType === undefined || !NON_LABELLED_INPUT_TYPES.has(inputType)) && !linked && !isIgnoredAt(ignores, 'rgaa/form-label', element.start)) {
-      warnings.push({
-        rule: 'rgaa/form-label',
-        start: element.start,
-        message: `[rgaa/form-label] <${tag}> in ${filename} has no associated label: wrap it in <label>, link <label for="id">, or add aria-label="..." / aria-labelledby="...".`,
-      })
-    }
-  }
-
-  if ((tag === 'button' || tag === 'a') && !spread && !hasLabelAttr(attrs) && !hasAccessibleName(element.children) && !isIgnoredAt(ignores, 'rgaa/accessible-name', element.start)) {
-    warnings.push({
-      rule: 'rgaa/accessible-name',
-      start: element.start,
-      message: `[rgaa/accessible-name] <${tag}> in ${filename} has no accessible name: add visible text or aria-label="...".`,
-    })
-  }
-
-  if (!inConsentGate)
-    checkThirdPartyElement(element, tag, filename, ignores, warnings)
+function definitelyExits(stmt: Node): boolean {
+  if (stmt.type === 'ReturnStatement' || stmt.type === 'ThrowStatement')
+    return true
+  if (stmt.type === 'BlockStatement')
+    return stmt.body.length > 0 && definitelyExits(stmt.body[stmt.body.length - 1]!)
+  if (stmt.type === 'IfStatement')
+    return stmt.alternate !== null && definitelyExits(stmt.consequent) && definitelyExits(stmt.alternate)
+  return false
 }
 
 /** Runs RGAA & RGPD static JSX compliance checks on `program`, appending warnings (never throwing). */
@@ -444,36 +284,95 @@ export function checkCompliance(
 ): void {
   const ignores = parsePrunelleIgnores(code)
   const labelTargets = collectLabelTargets(program)
-  let labelDepth = 0
-  let consentGateDepth = 0
-  const labelFlags: boolean[] = []
-  const consentFlags: boolean[] = []
+  const isIgnored = (rule: RgaaJsxRule, elementStart: number, attrStart?: number): boolean =>
+    isIgnoredAt(ignores, rule, elementStart) || (attrStart !== undefined && isIgnoredAt(ignores, rule, attrStart))
 
-  walkAst(
-    program,
-    (node) => {
-      if (node.type !== 'JSXElement')
-        return
+  const visitChildren = (node: Node, ancestors: AncestorState, scope: RgaaScope): void => {
+    const keys = visitorKeys[node.type]
+    if (keys === undefined)
+      return
+    const rec = node as unknown as Record<string, unknown>
+    for (let i = 0; i < keys.length; i++)
+      visit(rec[keys[i]!], ancestors, scope)
+  }
+
+  const visit = (value: unknown, ancestors: AncestorState, scope: RgaaScope): void => {
+    if (value === null || typeof value !== 'object')
+      return
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i++)
+        visit(value[i], ancestors, scope)
+      return
+    }
+    const node = value as Node
+    if (typeof node.type !== 'string')
+      return
+
+    if (node.type === 'FunctionDeclaration' || node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
+      visitChildren(node, ancestors, createRgaaScope())
+      return
+    }
+
+    if (node.type === 'ConditionalExpression') {
+      visit(node.test, ancestors, scope)
+      const branchA = cloneRgaaScope(scope)
+      const branchB = cloneRgaaScope(scope)
+      visit(node.consequent, ancestors, branchA)
+      visit(node.alternate, ancestors, branchB)
+      mergeRgaaScope(scope, branchA)
+      mergeRgaaScope(scope, branchB)
+      return
+    }
+
+    if (node.type === 'IfStatement') {
+      visit(node.test, ancestors, scope)
+      const branchA = cloneRgaaScope(scope)
+      visit(node.consequent, ancestors, branchA)
+      const branchB = cloneRgaaScope(scope)
+      if (node.alternate !== null)
+        visit(node.alternate, ancestors, branchB)
+      if (!definitelyExits(node.consequent))
+        mergeRgaaScope(scope, branchA)
+      if (node.alternate !== null && !definitelyExits(node.alternate))
+        mergeRgaaScope(scope, branchB)
+      return
+    }
+
+    if (node.type === 'JSXElement') {
       const tag = jsxTagName(node.openingElement.name)
-      checkJsxElementCompliance(node, filename, labelDepth > 0, consentGateDepth > 0, labelTargets, ignores, warnings)
-      const opensLabel = tag === 'label' || (isComponentTag(tag) && hasNonEmptyAttr(node.openingElement.attributes, 'label'))
+      const attrs = node.openingElement.attributes
+      if (tag !== '' && !isComponentTag(tag)) {
+        checkRgaaElement(node, tag, {
+          filename,
+          inLabel: ancestors.labelDepth > 0,
+          interactiveAncestor: ancestors.interactiveAncestor,
+          labelTargets,
+          scope,
+          isIgnored,
+          warnings,
+        })
+        if (ancestors.consentGateDepth === 0)
+          checkThirdPartyElement(node, tag, filename, ignores, warnings)
+      }
+      visit(attrs, ancestors, scope)
+      const opensLabel = tag === 'label' || (isComponentTag(tag) && hasNonEmptyAttr(attrs, 'label'))
       const opensConsentGate = resolveTag(tag) === 'ConsentGate'
-      labelFlags.push(opensLabel)
-      consentFlags.push(opensConsentGate)
-      if (opensLabel)
-        labelDepth++
-      if (opensConsentGate)
-        consentGateDepth++
-    },
-    (node) => {
-      if (node.type !== 'JSXElement')
-        return
-      if (labelFlags.pop() === true)
-        labelDepth--
-      if (consentFlags.pop() === true)
-        consentGateDepth--
-    },
-  )
+      const nextInteractive = INTERACTIVE_ANCESTORS.has(tag) ? tag : ancestors.interactiveAncestor
+      const childAncestors = opensLabel || opensConsentGate || nextInteractive !== ancestors.interactiveAncestor
+        ? {
+            labelDepth: ancestors.labelDepth + (opensLabel ? 1 : 0),
+            consentGateDepth: ancestors.consentGateDepth + (opensConsentGate ? 1 : 0),
+            interactiveAncestor: nextInteractive,
+          }
+        : ancestors
+      visit(node.children, childAncestors, scope)
+      return
+    }
+
+    visitChildren(node, ancestors, scope)
+  }
+
+  visit(program, { labelDepth: 0, consentGateDepth: 0, interactiveAncestor: undefined }, createRgaaScope())
 }
 
 /** Scans a CSS file for third-party `@import` or `url(...)` origins (RGPD), respecting `/* prunelle-ignore *\/` and config. */

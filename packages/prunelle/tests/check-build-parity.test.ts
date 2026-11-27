@@ -203,7 +203,7 @@ describe('prunelle check and prunelle build decide islands per component (#3587)
       'src/ui/Panel.tsx': [
         'import { Clicker, Total } from \'./Count\'',
         'const Frame = () => <Total />',
-        'export function Live() { return <div onClick={() => 1}><Clicker /></div> }',
+        'export function Live() { return <div><button type="button" onClick={() => 1}>Ping</button><Clicker /></div> }',
         'export function Shell() { return <section><Frame /></section> }',
       ].join('\n'),
       'prunelle.config.ts': 'export default { compliance: { legalNotice: false } }\n',
