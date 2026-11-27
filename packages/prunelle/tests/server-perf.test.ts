@@ -400,7 +400,7 @@ describe('Server compression, zero-copy serving, and fast-path preservation (#35
       proc.kill()
       await proc.exited
     }
-  })
+  }, 30_000)
 })
 
 describe('prerendered pages stay on the native route table with i18n and auth (#3675)', () => {

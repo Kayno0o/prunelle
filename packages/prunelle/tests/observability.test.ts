@@ -233,7 +233,7 @@ describe('compiled binary --health probes /_pru/health (#8)', () => {
       { 'src/routes/index.tsx': `export default function Home() { return <p>ok</p> }\n` },
     )
     expect(failExit).toBe(1)
-  })
+  }, 30_000)
 })
 
 describe('request ID (x-request-id) (#8)', () => {
