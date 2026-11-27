@@ -182,7 +182,7 @@ function sourceFiles(root: string, dir = root, out: string[] = []): string[] {
     const path = join(dir, entry.name)
     if (entry.isDirectory())
       sourceFiles(root, path, out)
-    else if ((SOURCE_FILE_RE.test(entry.name) && !entry.name.endsWith('.d.ts')) || STYLE_OR_SCRIPT_RE.test(entry.name))
+    else if (SOURCE_FILE_RE.test(entry.name) || STYLE_OR_SCRIPT_RE.test(entry.name))
       out.push(relPosix(root, path))
   }
   return out.sort()

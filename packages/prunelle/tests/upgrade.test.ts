@@ -159,6 +159,26 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
     expect(read(dir, 'CLAUDE.md')).toBe('@node_modules/prunelle/llms.txt\n')
   })
 
+  it('rewrites the app\'s declaration files, their type references and module blocks (#46)', () => {
+    const dir = appWith({
+      'src/env.d.ts': lines(
+        '/// <reference types="@kayjs/icons/ambient" />',
+        'import type { KayLocals } from \'@kayjs/kay\'',
+        'declare module \'@kayjs/kay\' {',
+        '  interface KayLocals { user?: string }',
+        '}',
+      ),
+    })
+    expect(upgradeProject(dir).changed).toEqual(['src/env.d.ts'])
+    expect(read(dir, 'src/env.d.ts')).toBe(lines(
+      '/// <reference types="@prunellejs/icons/ambient" />',
+      'import type { PrunelleLocals } from \'prunelle\'',
+      'declare module \'prunelle\' {',
+      '  interface PrunelleLocals { user?: string }',
+      '}',
+    ))
+  })
+
   it('names each import prunelle cannot serve, with its line', () => {
     const dir = appWith({
       'src/server.ts': lines(
