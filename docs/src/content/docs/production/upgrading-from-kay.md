@@ -17,7 +17,7 @@ Run from the root of a bun workspace, it also rewrites each package the `workspa
 
 ## What it rewrites
 
-- **Dependencies.** `@kayjs/kay` becomes `prunelle` and each `@kayjs/<name>` becomes `@prunelle/<name>`, all at the current prunelle version. A `kay` command in the `scripts` becomes `prunelle`.
+- **Dependencies.** `@kayjs/kay` becomes `prunelle` and each `@kayjs/<name>` becomes `@prunellejs/<name>`, all at the current prunelle version. A `kay` command in the `scripts` becomes `prunelle`.
 - **The config file.** `kay.config.ts` moves to `prunelle.config.ts`.
 - **Imports and the names they bring.** `@kayjs/kay/server` becomes `prunelle/server`, and every name with kay in it is renamed where the file uses it: `KayPlugin` becomes `PrunellePlugin`, `KayLocals` becomes `PrunelleLocals`, a `declare module` block included. A name the file exports, or one that already exists in it, keeps its old name as an alias.
 - **Names the browser receives**, where scripts and styles spell them: `data-kay-*` attributes, the `kay-island` and `kay-s` tags, `/_kay/` paths, `x-kay-*` headers, the `kay:navigate`, `kay:region` and `kay:consent` events, and the `kay_session` and `kay_consent` cookies. Each takes the `pru` prefix: `data-pru-*`, `pru-island`, `/_pru/`.

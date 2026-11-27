@@ -1,6 +1,6 @@
-// @prunelle/i18n — opt-in locale routing, <html lang> & link rewriting, localized prerendering,
+// @prunellejs/i18n — opt-in locale routing, <html lang> & link rewriting, localized prerendering,
 // hreflang alternates, Intl formatters, and CLI missing-key check.
-// Implemented 100% through PrunellePlugin public hooks — zero i18n logic in @prunelle/core.
+// Implemented 100% through PrunellePlugin public hooks — zero i18n logic in @prunellejs/core.
 
 import type { ActiveI18nConfig, PrunellePlugin } from 'prunelle/config'
 import { definePlugin, I18N_CONFIG_SERVICE } from 'prunelle/config'
@@ -112,7 +112,7 @@ export function i18n(options: I18nOptions): PrunellePlugin {
   }
 
   return definePlugin({
-    name: '@prunelle/i18n',
+    name: '@prunellejs/i18n',
     enforce: 'pre',
     providesLocals: ['locale', 't', 'localize', 'alternates'],
 

@@ -1,4 +1,4 @@
-// Zero-dependency OAuth 2.0 + PKCE (S256) provider definitions for @prunelle/auth.
+// Zero-dependency OAuth 2.0 + PKCE (S256) provider definitions for @prunellejs/auth.
 
 export const OAUTH_FETCH_TIMEOUT_MS = 10_000
 

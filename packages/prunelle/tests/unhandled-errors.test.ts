@@ -12,7 +12,7 @@ const tempDirs: string[] = []
 function appWith(files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), 'prunelle-unhandled-'))
   tempDirs.push(dir)
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(PRUNELLE_PKG_DIR, join(dir, 'node_modules/prunelle'), 'dir')
   for (const [file, text] of Object.entries(files)) {
     mkdirSync(join(dir, file, '..'), { recursive: true })

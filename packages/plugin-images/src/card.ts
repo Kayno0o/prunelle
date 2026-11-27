@@ -1,4 +1,4 @@
-// OG shareCard() generator for @prunelle/images:
+// OG shareCard() generator for @prunellejs/images:
 // Renders a crisp 1200x630 SVG social card and rasterizes asynchronously to PNG via `rsvg-convert` or `magick`
 // (cached by content hash in `.prunelle-cache/images/` at build time, or served from memory at runtime for --compile).
 

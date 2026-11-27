@@ -1,4 +1,4 @@
-// @prunelle/auth — Zero-dependency Bun-native authentication plugin for Prunelle.
+// @prunellejs/auth — Zero-dependency Bun-native authentication plugin for Prunelle.
 // Built strictly on the public PrunellePlugin API (`api.use` + `api.route`).
 // Supports Argon2id passwords, hashed DB sessions with sliding renewal, email verification,
 // magic links, OAuth 2.0 + PKCE (S256), role/route guards, RGPD helpers, and memory or `bun:sqlite` stores.
@@ -82,7 +82,7 @@ export interface AuthMailPayload {
   kind: 'magic-link' | 'verify-email' | 'reset-password'
 }
 
-/** Structural interface matching `@prunelle/mail`'s `Mailer` so `createAuth({ mailer })` needs no glue callback. */
+/** Structural interface matching `@prunellejs/mail`'s `Mailer` so `createAuth({ mailer })` needs no glue callback. */
 export interface AuthMailer {
   send(message: {
     to: string
@@ -134,7 +134,7 @@ export interface AuthOptions<TUser extends AuthUser = AuthUser> {
   site?: string | undefined
   /** OAuth 2.0 providers (e.g. `[github(...), discord(...), google(...)]`). */
   providers?: OAuthProvider[] | undefined
-  /** Pass a `@prunelle/mail` `Mailer` instance directly for magic links & verification emails (shorthand for `sendMail`). */
+  /** Pass a `@prunellejs/mail` `Mailer` instance directly for magic links & verification emails (shorthand for `sendMail`). */
   mailer?: AuthMailer | undefined
   /** Custom mail sender for magic links / verification emails (overrides `mailer` when both are provided). */
   sendMail?: ((mail: AuthMailPayload) => void | Promise<void>) | undefined
@@ -193,7 +193,7 @@ export interface Auth<TUser extends AuthUser = AuthUser> extends PrunellePlugin 
   dispose(): void
 }
 
-const STORE_IN_MEMORY = '`store` keeps accounts and sessions in memory, so a restart signs everyone out and loses every account: pass `store: sqliteAuthStore(\'data/auth.db\')` from `@prunelle/auth/sqlite`, or your own `AuthStore`.'
+const STORE_IN_MEMORY = '`store` keeps accounts and sessions in memory, so a restart signs everyone out and loses every account: pass `store: sqliteAuthStore(\'data/auth.db\')` from `@prunellejs/auth/sqlite`, or your own `AuthStore`.'
 
 function resolveSecret(optionSecret: string | undefined): string {
   if (optionSecret !== undefined && optionSecret.trim().length === 0)
@@ -435,7 +435,7 @@ export function createAuth<TUser extends AuthUser = AuthUser>(options: AuthOptio
   }
 
   const plugin: PrunellePlugin = definePlugin({
-    name: '@prunelle/auth',
+    name: '@prunellejs/auth',
     enforce: 'pre',
     providesLocals: ['user', 'session'],
     requires: () => isKeptInMemory(store) ? [STORE_IN_MEMORY] : [],

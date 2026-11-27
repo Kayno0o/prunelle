@@ -1,11 +1,11 @@
 ---
-title: "@prunelle/content"
+title: "@prunellejs/content"
 description: Zero-dependency Markdown collections powered by Bun.markdown and Bun.YAML with Standard Schema frontmatter, Shiki highlighting, MDX-lite TSX components, and RSS.
 section: plugins
 order: 3
 ---
 
-`@prunelle/content` turns folders of Markdown files into typed, lazy-rendered collections using Bun's native Zig `Bun.markdown.html()` and `Bun.YAML.parse()` — **zero npm Markdown parser dependencies** and **0 KB** client JS.
+`@prunellejs/content` turns folders of Markdown files into typed, lazy-rendered collections using Bun's native Zig `Bun.markdown.html()` and `Bun.YAML.parse()` — **zero npm Markdown parser dependencies** and **0 KB** client JS.
 
 ## Defining a collection
 
@@ -13,7 +13,7 @@ Define one collection and import it from `prunelle.config.ts`, index pages, and 
 
 ```ts
 // src/content.ts
-import { defineCollection } from '@prunelle/content'
+import { defineCollection } from '@prunellejs/content'
 
 export const posts = defineCollection({
   dir: 'src/content/posts',
@@ -33,9 +33,9 @@ export const posts = defineCollection({
 
 In your detail route's `load()`, call `await entry.render()` once — `entry.html` and `entry.headings` are then cached synchronously. Routes and config hooks that only read frontmatter (`.all()`, `.paths()`, RSS, sitemaps) never load Shiki or TSX components.
 
-## Automatic `@prunelle/images` optimization
+## Automatic `@prunellejs/images` optimization
 
-When `@prunelle/images` is enabled in `prunelle.config.ts`, relative Markdown images (`![Diagram](./img/arch.png)`) are automatically optimized using your `images()` plugin widths, formats, quality, and disk cache — no manual `resolveImage` wiring needed. Pass `resolveImage: false` to opt out, or pass a custom `resolveImage` function to override.
+When `@prunellejs/images` is enabled in `prunelle.config.ts`, relative Markdown images (`![Diagram](./img/arch.png)`) are automatically optimized using your `images()` plugin widths, formats, quality, and disk cache — no manual `resolveImage` wiring needed. Pass `resolveImage: false` to opt out, or pass a custom `resolveImage` function to override.
 
 ## Fast lazy rendering & O(1) lookup
 
@@ -56,7 +56,7 @@ Supports **bold**, lists, and fenced code blocks inside components.
 ## RSS feeds (`content`)
 
 ```ts
-import { content } from '@prunelle/content'
+import { content } from '@prunellejs/content'
 
 export default defineConfig({
   plugins: [

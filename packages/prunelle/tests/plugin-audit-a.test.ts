@@ -55,7 +55,7 @@ afterAll(() => {
 })
 
 describe('Issue #3635 Part 1 — Cross-plugin audit fixes', () => {
-  describe('1. @prunelle/spa — CSP styles, history coordination, redirects, DOM clobbering, dir, auth links', () => {
+  describe('1. @prunellejs/spa — CSP styles, history coordination, redirects, DOM clobbering, dir, auth links', () => {
     it('emits pru-island.css in spa() and regions() builds for CSP-safe island styles', async () => {
       const dir = makeTemp('prunelle-spa-css-')
       mkdirSync(join(dir, 'src/routes'), { recursive: true })
@@ -286,7 +286,7 @@ describe('Issue #3635 Part 1 — Cross-plugin audit fixes', () => {
     })
   })
 
-  describe('2. @prunelle/seo — conditional meta, no canonical on 404/error, sitemap filtering, multi-size favicons, i18n redirects', () => {
+  describe('2. @prunellejs/seo — conditional meta, no canonical on 404/error, sitemap filtering, multi-size favicons, i18n redirects', () => {
     it('avoids duplicate description/og:image, omits canonical on _404/_error, excludes API & /404 from sitemap, preserves multi-size PNG favicons, and reconciles i18n redirects', async () => {
       const dir = makeTemp('prunelle-seo-audit-')
       mkdirSync(join(dir, 'src/routes'), { recursive: true })
@@ -471,16 +471,16 @@ describe('Issue #3635 Part 1 — Cross-plugin audit fixes', () => {
     })
 
     it('fails the build on a favicon path that resolves to no file', async () => {
-      await expect(build({ root: seoApp(), plugins: [seo({ favicon: 'src/assets/missing.png' })] })).rejects.toThrow('@prunelle/seo: favicon "src/assets/missing.png" is neither a file under the app root nor a package file: fix the path given to `seo({ favicon })`.')
+      await expect(build({ root: seoApp(), plugins: [seo({ favicon: 'src/assets/missing.png' })] })).rejects.toThrow('@prunellejs/seo: favicon "src/assets/missing.png" is neither a file under the app root nor a package file: fix the path given to `seo({ favicon })`.')
     })
   })
 
-  describe('3. @prunelle/tailwind + @prunelle/ui cascade layer order', () => {
+  describe('3. @prunellejs/tailwind + @prunellejs/ui cascade layer order', () => {
     it('loads @layer kui before Tailwind @layer utilities regardless of plugin declaration order', async () => {
       const orderA = resolvePlugins([tailwind({ css: 'src/app.css', bunPlugin: { name: 'noop', setup() {} } }), ui()])
       const orderB = resolvePlugins([ui(), tailwind({ css: 'src/app.css', bunPlugin: { name: 'noop', setup() {} } })])
-      expect(orderA.map(p => p.name)).toEqual(['@prunelle/ui', '@prunelle/tailwind'])
-      expect(orderB.map(p => p.name)).toEqual(['@prunelle/ui', '@prunelle/tailwind'])
+      expect(orderA.map(p => p.name)).toEqual(['@prunellejs/ui', '@prunellejs/tailwind'])
+      expect(orderB.map(p => p.name)).toEqual(['@prunellejs/ui', '@prunellejs/tailwind'])
 
       const dir = makeTemp('prunelle-tw-ui-order-')
       mkdirSync(join(dir, 'src/routes'), { recursive: true })
@@ -504,10 +504,10 @@ describe('Issue #3635 Part 1 — Cross-plugin audit fixes', () => {
     })
   })
 
-  describe('4. @prunelle/content + @prunelle/images', () => {
-    it('orders @prunelle/content after @prunelle/images regardless of declaration order', () => {
+  describe('4. @prunellejs/content + @prunellejs/images', () => {
+    it('orders @prunellejs/content after @prunellejs/images regardless of declaration order', () => {
       const sorted = resolvePlugins([content(), images()])
-      expect(sorted.map(p => p.name)).toEqual(['@prunelle/images', '@prunelle/content'])
+      expect(sorted.map(p => p.name)).toEqual(['@prunellejs/images', '@prunellejs/content'])
     })
 
     it('sanitizes Markdown with a strict attribute allowlist blocking data-pru-* and DOM clobbering', () => {
@@ -596,7 +596,7 @@ describe('Issue #3635 Part 1 — Cross-plugin audit fixes', () => {
       const dirB = makeTemp('prunelle-col-root-b-')
       mkdirSync(join(dirA, 'src/routes/blog'), { recursive: true })
       mkdirSync(join(dirA, 'content/posts'), { recursive: true })
-      mkdirSync(join(dirA, 'node_modules/@prunelle'), { recursive: true })
+      mkdirSync(join(dirA, 'node_modules/@prunellejs'), { recursive: true })
       symlinkSync(join(import.meta.dir, '..'), join(dirA, 'node_modules/prunelle'), 'dir')
       writeFileSync(join(dirA, 'tsconfig.json'), JSON.stringify({
         compilerOptions: { jsx: 'react-jsx', jsxImportSource: 'prunelle' },
@@ -656,7 +656,7 @@ describe('Issue #3635 Part 1 — Cross-plugin audit fixes', () => {
       mkdirSync(join(dir, 'src/routes/blog'), { recursive: true })
       mkdirSync(join(dir, 'src/components'), { recursive: true })
       mkdirSync(join(dir, 'content/posts'), { recursive: true })
-      mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+      mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
       symlinkSync(join(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'), 'dir')
       writeFileSync(join(dir, 'tsconfig.json'), JSON.stringify({ compilerOptions: { jsx: 'react-jsx', jsxImportSource: 'prunelle' } }))
       writeFileSync(join(dir, 'content/posts/bad.md'), '---\ntitle: ""\n---\nHi\n')
@@ -688,7 +688,7 @@ describe('Issue #3635 Part 1 — Cross-plugin audit fixes', () => {
       const proc = Bun.spawn([process.execPath, join(import.meta.dir, '../src/cli/index.ts'), 'check', app, '--no-typecheck'], { cwd: elsewhere, stdout: 'pipe', stderr: 'pipe' })
       const out = await new Response(proc.stdout).text() + await new Response(proc.stderr).text()
       expect(await proc.exited).toBe(1)
-      expect(out).toContain('content/posts/bad.md:2:1: error: @prunelle/content: title: title required')
+      expect(out).toContain('content/posts/bad.md:2:1: error: @prunellejs/content: title: title required')
     })
 
     it('checkProject validates the .tsx collections of two apps in one process (#3670)', async () => {
@@ -698,7 +698,7 @@ describe('Issue #3635 Part 1 — Cross-plugin audit fixes', () => {
       }
     })
 
-    it('avoids Bun.spawnSync in @prunelle/images, blocks shareCard symlink escapes, and serves runtime images without dist/public writes', async () => {
+    it('avoids Bun.spawnSync in @prunellejs/images, blocks shareCard symlink escapes, and serves runtime images without dist/public writes', async () => {
       // 1. Zero Bun.spawnSync in plugin-images/src/
       const imgSrcDir = join(REPO_ROOT, 'packages/plugin-images/src')
       for (const name of readdirSync(imgSrcDir)) {
@@ -801,7 +801,7 @@ describe('Issue #3635 Part 1 — Cross-plugin audit fixes', () => {
   })
 })
 
-describe('@prunelle/images encodes under one build-wide budget (#3655)', () => {
+describe('@prunellejs/images encodes under one build-wide budget (#3655)', () => {
   it('runs at most ENCODE_SLOTS magick at once over 20 images, bounds each one, and reports a failed encode', async () => {
     const dir = makeTemp('prunelle-image-slots-')
     const bin = join(dir, 'bin')
@@ -856,7 +856,7 @@ prev=; for arg; do [ "$prev" = -write ] && [ "\${arg#mpr:}" = "$arg" ] && printf
   })
 })
 
-describe('@prunelle/images decodes each image once per format (#3677)', () => {
+describe('@prunellejs/images decodes each image once per format (#3677)', () => {
   function app(dir: string, name: string, config: string) {
     mkdirSync(join(dir, 'src/routes'), { recursive: true })
     writeFileSync(join(dir, 'prunelle.config.ts'), `import { images } from '${IMAGES_PKG}'\nexport default { plugins: [images(${config})], compliance: { legalNotice: false } }\n`)

@@ -1,5 +1,5 @@
 {
-  "name": "@prunelle/content",
+  "name": "@prunellejs/content",
   "version": "0.1.0",
   "description": "Zero-dependency Bun.markdown collections, YAML frontmatter, TOC, and RSS plugin for Prunelle",
   "license": "MIT",

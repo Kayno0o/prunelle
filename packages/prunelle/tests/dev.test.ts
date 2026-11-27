@@ -16,7 +16,7 @@ function makeTemp(prefix: string): string {
 }
 
 function linkPrunelle(dir: string): void {
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(PRUNELLE_PKG_DIR, join(dir, 'node_modules/prunelle'), 'dir')
 }
 

@@ -118,7 +118,7 @@ const KAY_SOURCE_RE = /^@kayjs\/(kay(?=\/|$))?/
 export function assertNoKayImport(source: string, filename: string): void {
   const match = KAY_SOURCE_RE.exec(source)
   if (match !== null)
-    throw mistake(`import from '${source}'`, filename, `write '${source.replace(KAY_SOURCE_RE, match[1] === undefined ? '@prunelle/' : 'prunelle')}' (prunelle upgrade rewrites every import)`)
+    throw mistake(`import from '${source}'`, filename, `write '${source.replace(KAY_SOURCE_RE, match[1] === undefined ? '@prunellejs/' : 'prunelle')}' (prunelle upgrade rewrites every import)`)
 }
 
 const HYDRATE_MODES = new Set(['load', 'visible', 'idle', 'interaction', 'client'])
@@ -431,7 +431,7 @@ function checkRegionNesting(
   })
 }
 
-// The markup `regions()` from `@prunelle/spa` reads: <Region name>, and data-pru-target, data-pru-append and data-pru-live on the elements that can use them.
+// The markup `regions()` from `@prunellejs/spa` reads: <Region name>, and data-pru-target, data-pru-append and data-pru-live on the elements that can use them.
 function checkRegionMarkup(
   tag: string,
   canonical: string | undefined,

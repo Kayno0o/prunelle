@@ -19,7 +19,7 @@ import {
   Stack,
   Switch,
   Tabs,
-} from '@prunelle/ui'
+} from '@prunellejs/ui'
 import { Head } from 'prunelle'
 import { GrammarDemo } from '../components/GrammarDemo'
 
@@ -30,14 +30,14 @@ export default function GrammarsPage() {
     <main class="docs-container" style="padding-top:2.5rem;padding-bottom:4rem">
       <Head>
         <title>UI Style Grammars</title>
-        <meta name="description" content="Switch @prunelle/ui between Prunelle, Orbit, Editorial, Workshop, Console, Soft, and Bare in pure CSS with zero JS styling runtime." />
+        <meta name="description" content="Switch @prunellejs/ui between Prunelle, Orbit, Editorial, Workshop, Console, Soft, and Bare in pure CSS with zero JS styling runtime." />
       </Head>
 
       <Stack gap="2rem">
         <div>
           <div class="docs-eyebrow">
             <span class="docs-eyebrow-dot" />
-            @prunelle/ui · Pure CSS @layer kui
+            @prunellejs/ui · Pure CSS @layer kui
           </div>
           <h1 style="margin:0 0 0.65rem;font-family:var(--ui-font-display);font-size:clamp(2rem,3.5vw,2.75rem);line-height:1.12">
             Same DOM. Six structurally different apps.

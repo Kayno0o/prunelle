@@ -1,4 +1,4 @@
-// In-memory runtime image store, non-blocking Bun.spawn encoders, and build-phase task coordination for @prunelle/images.
+// In-memory runtime image store, non-blocking Bun.spawn encoders, and build-phase task coordination for @prunellejs/images.
 
 import type { ServerPluginAPI } from 'prunelle/config'
 import { serviceKey } from 'prunelle/config'
@@ -136,7 +136,7 @@ export function registerRuntimeImageMiddleware(api: ServerPluginAPI, store: Runt
   api.use(serveRuntime, { scope: '/img' })
 }
 
-// Build-phase coordination shared across native and bundled copies of @prunelle/images in the same process.
+// Build-phase coordination shared across native and bundled copies of @prunellejs/images in the same process.
 interface BuildPhaseState {
   activeOutDirs: Set<string>
   tasks: Map<string, Promise<void>[]>

@@ -1,11 +1,11 @@
 # Task 05: Streaming Suspense & Partial Region Swaps
 
-Build a searchable article/library catalog page at `/` that combines streaming `<Suspense>` with `<Region>` partial HTML swaps using `@prunelle/spa` (`regions()`).
+Build a searchable article/library catalog page at `/` that combines streaming `<Suspense>` with `<Region>` partial HTML swaps using `@prunellejs/spa` (`regions()`).
 
 ## Requirements
 
 1. **Plugin Setup (`prunelle.config.ts`)**:
-   - Register `regions()` from `@prunelle/spa` in `prunelle.config.ts`.
+   - Register `regions()` from `@prunellejs/spa` in `prunelle.config.ts`.
 
 2. **Search & Detail Page (`src/routes/index.tsx`)**:
    - Have a dataset of at least 5 items (each with `id`, `title`, `category`, `summary`), including clearly distinct searchable titles (for example containing words like `Signals`, `Streaming`, `Regions`, `Actions`, `Auth`).

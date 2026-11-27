@@ -123,7 +123,7 @@ describe('guardrails-check: cross-plugin import boundaries', () => {
     const analysis = analyzeFile('packages/plugin-icons/src/ambient.d.ts', `
       import type { PrunellePlugin } from 'prunelle/config'
       import { signal } from 'prunelle'
-      import type { IconData } from '@prunelle/icons'
+      import type { IconData } from '@prunellejs/icons'
       import { helper } from './helper'
       export type { PrunellePlugin, IconData }
       export { signal, helper }
@@ -131,13 +131,13 @@ describe('guardrails-check: cross-plugin import boundaries', () => {
     expect(analysis.violations).toEqual([])
   })
 
-  test('rejects importing another @prunelle/* plugin package or relative path into another plugin', () => {
+  test('rejects importing another @prunellejs/* plugin package or relative path into another plugin', () => {
     const analysis = analyzeFile('packages/plugin-seo/src/index.ts', `
-      import { i18n } from '@prunelle/i18n'
-      import type { AuthSession } from '@prunelle/auth/sqlite'
-      import { Button } from '@prunelle/ui'
+      import { i18n } from '@prunellejs/i18n'
+      import type { AuthSession } from '@prunellejs/auth/sqlite'
+      import { Button } from '@prunellejs/ui'
       export { resolveImage } from '../../plugin-images/src/index'
-      const live = import('@prunelle/live/client')
+      const live = import('@prunellejs/live/client')
       const content = import('../../plugin-content/src/collection')
       export { i18n, Button, live, content }
       export type { AuthSession }
@@ -288,7 +288,7 @@ describe('guardrails-check: empty catch ratchet and CLI', () => {
       export const x = readFileSync as any
     `)
     writeFileSync(join(dir, 'packages/plugin-alpha/src/index.ts'), `
-      import { beta } from '@prunelle/beta'
+      import { beta } from '@prunellejs/beta'
       export { beta }
     `)
 

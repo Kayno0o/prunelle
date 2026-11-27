@@ -16,7 +16,7 @@ afterAll(() => {
 function makeApp(files: Record<string, string> = {}): string {
   const dir = mkdtempSync(join(tmpdir(), 'prunelle-dev-process-'))
   tempDirs.push(dir)
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(join(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'), 'dir')
   const all: Record<string, string> = {
     'lib/site.ts': `export const siteName = 'one'\n`,

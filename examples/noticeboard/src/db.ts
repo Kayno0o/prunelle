@@ -1,7 +1,7 @@
-// Single zero-config `bun:sqlite` database powering BOTH @prunelle/auth and notices.
+// Single zero-config `bun:sqlite` database powering BOTH @prunellejs/auth and notices.
 
 import { Database } from 'bun:sqlite'
-import { sqliteAuthStore } from '@prunelle/auth/sqlite'
+import { sqliteAuthStore } from '@prunellejs/auth/sqlite'
 
 export interface PinnedNotice {
   id: number

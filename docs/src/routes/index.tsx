@@ -49,14 +49,14 @@ export const save = action(
 )`
 
 const ECOSYSTEM = [
-  { name: '@prunelle/ui', badge: '6 CSS Grammars', accent: true, href: '/docs/plugins/ui', desc: 'Platform-first headless primitives & pure CSS @layer kui grammars (Prunelle, Orbit, Editorial, Workshop, Console, Soft). Eject in one command.' },
-  { name: '@prunelle/auth', badge: '0 external deps', accent: false, href: '/docs/plugins/auth', desc: 'Argon2id passwords, hashed sessions, email verification, magic links, OAuth 2.0 + PKCE, route guards, RGPD helpers & bun:sqlite.' },
-  { name: '@prunelle/content', badge: 'Bun.markdown', accent: false, href: '/docs/plugins/content', desc: 'Zero-dep Markdown collections, nested Bun.YAML frontmatter, lazy render(), Shiki highlight, MDX-lite TSX & RSS.' },
-  { name: '@prunelle/mcp', badge: 'Streamable HTTP', accent: false, href: '/docs/plugins/mcp', desc: 'Expose typed server actions as bearer-authenticated MCP tools with schema compaction, shared schemas, resources & footprint budgets.' },
-  { name: '@prunelle/live', badge: '0 external deps', accent: false, href: '/docs/plugins/live', desc: 'Typed SSE rooms, microtask-coalesced presence broadcasts, and reactive useLive() browser signal hooks.' },
-  { name: '@prunelle/images & seo', badge: 'AVIF / WebP', accent: false, href: '/docs/plugins/images-and-seo', desc: 'Build-time responsive images with disk cache, 1200×630 OG shareCard() PNGs, self-hosted fonts, JSON-LD & sitemaps.' },
-  { name: '@prunelle/i18n · mail', badge: '0 external deps', accent: false, href: '/docs/plugins/ecosystem', desc: 'Localized URL rewriting, hreflang & prunelle i18n-check; Resend HTTP transport with a dev-only /_pru/mail outbox.' },
-  { name: '@prunelle/spa · tailwind · icons', badge: 'Opt-in', accent: false, href: '/docs/plugins/ecosystem', desc: 'In-place SPA swaps with [data-persist] islands, Tailwind v4 integration, and zero-runtime inline ~icons/* SVGs.' },
+  { name: '@prunellejs/ui', badge: '6 CSS Grammars', accent: true, href: '/docs/plugins/ui', desc: 'Platform-first headless primitives & pure CSS @layer kui grammars (Prunelle, Orbit, Editorial, Workshop, Console, Soft). Eject in one command.' },
+  { name: '@prunellejs/auth', badge: '0 external deps', accent: false, href: '/docs/plugins/auth', desc: 'Argon2id passwords, hashed sessions, email verification, magic links, OAuth 2.0 + PKCE, route guards, RGPD helpers & bun:sqlite.' },
+  { name: '@prunellejs/content', badge: 'Bun.markdown', accent: false, href: '/docs/plugins/content', desc: 'Zero-dep Markdown collections, nested Bun.YAML frontmatter, lazy render(), Shiki highlight, MDX-lite TSX & RSS.' },
+  { name: '@prunellejs/mcp', badge: 'Streamable HTTP', accent: false, href: '/docs/plugins/mcp', desc: 'Expose typed server actions as bearer-authenticated MCP tools with schema compaction, shared schemas, resources & footprint budgets.' },
+  { name: '@prunellejs/live', badge: '0 external deps', accent: false, href: '/docs/plugins/live', desc: 'Typed SSE rooms, microtask-coalesced presence broadcasts, and reactive useLive() browser signal hooks.' },
+  { name: '@prunellejs/images & seo', badge: 'AVIF / WebP', accent: false, href: '/docs/plugins/images-and-seo', desc: 'Build-time responsive images with disk cache, 1200×630 OG shareCard() PNGs, self-hosted fonts, JSON-LD & sitemaps.' },
+  { name: '@prunellejs/i18n · mail', badge: '0 external deps', accent: false, href: '/docs/plugins/ecosystem', desc: 'Localized URL rewriting, hreflang & prunelle i18n-check; Resend HTTP transport with a dev-only /_pru/mail outbox.' },
+  { name: '@prunellejs/spa · tailwind · icons', badge: 'Opt-in', accent: false, href: '/docs/plugins/ecosystem', desc: 'In-place SPA swaps with [data-persist] islands, Tailwind v4 integration, and zero-runtime inline ~icons/* SVGs.' },
   { name: 'PrunellePlugin API', badge: 'Extensible', accent: false, href: '/docs/production/plugin-api', desc: 'Server routes, middleware, build & post-prerender hooks, prunelle check checks, Bun.build plugins, and custom CLI commands.' },
 ]
 

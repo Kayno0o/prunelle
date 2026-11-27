@@ -18,9 +18,9 @@ function makeTemp(prefix: string): string {
 }
 
 function linkPrunelle(dir: string): void {
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(PRUNELLE_PKG_DIR, join(dir, 'node_modules/prunelle'), 'dir')
-  symlinkSync(join(PRUNELLE_PKG_DIR, '../plugin-i18n'), join(dir, 'node_modules/@prunelle/i18n'), 'dir')
+  symlinkSync(join(PRUNELLE_PKG_DIR, '../plugin-i18n'), join(dir, 'node_modules/@prunellejs/i18n'), 'dir')
 }
 
 afterAll(() => {
@@ -28,8 +28,8 @@ afterAll(() => {
     rmSync(d, { recursive: true, force: true })
 })
 
-describe('PrunellePlugin lifecycle hooks (check, watchPaths, addRouteStyle, addRouteHead) & @prunelle/spa (#3522)', () => {
-  it('runs plugin check(ctx) hooks during prunelle check (including @prunelle/i18n missing keys)', async () => {
+describe('PrunellePlugin lifecycle hooks (check, watchPaths, addRouteStyle, addRouteHead) & @prunellejs/spa (#3522)', () => {
+  it('runs plugin check(ctx) hooks during prunelle check (including @prunellejs/i18n missing keys)', async () => {
     const dir = makeTemp('prunelle-plugin-check-')
     linkPrunelle(dir)
     mkdirSync(join(dir, 'src/routes'), { recursive: true })
@@ -39,7 +39,7 @@ describe('PrunellePlugin lifecycle hooks (check, watchPaths, addRouteStyle, addR
     `)
     writeFileSync(join(dir, 'prunelle.config.ts'), `
       import { defineConfig } from 'prunelle/config'
-      import { i18n } from '@prunelle/i18n'
+      import { i18n } from '@prunellejs/i18n'
       export default defineConfig({
         plugins: [
           i18n({
@@ -148,7 +148,7 @@ describe('PrunellePlugin lifecycle hooks (check, watchPaths, addRouteStyle, addR
     }
   })
 
-  it('supports @prunelle/spa head stylesheet/meta diffing, AbortController cancellation, and prefetch cache', async () => {
+  it('supports @prunellejs/spa head stylesheet/meta diffing, AbortController cancellation, and prefetch cache', async () => {
     GlobalRegistrator.register({ url: 'http://localhost/', settings: { handleDisabledFileLoadingAsSuccess: true } })
     const origFetch = globalThis.fetch
     let fetchCount = 0

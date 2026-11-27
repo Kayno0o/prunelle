@@ -11,18 +11,18 @@ export const PRUNELLE_CLI_ENTRY = join(PACKAGES_DIR, 'prunelle/src/cli/index.ts'
 // Each package name and its folder under packages/.
 export const WORKSPACE_PACKAGES: Record<string, string> = {
   'prunelle': 'prunelle',
-  '@prunelle/auth': 'plugin-auth',
-  '@prunelle/content': 'plugin-content',
-  '@prunelle/i18n': 'plugin-i18n',
-  '@prunelle/icons': 'plugin-icons',
-  '@prunelle/images': 'plugin-images',
-  '@prunelle/live': 'plugin-live',
-  '@prunelle/mail': 'plugin-mail',
-  '@prunelle/mcp': 'plugin-mcp',
-  '@prunelle/seo': 'plugin-seo',
-  '@prunelle/spa': 'plugin-spa',
-  '@prunelle/tailwind': 'plugin-tailwind',
-  '@prunelle/ui': 'ui',
+  '@prunellejs/auth': 'plugin-auth',
+  '@prunellejs/content': 'plugin-content',
+  '@prunellejs/i18n': 'plugin-i18n',
+  '@prunellejs/icons': 'plugin-icons',
+  '@prunellejs/images': 'plugin-images',
+  '@prunellejs/live': 'plugin-live',
+  '@prunellejs/mail': 'plugin-mail',
+  '@prunellejs/mcp': 'plugin-mcp',
+  '@prunellejs/seo': 'plugin-seo',
+  '@prunellejs/spa': 'plugin-spa',
+  '@prunellejs/tailwind': 'plugin-tailwind',
+  '@prunellejs/ui': 'ui',
 }
 
 const SIZE_RE = /^(\d+(?:\.\d+)?)\s*(kb|b)?$/i
@@ -53,14 +53,14 @@ function isDanglingSymlink(path: string): boolean {
 }
 
 /**
- * Links `prunelle`, the local `@prunelle/*` workspace packages and monorepo dev tooling (`@types`,
+ * Links `prunelle`, the local `@prunellejs/*` workspace packages and monorepo dev tooling (`@types`,
  * `typescript`, `@kaynooo`, `oxc-parser`, `.bin/prunelle`, `.bin/tsc`) into `destDir/node_modules`.
  */
 export function linkWorkspacePackages(destDir: string): void {
   const root = resolve(destDir)
   const nm = join(root, 'node_modules')
   const binDir = join(nm, '.bin')
-  mkdirSync(join(nm, '@prunelle'), { recursive: true })
+  mkdirSync(join(nm, '@prunellejs'), { recursive: true })
   mkdirSync(binDir, { recursive: true })
 
   for (const [pkgName, folder] of Object.entries(WORKSPACE_PACKAGES)) {

@@ -1,10 +1,10 @@
-# @prunelle/tailwind Reference
+# @prunellejs/tailwind Reference
 
 > Tailwind CSS v4 integration plugin for Prunelle via `bun-plugin-tailwind`.
 
 ## Imports
 
-- `@prunelle/tailwind`: `tailwind(options?)`; type `TailwindPluginOptions`.
+- `@prunellejs/tailwind`: `tailwind(options?)`; type `TailwindPluginOptions`.
 
 ## Setup
 
@@ -19,7 +19,7 @@ Install `tailwindcss` and `bun-plugin-tailwind` in your app (`bun add -d tailwin
 ```ts
 // prunelle.config.ts
 import { defineConfig } from 'prunelle/config'
-import { tailwind } from '@prunelle/tailwind'
+import { tailwind } from '@prunellejs/tailwind'
 
 export default defineConfig({
   plugins: [tailwind()], // defaults to css: 'src/app.css'

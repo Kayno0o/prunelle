@@ -15,7 +15,7 @@ function makeTemp(prefix: string): string {
 
 const repoRoot = join(import.meta.dir, '../../..')
 function linkPrunelle(dir: string): void {
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(join(repoRoot, 'packages/prunelle'), join(dir, 'node_modules/prunelle'))
 }
 
@@ -227,7 +227,7 @@ describe('prunelle dev incremental client/server split, build-driven watch set, 
     }
   }, 30_000)
 
-  it('#3633: preserves plugin-emitted client assets across cache.lastClient skips and guards @prunelle/images pruneCache in dev mode', async () => {
+  it('#3633: preserves plugin-emitted client assets across cache.lastClient skips and guards @prunellejs/images pruneCache in dev mode', async () => {
     const dir = makeTemp('prunelle-3633-plugin-assets-')
     linkPrunelle(dir)
     mkdirSync(join(dir, 'src/routes'), { recursive: true })

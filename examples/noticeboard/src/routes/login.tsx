@@ -1,4 +1,4 @@
-import { Button, Card, CardBody, CardHeader, Field, Grid, Stack } from '@prunelle/ui'
+import { Button, Card, CardBody, CardHeader, Field, Grid, Stack } from '@prunellejs/ui'
 import { Head } from 'prunelle'
 
 export default function LoginPage() {

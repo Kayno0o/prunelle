@@ -385,7 +385,7 @@ describe('end-to-end build, SSR, and DOM hydration', () => {
   test('a page whose island binds no attribute, list or insert loads none of their runtime, beside an island that does, and preloads every chunk it imports (#3662)', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'prunelle-dom-split-'))
     tempDirs.push(dir)
-    mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+    mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
     symlinkSync(resolve(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'))
     const files: Record<string, string> = {
       'src/components/Counter.tsx': `import { signal } from 'prunelle'\nexport function Counter() { const n = signal(0); return <button onClick={() => { n.value++ }}>{n.value}</button> }`,
@@ -453,7 +453,7 @@ describe('end-to-end build, SSR, and DOM hydration', () => {
     const buildApp = async (files: Record<string, string>): Promise<string[]> => {
       const dir = mkdtempSync(join(tmpdir(), 'prunelle-extras-chunk-'))
       tempDirs.push(dir)
-      mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+      mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
       symlinkSync(resolve(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'))
       for (const [file, text] of Object.entries(files)) {
         mkdirSync(join(dir, file, '..'), { recursive: true })
@@ -485,7 +485,7 @@ describe('end-to-end build, SSR, and DOM hydration', () => {
   test('a streamed page preloads its eager islands only, as a buffered page does (#3662)', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'prunelle-stream-preload-'))
     tempDirs.push(dir)
-    mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+    mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
     symlinkSync(resolve(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'))
     const files: Record<string, string> = {
       'src/components/Now.tsx': `import { signal } from 'prunelle'\nexport function Now() { const n = signal(0); return <button onClick={() => { n.value++ }}>now {n.value}</button> }`,
@@ -523,7 +523,7 @@ describe('end-to-end build, SSR, and DOM hydration', () => {
   test('only a page whose island props hold a tagged value loads the revivers, and the island gets its Date back (#3662)', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'prunelle-revive-'))
     tempDirs.push(dir)
-    mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+    mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
     symlinkSync(resolve(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'))
     const files: Record<string, string> = {
       'src/components/Kind.tsx': `

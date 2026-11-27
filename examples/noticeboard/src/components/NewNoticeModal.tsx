@@ -1,4 +1,4 @@
-import { Button, Cluster, ControlledDialog, Field, Notice, Stack, toast } from '@prunelle/ui'
+import { Button, Cluster, ControlledDialog, Field, Notice, Stack, toast } from '@prunellejs/ui'
 import { signal, useAction } from 'prunelle'
 import { pinNotice } from '../actions/notices'
 

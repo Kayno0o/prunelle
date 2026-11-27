@@ -19,8 +19,8 @@ const SHELL_TOOLS = new Set([
   'command',
 ])
 
-const PRUNELLE_SRC_RE = /(?:node_modules\/(?:@prunelle\/[^/\s"'`]+|prunelle)|packages\/(?:prunelle|ui|plugin-[^/\s"'`]+))\/src\/[^\s"'`),:;]+/g
-const LLMS_TXT_RE = /(?:node_modules\/(?:@prunelle\/[^/\s"'`]+|prunelle)\/)?llms\.txt\b/g
+const PRUNELLE_SRC_RE = /(?:node_modules\/(?:@prunellejs\/[^/\s"'`]+|prunelle)|packages\/(?:prunelle|ui|plugin-[^/\s"'`]+))\/src\/[^\s"'`),:;]+/g
+const LLMS_TXT_RE = /(?:node_modules\/(?:@prunellejs\/[^/\s"'`]+|prunelle)\/)?llms\.txt\b/g
 const SHELL_READ_CMD_RE = /\b(?:cat|head|tail|sed|less|bat|view|src|grep|rg)\b/
 
 const PRUNELLE_COMPILER_RE = /prunelle compiler:\s*([^\n]+)/g

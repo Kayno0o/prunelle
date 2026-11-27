@@ -27,11 +27,11 @@ function makeTemp(prefix: string): string {
 }
 
 function linkPrunelle(dir: string): void {
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(PRUNELLE_PKG_DIR, join(dir, 'node_modules/prunelle'), 'dir')
   const pkgRoot = join(PRUNELLE_PKG_DIR, '..')
-  symlinkSync(join(pkgRoot, 'plugin-seo'), join(dir, 'node_modules/@prunelle/seo'), 'dir')
-  symlinkSync(join(pkgRoot, 'plugin-i18n'), join(dir, 'node_modules/@prunelle/i18n'), 'dir')
+  symlinkSync(join(pkgRoot, 'plugin-seo'), join(dir, 'node_modules/@prunellejs/seo'), 'dir')
+  symlinkSync(join(pkgRoot, 'plugin-i18n'), join(dir, 'node_modules/@prunellejs/i18n'), 'dir')
 }
 
 afterAll(() => {
@@ -246,7 +246,7 @@ describe('Server compression, zero-copy serving, and fast-path preservation (#35
     expect(await rawRes.text()).toContain('<h1>Compression Test</h1>')
   })
 
-  it('preserves prerendered fast path with @prunelle/seo & @prunelle/i18n while still respecting route _middleware.ts', async () => {
+  it('preserves prerendered fast path with @prunellejs/seo & @prunellejs/i18n while still respecting route _middleware.ts', async () => {
     const dir = makeTemp('prunelle-fastpath-plugins-')
     linkPrunelle(dir)
     mkdirSync(join(dir, 'src/routes/guarded'), { recursive: true })

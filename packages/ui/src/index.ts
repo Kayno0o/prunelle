@@ -1,4 +1,4 @@
-// @prunelle/ui — Platform-first headless primitives + pure CSS Style Grammars.
+// @prunellejs/ui — Platform-first headless primitives + pure CSS Style Grammars.
 // Zero JS recipes, zero Tailwind lock-in, zero custom compiler syntax.
 
 export {

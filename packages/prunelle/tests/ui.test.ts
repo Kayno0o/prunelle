@@ -236,7 +236,7 @@ describe('Dialog and Drawer on the platform (#3686)', () => {
   })
 })
 
-describe('@prunelle/ui v2 — Platform-first primitives & Pure CSS Style Grammars', () => {
+describe('@prunellejs/ui v2 — Platform-first primitives & Pure CSS Style Grammars', () => {
   it('ships 0 KB client JS when a page uses only static & native-platform primitives', async () => {
     const dir = makeTemp('prunelle-ui-static-')
     mkdirSync(join(dir, 'src/routes'), { recursive: true })

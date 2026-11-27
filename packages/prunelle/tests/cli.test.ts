@@ -171,7 +171,7 @@ export default { plugins: [ui({ grammar: 'editorial' })] }
       const newCode = await runCli(['new', 'demo-app', '--template', 'minimal'], { cwd: dir })
       expect(newCode).toBe(0)
       expect(existsSync(join(appDir, 'src/routes/index.tsx'))).toBe(true)
-      mkdirSync(join(appDir, 'node_modules/@prunelle'), { recursive: true })
+      mkdirSync(join(appDir, 'node_modules/@prunellejs'), { recursive: true })
       symlinkSync(PRUNELLE_PKG_DIR, join(appDir, 'node_modules/prunelle'), 'dir')
 
       const checkCode = await runCli(['check', 'demo-app', '--no-typecheck'], { cwd: dir })
@@ -264,7 +264,7 @@ describe('prunelle build names the islands behind each route\'s JS (#3585)', () 
         mkdirSync(join(dir, file, '..'), { recursive: true })
         writeFileSync(join(dir, file), text)
       }
-      mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+      mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
       symlinkSync(PRUNELLE_PKG_DIR, join(dir, 'node_modules/prunelle'), 'dir')
 
       expect(await runCli(['build', '--analyze', '--max-js', '1000'], io)).toBe(1)
@@ -295,7 +295,7 @@ describe('prunelle build names the islands behind each route\'s JS (#3585)', () 
         mkdirSync(join(dir, file, '..'), { recursive: true })
         writeFileSync(join(dir, file), text)
       }
-      mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+      mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
       symlinkSync(PRUNELLE_PKG_DIR, join(dir, 'node_modules/prunelle'), 'dir')
 
       // `--json` without `--analyze` is a usage error (exit 2).

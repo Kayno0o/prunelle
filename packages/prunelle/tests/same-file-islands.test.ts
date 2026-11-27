@@ -17,7 +17,7 @@ const repoRoot = join(import.meta.dir, '../../..')
 function appWith(files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), 'prunelle-3661-'))
   tempDirs.push(dir)
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(join(repoRoot, 'packages/prunelle'), join(dir, 'node_modules/prunelle'))
   for (const [file, text] of Object.entries({ 'prunelle.config.ts': 'export default { compliance: { legalNotice: false } }\n', ...files })) {
     mkdirSync(join(dir, file, '..'), { recursive: true })

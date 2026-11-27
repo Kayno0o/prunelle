@@ -1,10 +1,10 @@
-# @prunelle/i18n Reference
+# @prunellejs/i18n Reference
 
 > Locale URL rewriting, dictionary translation, `<html lang>`, automatic internal link prefixing, `hreflang` alternates, localized prerendering, `Intl` formatters, and missing-key checks.
 
 ## Imports
 
-- `@prunelle/i18n`: `i18n`, `stripLocalePrefix`, `localizePath`, `alternateLinks`, `formatDate`, `formatNumber`; type `I18nOptions`.
+- `@prunellejs/i18n`: `i18n`, `stripLocalePrefix`, `localizePath`, `alternateLinks`, `formatDate`, `formatNumber`; type `I18nOptions`.
 
 ## Plugin Setup (`i18n(options)`)
 
@@ -25,7 +25,7 @@
 - HTML & build integration:
   - Sets `<html lang={locale}>` and `hreflang` links in `head()`.
   - Prefixes internal `<a href="/...">` for non-default locales (`data-no-localize` opts a link out, e.g. language switchers; skips `/_pru/`, `/_i18n/`, already-prefixed paths).
-  - Expands `prerenderPaths` across all configured locales and shares `I18N_CONFIG_SERVICE` with `@prunelle/seo` for multilingual `sitemap.xml`.
+  - Expands `prerenderPaths` across all configured locales and shares `I18N_CONFIG_SERVICE` with `@prunellejs/seo` for multilingual `sitemap.xml`.
 - Checks & CLI: `prunelle check` fails on translation keys missing vs `defaultLocale`; `prunelle i18n-check` prints missing keys.
 
 ## Helpers
@@ -39,7 +39,7 @@
 
 ```ts
 // prunelle.config.ts
-import { i18n } from '@prunelle/i18n'
+import { i18n } from '@prunellejs/i18n'
 import { defineConfig } from 'prunelle/config'
 
 export default defineConfig({

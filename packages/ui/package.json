@@ -1,5 +1,5 @@
 {
-  "name": "@prunelle/ui",
+  "name": "@prunellejs/ui",
   "version": "0.1.0",
   "description": "Platform-first headless UI primitives and pure CSS @layer kui Style Grammars for Prunelle",
   "license": "MIT",

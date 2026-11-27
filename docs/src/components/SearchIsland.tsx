@@ -1,4 +1,4 @@
-import { CommandPalette } from '@prunelle/ui'
+import { CommandPalette } from '@prunellejs/ui'
 
 export interface SearchDocItem {
   id: string

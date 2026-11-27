@@ -20,7 +20,7 @@ afterAll(() => {
     rmSync(d, { recursive: true, force: true })
 })
 
-describe('@prunelle/content — Zero-dependency Bun.markdown collections & RSS', () => {
+describe('@prunellejs/content — Zero-dependency Bun.markdown collections & RSS', () => {
   it('parses YAML frontmatter, renders GFM with unique heading IDs, TOC, and reading time', () => {
     const raw = `---
 title: "Hello Prunelle"
@@ -359,7 +359,7 @@ Contenu francais.
     expect(existsSync(join(dir, 'dist', ogMatch![1]!))).toBe(true)
   })
 
-  it('#3516: supports lazy render() without content/meta split and auto-wires @prunelle/images for relative Markdown images', async () => {
+  it('#3516: supports lazy render() without content/meta split and auto-wires @prunellejs/images for relative Markdown images', async () => {
     const dir = makeTemp('prunelle-content-3516-')
     const imgDir = join(dir, 'src/content/posts/img')
     mkdirSync(imgDir, { recursive: true })
@@ -411,7 +411,7 @@ date: 2026-11-24
     await e.render()
     expect(renderLoaderCalls).toBe(1)
 
-    // 2. Full build check: single src/content.ts imported by prunelle.config.ts + routes, auto-wired @prunelle/images with zero resolveImage boilerplate
+    // 2. Full build check: single src/content.ts imported by prunelle.config.ts + routes, auto-wired @prunellejs/images with zero resolveImage boilerplate
     const contentPkg = join(import.meta.dir, '../../plugin-content/src/index.ts')
     const imagesPkg = join(import.meta.dir, '../../plugin-images/src/index.ts')
 
@@ -518,8 +518,8 @@ date: 2026-11-24
     const { checkProject } = await import('../src/cli/check')
     const checked = await checkProject(dir, { skipTypecheck: true })
     expect(checked.ok).toBe(false)
-    expect(checked.errors).toContain('src/content/posts/bad.md:2:1: error: @prunelle/content: title: title is required')
-    expect(checked.errors).toContain('src/content/posts/bad.md:3:1: error: @prunelle/content: date: date must be YYYY-MM-DD')
+    expect(checked.errors).toContain('src/content/posts/bad.md:2:1: error: @prunellejs/content: title: title is required')
+    expect(checked.errors).toContain('src/content/posts/bad.md:3:1: error: @prunellejs/content: date: date must be YYYY-MM-DD')
 
     // Auto-registration: watchPaths includes the collection directory without listing it in content()
     const plugin = content()

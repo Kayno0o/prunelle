@@ -1,13 +1,13 @@
 {
   "id": "04-auth-crud-sqlite",
   "title": "Authenticated Notes CRUD with SQLite & UI",
-  "description": "Authenticated notes app using @prunelle/auth (sqliteAuthStore + auth.guard), @prunelle/ui, bun:sqlite, protected /notes CRUD route, and testApp tests.",
+  "description": "Authenticated notes app using @prunellejs/auth (sqliteAuthStore + auth.guard), @prunellejs/ui, bun:sqlite, protected /notes CRUD route, and testApp tests.",
   "template": "app",
   "maxJs": "20kb",
   "packages": [
     "prunelle",
-    "@prunelle/auth",
-    "@prunelle/ui"
+    "@prunellejs/auth",
+    "@prunellejs/ui"
   ],
   "tags": [
     "auth",

@@ -1,4 +1,4 @@
-// @prunelle/live — Zero-dependency typed real-time rooms, coalesced presence, and SSE streaming for Prunelle.
+// @prunellejs/live — Zero-dependency typed real-time rooms, coalesced presence, and SSE streaming for Prunelle.
 // Built strictly on Web Streams (text/event-stream) + PrunellePlugin (`api.route`) — zero core WebSocket coupling.
 
 import type { PrunellePlugin } from 'prunelle/config'
@@ -79,7 +79,7 @@ const CR_LF_RE = /[\r\n]/
 
 function assertSafeSseField(value: string | undefined, label: string): void {
   if (value !== undefined && CR_LF_RE.test(value))
-    throw new RangeError(`@prunelle/live: SSE ${label} must not contain CR or LF characters`)
+    throw new RangeError(`@prunellejs/live: SSE ${label} must not contain CR or LF characters`)
 }
 
 function encodeEvent(message: unknown, event?: string, id?: string): Uint8Array {
@@ -355,9 +355,9 @@ export function createRooms<TMessage, TMember = undefined>(
 
   function endpoint(opts: RoomsEndpointOptions<TMember>): PrunellePlugin {
     if (typeof opts.member !== 'function')
-      throw new TypeError(`@prunelle/live: createRooms({ path: '${opts.path}' }) needs member(ctx), the member each stream joins as`)
+      throw new TypeError(`@prunellejs/live: createRooms({ path: '${opts.path}' }) needs member(ctx), the member each stream joins as`)
     return definePlugin({
-      name: `@prunelle/live(${opts.path})`,
+      name: `@prunellejs/live(${opts.path})`,
       server(api) {
         api.onShutdown(closeAll)
         api.route('GET', opts.path, async (ctx) => {
@@ -376,6 +376,6 @@ export function createRooms<TMessage, TMember = undefined>(
     })
   }
 
-  const plugin = options.path === undefined ? definePlugin({ name: '@prunelle/live', server: api => api.onShutdown(closeAll) }) : endpoint(options)
+  const plugin = options.path === undefined ? definePlugin({ name: '@prunellejs/live', server: api => api.onShutdown(closeAll) }) : endpoint(options)
   return { ...plugin, join, leave, members, size, publish, coalesce, stream }
 }

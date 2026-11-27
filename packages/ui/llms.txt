@@ -1,22 +1,22 @@
-# @prunelle/ui Reference
+# @prunellejs/ui Reference
 
 > Platform-first headless UI primitives and pure CSS `@layer kui` Style Grammars (`0 KB` JS for static primitives; islands only for interactive widgets).
 
 ## Imports
 
-- `@prunelle/ui`:
+- `@prunellejs/ui`:
   - Static layout primitives (`0 KB` JS): `Stack`, `Cluster`, `Grid`, `Sidebar`, `Split`
   - Static & native-platform primitives (`0 KB` JS): `Button`, `Card`, `CardHeader`, `CardBody`, `CardFooter`, `Badge`, `Notice`, `Field`, `FieldContext`, `useFieldContext`, `Checkbox`, `Switch`, `RadioGroup`, `Progress`, `Accordion`, `AccordionItem`, `Popover`, `Dialog`, `Drawer` (opened by `commandfor`/`command` buttons and closed by Esc or a backdrop click, with no JS; `ui()` adds a fallback that only a browser without invoker commands, `closedby` or anchor positioning loads)
   - Interactive island primitives: `ControlledDialog`, `ControlledDrawer`, `Tabs`, `Menu`, `Select`, `CommandPalette`, `DataTable`, `Toaster`
   - Headless signal behaviors & helpers: `createDialog`, `createTabs`, `createDataTable`, `toast`, `handleListKeyDown`, `findFirstEnabledIndex`, `findLastEnabledIndex`, `findNextEnabledIndex`, `isDialogBackdropClick`, `syncDialogOpen`, `nextUiId`
-- `@prunelle/ui/plugin`: `ui(options?)`, `GRAMMAR_NAMES`, `grammarCssPath`, `renderGrammarCss`, `ejectGrammar`
-- CSS subpaths: `@prunelle/ui/bare.css`, `@prunelle/ui/grammars/{editorial,workshop,console,soft,orbit,prunelle}.css`
+- `@prunellejs/ui/plugin`: `ui(options?)`, `GRAMMAR_NAMES`, `grammarCssPath`, `renderGrammarCss`, `ejectGrammar`
+- CSS subpaths: `@prunellejs/ui/bare.css`, `@prunellejs/ui/grammars/{editorial,workshop,console,soft,orbit,prunelle}.css`
 
 ## Plugin Setup (`prunelle.config.ts`)
 
 ```ts
 import { defineConfig } from 'prunelle/config'
-import { ui } from '@prunelle/ui/plugin'
+import { ui } from '@prunellejs/ui/plugin'
 
 export default defineConfig({
   plugins: [ui({ grammar: 'editorial' })],
@@ -48,7 +48,7 @@ export default defineConfig({
 ## Example
 
 ```tsx
-import { Button, Card, CardBody, Field, Stack } from '@prunelle/ui'
+import { Button, Card, CardBody, Field, Stack } from '@prunellejs/ui'
 import { createPost } from '../actions/posts'
 
 export default function NewPostForm({ error }: { error?: string }) {

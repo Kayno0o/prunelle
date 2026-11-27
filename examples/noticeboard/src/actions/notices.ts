@@ -1,5 +1,5 @@
-// Unified Standard-Schema server action: pins a notice to SQLite, emails members via @prunelle/mail,
-// and broadcasts live to every connected browser tab via @prunelle/live.
+// Unified Standard-Schema server action: pins a notice to SQLite, emails members via @prunellejs/mail,
+// and broadcasts live to every connected browser tab via @prunellejs/live.
 
 import type { StandardSchemaV1 } from 'prunelle/server'
 import { action } from 'prunelle/server'
@@ -43,7 +43,7 @@ export const pinNotice = action(pinSchema, async ({ title, body }, ctx) => {
   const author = user.name || user.email
   const notice = insertNotice({ authorId: user.id, author, title, body })
 
-  // Notify other members via @prunelle/mail
+  // Notify other members via @prunellejs/mail
   const recipients = listMemberEmails(user.id)
   if (recipients.length > 0) {
     await mail.send({

@@ -49,7 +49,7 @@ describe('Agent Eval Suite (#3613)', () => {
     expect(() => getTask('99-does-not-exist')).toThrow(/unknown task/i)
   })
 
-  it('scaffolds a clean task workspace with @prunelle/* symlinks and llms.txt', () => {
+  it('scaffolds a clean task workspace with @prunellejs/* symlinks and llms.txt', () => {
     const dest = join(makeTemp('prunelle-eval-init-'), 'workspace')
     const task = getTask('01-static-blog-i18n')
     const res = initTaskWorkspace(task, dest)
@@ -58,14 +58,14 @@ describe('Agent Eval Suite (#3613)', () => {
     expect(existsSync(join(dest, 'TASK.md'))).toBe(true)
     expect(existsSync(join(dest, 'prunelle.config.ts'))).toBe(true)
     expect(existsSync(join(dest, 'node_modules/prunelle/llms.txt'))).toBe(true)
-    expect(existsSync(join(dest, 'node_modules/@prunelle/content/llms.txt'))).toBe(true)
-    expect(existsSync(join(dest, 'node_modules/@prunelle/i18n/llms.txt'))).toBe(true)
+    expect(existsSync(join(dest, 'node_modules/@prunellejs/content/llms.txt'))).toBe(true)
+    expect(existsSync(join(dest, 'node_modules/@prunellejs/i18n/llms.txt'))).toBe(true)
     expect(existsSync(join(dest, 'node_modules/.bin/prunelle'))).toBe(true)
 
     const pkg = JSON.parse(readFileSync(join(dest, 'package.json'), 'utf8')) as { dependencies: Record<string, string> }
     expect(pkg.dependencies['prunelle']).toBeDefined()
-    expect(pkg.dependencies['@prunelle/content']).toBeDefined()
-    expect(pkg.dependencies['@prunelle/i18n']).toBeDefined()
+    expect(pkg.dependencies['@prunellejs/content']).toBeDefined()
+    expect(pkg.dependencies['@prunellejs/i18n']).toBeDefined()
   })
 
   it('fails cleanly on an empty or broken task directory with clear diagnostics', async () => {
@@ -413,7 +413,7 @@ test('rejects invalid input with fieldErrors and accepts valid submission', asyn
         output: 'src/routes/index.tsx:12:5: error: prunelle compiler: signal read without .value in src/routes/index.tsx: read count.value.',
       }),
       JSON.stringify({ type: 'turn', role: 'assistant' }),
-      JSON.stringify({ type: 'tool_call', tool: 'run_command', args: { command: 'cat node_modules/@prunelle/spa/src/regions.ts' } }),
+      JSON.stringify({ type: 'tool_call', tool: 'run_command', args: { command: 'cat node_modules/@prunellejs/spa/src/regions.ts' } }),
       JSON.stringify({
         type: 'tool_result',
         command: 'prunelle check',
@@ -432,7 +432,7 @@ test('rejects invalid input with fieldErrors and accepts valid submission', asyn
     expect(m.llmsReads.files).toEqual(['node_modules/prunelle/llms.txt'])
     expect(m.sourceReads.count).toBe(2)
     expect(m.sourceReads.files).toEqual([
-      'node_modules/@prunelle/spa/src/regions.ts',
+      'node_modules/@prunellejs/spa/src/regions.ts',
       'node_modules/prunelle/src/server/action.ts',
     ])
     expect(m.repeatedFailures.length).toBe(1)
@@ -446,8 +446,8 @@ test('rejects invalid input with fieldErrors and accepts valid submission', asyn
         message: {
           role: 'assistant',
           content: [
-            { type: 'tool_use', name: 'Read', input: { file_path: 'node_modules/@prunelle/mcp/llms.txt' } },
-            { type: 'tool_use', name: 'Read', input: { file_path: 'node_modules/@prunelle/mcp/src/index.ts' } },
+            { type: 'tool_use', name: 'Read', input: { file_path: 'node_modules/@prunellejs/mcp/llms.txt' } },
+            { type: 'tool_use', name: 'Read', input: { file_path: 'node_modules/@prunellejs/mcp/src/index.ts' } },
           ],
         },
       }),

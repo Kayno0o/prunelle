@@ -1,5 +1,5 @@
-import type { AuthUser, PublicUser } from '@prunelle/auth'
-import type { IconData } from '@prunelle/icons'
+import type { AuthUser, PublicUser } from '@prunellejs/auth'
+import type { IconData } from '@prunellejs/icons'
 import type { PrunelleChild } from 'prunelle'
 import type { ActiveI18nConfig } from 'prunelle/config'
 import type { PrunelleLocals, RequestContext, StandardSchemaV1 } from 'prunelle/server'
@@ -72,7 +72,7 @@ const postSchema: StandardSchemaV1<unknown, PostFrontmatter> = {
   },
 }
 
-describe('Plugin generics: @prunelle/auth, @prunelle/mcp, @prunelle/content (#3545)', () => {
+describe('Plugin generics: @prunellejs/auth, @prunellejs/mcp, @prunellejs/content (#3545)', () => {
   it('createAuth<TUser> preserves custom user fields across createUser, guard, exportUser, and getUser without casts', async () => {
     const store = memoryAuthStore<AppUser>()
     const auth = createAuth<AppUser>({
@@ -233,10 +233,10 @@ describe('Plugin generics: @prunelle/auth, @prunelle/mcp, @prunelle/content (#35
         },
       },
     })
-    expect(plugin.name).toBe('@prunelle/mcp')
+    expect(plugin.name).toBe('@prunellejs/mcp')
   })
 
-  it('@prunelle/content enforces Record<string, unknown> without schema and eliminates any from content & MarkdownComponent', () => {
+  it('@prunellejs/content enforces Record<string, unknown> without schema and eliminates any from content & MarkdownComponent', () => {
     const dir = makeTemp('prunelle-content-types-')
     writeFileSync(join(dir, 'hello.md'), '---\ntitle: Hello\npublished: true\n---\n\nBody text\n')
 
@@ -290,7 +290,7 @@ describe('Plugin generics: @prunelle/auth, @prunelle/mcp, @prunelle/content (#35
         },
       ],
     })
-    expect(plugin.name).toBe('@prunelle/content')
+    expect(plugin.name).toBe('@prunellejs/content')
   })
 })
 
@@ -342,7 +342,7 @@ describe('services are typed by their key (#3579)', () => {
 
   it('refuses a rooms endpoint without the member each stream joins as', () => {
     // @ts-expect-error `path` mounts an endpoint, which needs `member`
-    expect(() => createRooms({ path: '/api/live' })).toThrow('@prunelle/live: createRooms({ path: \'/api/live\' }) needs member(ctx), the member each stream joins as')
-    expect(createRooms({ pingMs: 0 } as never).name).toBe('@prunelle/live')
+    expect(() => createRooms({ path: '/api/live' })).toThrow('@prunellejs/live: createRooms({ path: \'/api/live\' }) needs member(ctx), the member each stream joins as')
+    expect(createRooms({ pingMs: 0 } as never).name).toBe('@prunellejs/live')
   })
 })

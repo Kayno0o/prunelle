@@ -14,7 +14,7 @@ afterAll(() => {
   rmSync(TMP, { recursive: true, force: true })
 })
 
-describe('@prunelle/auth — Zero-dependency Bun-native Auth plugin', () => {
+describe('@prunellejs/auth — Zero-dependency Bun-native Auth plugin', () => {
   test('safeRedirect rejects open redirects and preserves relative paths', () => {
     expect(safeRedirect('/dashboard?tab=1')).toBe('/dashboard?tab=1')
     expect(safeRedirect('//evil.com')).toBe('/')
@@ -38,7 +38,7 @@ describe('@prunelle/auth — Zero-dependency Bun-native Auth plugin', () => {
     expect(safeRedirect('/dashboard?tab=1#top')).toBe('/dashboard?tab=1#top')
   })
 
-  test('full password signup/signin/signout, CSRF, guards, server action ctx.locals.user, magic link + @prunelle/mail, SQLite persistence, and OAuth2 + PKCE', async () => {
+  test('full password signup/signin/signout, CSRF, guards, server action ctx.locals.user, magic link + @prunellejs/mail, SQLite persistence, and OAuth2 + PKCE', async () => {
     const appDir = join(TMP, 'auth-app')
     const routesDir = join(appDir, 'src', 'routes')
     const dbPath = join(TMP, 'auth.sqlite')
@@ -250,7 +250,7 @@ describe('@prunelle/auth — Zero-dependency Bun-native Auth plugin', () => {
       const revokedRes = await app.get('/admin')
       expect(revokedRes.status).toBe(401)
 
-      // 9. Magic link via @prunelle/mail (single-use, verifies email, replay fails)
+      // 9. Magic link via @prunellejs/mail (single-use, verifies email, replay fails)
       app.clearCookies()
       const mlRes = await app.post('/auth/magic-link', { email: 'magic@example.com', redirect: '/dashboard' })
       expect(mlRes.status).toBe(200)

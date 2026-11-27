@@ -1,21 +1,21 @@
-# @prunelle/seo Reference
+# @prunellejs/seo Reference
 
 > SEO `<head>` tags, `titleTemplate`, localized descriptions, canonical URLs, JSON-LD, `sitemap.xml` (i18n-aware), redirects, web manifest, favicons, and self-hosted fonts.
 
 ## Imports
 
-- `@prunelle/seo`: `seo`, `jsonLd`; types `SeoPluginOptions`, `FontEntry`, `ManifestOptions`, `RedirectTarget`.
+- `@prunellejs/seo`: `seo`, `jsonLd`; types `SeoPluginOptions`, `FontEntry`, `ManifestOptions`, `RedirectTarget`.
 
 ## Plugin Setup (`seo(options?)`)
 
 - `site`: public origin (`https://example.com`, inherits `PrunelleConfig.site`). Required for canonical links, absolute `og:image`, and `sitemap.xml`; a production start refuses without it.
 - `name`: site name (`og:site_name` and fallback `<title>`).
 - `titleTemplate`: e.g. `'%s | My App'` (skips wrapping if `<title>` already contains `name`).
-- `description`: `string` or `Record<locale, string>` (localized fallback when a page doesn't emit `<meta name="description">`; reads `ctx.locals.locale` from `@prunelle/i18n`).
+- `description`: `string` or `Record<locale, string>` (localized fallback when a page doesn't emit `<meta name="description">`; reads `ctx.locals.locale` from `@prunellejs/i18n`).
 - `image`, `imageAlt`: default `og:image`, `twitter:card` (`summary_large_image`), and `og:image:alt`.
 - `locale`: default `og:locale`.
 - `jsonLd`: array of Schema.org objects injected globally (`@context: 'https://schema.org'` auto-added).
-- `sitemap`: `boolean` (default `true`, emitted in `afterPrerender` as `/sitemap.xml` with `xhtml:link` alternates when `@prunelle/i18n` is active). `sitemapExclude`: `string[]`. `extraUrls`: `() => string[]`.
+- `sitemap`: `boolean` (default `true`, emitted in `afterPrerender` as `/sitemap.xml` with `xhtml:link` alternates when `@prunellejs/i18n` is active). `sitemapExclude`: `string[]`. `extraUrls`: `() => string[]`.
 - `redirects`: `Record<fromPath, string | { to: string, status?: 301 | 302 | 307 | 308 }>` (mounted as `GET` routes, default `301`).
 - `favicon`: `string | string[]` (relative path or package specifier; emits `favicon.{svg,png,ico}` and `<link rel="icon">`; a path that resolves to no file fails the build). `image` is prefixed with `site` unless it starts with `http://`, `https://` or `//`.
 - `manifest`: `{ name?, shortName?, description?, themeColor?, backgroundColor?, display?, startUrl? }` (emits `/manifest.webmanifest`).
@@ -30,7 +30,7 @@
 ```ts
 // prunelle.config.ts
 import { defineConfig } from 'prunelle/config'
-import { seo } from '@prunelle/seo'
+import { seo } from '@prunellejs/seo'
 
 export default defineConfig({
   site: 'https://example.com',

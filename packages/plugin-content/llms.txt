@@ -1,10 +1,10 @@
-# @prunelle/content Reference
+# @prunellejs/content Reference
 
 > Zero-dependency `Bun.markdown` + `Bun.YAML` typed Markdown collections, Standard Schema frontmatter validation, lazy Shiki/TSX rendering, TOC, localized content, and RSS feeds (`0 KB` client JS).
 
 ## Imports
 
-- `@prunelle/content`: `content`, `defineCollection`, `parseFrontmatter`, `renderMarkdown`, `renderRss`; types `Collection`, `CollectionOptions`, `CollectionOptionsWithSchema`, `CollectionOptionsWithoutSchema`, `CollectionRenderConfig`, `ContentEntry`, `ContentHeading`, `RenderedMarkdown`, `RenderMarkdownOptions`, `CodeHighlighter`, `MarkdownComponent`, `MarkdownImageResolver`, `MarkdownImageResult`, `RssFeedConfig`, `ContentFeed`.
+- `@prunellejs/content`: `content`, `defineCollection`, `parseFrontmatter`, `renderMarkdown`, `renderRss`; types `Collection`, `CollectionOptions`, `CollectionOptionsWithSchema`, `CollectionOptionsWithoutSchema`, `CollectionRenderConfig`, `ContentEntry`, `ContentHeading`, `RenderedMarkdown`, `RenderMarkdownOptions`, `CodeHighlighter`, `MarkdownComponent`, `MarkdownImageResolver`, `MarkdownImageResult`, `RssFeedConfig`, `ContentFeed`.
 
 ## Defining a Collection (`defineCollection(options)`)
 
@@ -12,7 +12,7 @@
 - `schema`: optional Standard Schema v1 (`Zod`, `Valibot`, `ArkType`, custom) validating frontmatter synchronously into `entry.data`.
 - `localized`: `true` reads `<dir>/<locale>/<slug>.md`; `defaultLocale` defaults to `'en'`.
 - `render`: lazy async factory `async () => ({ highlight, components, headingLinks, resolveImage, trusted })` so index pages, config, and RSS never import Shiki or TSX components until `await entry.render()` runs.
-- Direct options (also accepted at top level): `highlight(code, lang)`, `components` (MDX-lite TSX components usable inside Markdown), `headingLinks` (`true` wraps `h2`–`h6` in `#id` anchor links), `resolveImage` (auto-wired with `@prunelle/images`; pass `false` to disable), `trusted` (default `false`; HTML is sanitized unless `true`), `includeDrafts` (`false`), `sort(a, b)` (default newest `date` first, then `slug`).
+- Direct options (also accepted at top level): `highlight(code, lang)`, `components` (MDX-lite TSX components usable inside Markdown), `headingLinks` (`true` wraps `h2`–`h6` in `#id` anchor links), `resolveImage` (auto-wired with `@prunellejs/images`; pass `false` to disable), `trusted` (default `false`; HTML is sanitized unless `true`), `includeDrafts` (`false`), `sort(a, b)` (default newest `date` first, then `slug`).
 
 ## Collection & Entry API
 
@@ -32,7 +32,7 @@
 
 ```ts
 // src/content.ts
-import { defineCollection } from '@prunelle/content'
+import { defineCollection } from '@prunellejs/content'
 
 export const posts = defineCollection({
   dir: 'src/content/posts',
@@ -43,7 +43,7 @@ export const posts = defineCollection({
 
 ```ts
 // prunelle.config.ts
-import { content } from '@prunelle/content'
+import { content } from '@prunellejs/content'
 import { defineConfig } from 'prunelle/config'
 import { posts } from './src/content'
 

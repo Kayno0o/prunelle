@@ -1,9 +1,9 @@
-// Shared @prunelle/auth, @prunelle/mail, and @prunelle/live services for Noticeboard.
+// Shared @prunellejs/auth, @prunellejs/mail, and @prunellejs/live services for Noticeboard.
 
 import type { PinnedNotice } from './db'
-import { createAuth } from '@prunelle/auth'
-import { createRooms } from '@prunelle/live'
-import { createMailer } from '@prunelle/mail'
+import { createAuth } from '@prunellejs/auth'
+import { createRooms } from '@prunellejs/live'
+import { createMailer } from '@prunellejs/mail'
 import { authStore } from './db'
 
 export type BoardMessage =

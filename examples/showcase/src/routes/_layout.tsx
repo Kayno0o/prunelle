@@ -1,13 +1,13 @@
 import type { LayoutProps } from 'prunelle'
 import { Head } from 'prunelle'
-import { Toaster } from '@prunelle/ui'
+import { Toaster } from '@prunellejs/ui'
 import { GrammarSwitcher } from '../components/GrammarSwitcher'
 
 export default function Layout({ children, locals }: LayoutProps) {
   return (
     <>
       <Head>
-        <title>Prunelle — @prunelle/ui Grammar Switcher & @prunelle/auth Showcase</title>
+        <title>Prunelle — @prunellejs/ui Grammar Switcher & @prunellejs/auth Showcase</title>
         <link id="kui-grammar" rel="stylesheet" href="/grammars/editorial.css" />
         <style>{`
           html { background: var(--ui-paper, #fff); transition: background 180ms ease; }

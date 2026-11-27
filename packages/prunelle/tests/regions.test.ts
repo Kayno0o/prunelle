@@ -136,7 +136,7 @@ describe('prunelle check names a region link that targets no region (#3597)', ()
     `
     const make = (route: string): string => {
       const dir = appWith({ 'prunelle.config.ts': config, 'src/routes/index.tsx': route })
-      mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+      mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
       symlinkSync(join(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'), 'dir')
       return dir
     }

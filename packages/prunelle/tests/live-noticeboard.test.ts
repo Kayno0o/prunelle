@@ -10,7 +10,7 @@ import { testApp } from '../src/test/index'
 
 const NOTICEBOARD_ROOT = join(import.meta.dir, '../../../examples/noticeboard')
 
-describe('@prunelle/live + full-stack examples/noticeboard (auth + mail + live SSE + ui + SQLite)', () => {
+describe('@prunellejs/live + full-stack examples/noticeboard (auth + mail + live SSE + ui + SQLite)', () => {
   it('coalesces burst presence broadcasts into a single microtask publish', async () => {
     const rooms = createRooms<{ count: number }, string>()
     const received: string[] = []
@@ -35,7 +35,7 @@ describe('@prunelle/live + full-stack examples/noticeboard (auth + mail + live S
     expect(manifest.routes.length).toBeGreaterThanOrEqual(3)
     expect(manifest.actions.some(a => a.exportName === 'pinNotice')).toBe(true)
 
-    // Pre-create a second member (Bob) so posting a notice delivers an announcement email to @prunelle/mail outbox
+    // Pre-create a second member (Bob) so posting a notice delivers an announcement email to @prunellejs/mail outbox
     const apiApp = await testApp({ root: NOTICEBOARD_ROOT, prebuilt: true })
     await apiApp.post('/auth/signup', { email: 'bob@noticeboard.local', password: 'bob-password-123', name: 'Bob' })
 
@@ -110,7 +110,7 @@ describe('@prunelle/live + full-stack examples/noticeboard (auth + mail + live S
       ])
       expect(await guestPage.locator('[data-ui="card"] [data-part="header"]').textContent()).toBe('Friday Potluck')
 
-      // 5. Verify @prunelle/mail dev outbox recorded the announcement email to Bob
+      // 5. Verify @prunellejs/mail dev outbox recorded the announcement email to Bob
       const mailRes = await fetch(`${origin}/_pru/mail.json`)
       expect(mailRes.status).toBe(200)
       const mailJson = await mailRes.json() as { count: number, messages: Array<{ subject: string, to: string[] }> }

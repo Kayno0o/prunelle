@@ -1,4 +1,4 @@
-// @prunelle/spa regions() client: a link or GET form with data-pru-target swaps one <Region> of the page, fetched alone.
+// @prunellejs/spa regions() client: a link or GET form with data-pru-target swaps one <Region> of the page, fetched alone.
 // - a[data-pru-target] replaces the region; with data-pru-append the response is added to it and the clicked link goes (Load more)
 // - form[data-pru-target] swaps on submit; with data-pru-live also while typing: one history entry per typing burst
 // - [data-pru-sync="a b"] copies those query params of the current URL into links and fields outside the region

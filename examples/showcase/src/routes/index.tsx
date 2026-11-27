@@ -25,7 +25,7 @@ import {
   Stack,
   Switch,
   Tabs,
-} from '@prunelle/ui'
+} from '@prunellejs/ui'
 import { savePreferences } from '../actions/preferences'
 import { ToastTrigger } from '../components/ToastTrigger'
 
@@ -43,11 +43,11 @@ export function load(ctx: RequestContext) {
 
 const SAMPLE_ROWS = [
   { id: '1', pkg: 'prunelle', loc: 6400, role: 'Core compiler, signals, SSR, server' },
-  { id: '2', pkg: '@prunelle/ui', loc: 2200, role: 'Platform-first primitives + CSS Grammars' },
-  { id: '3', pkg: '@prunelle/auth', loc: 1285, role: 'Argon2id, sessions, SQLite, OAuth2+PKCE' },
-  { id: '4', pkg: '@prunelle/images', loc: 210, role: 'AVIF/WebP pipeline + cache' },
-  { id: '5', pkg: '@prunelle/mail', loc: 184, role: 'Resend + dev outbox preview' },
-  { id: '6', pkg: '@prunelle/seo', loc: 230, role: 'Meta, JSON-LD, sitemap, self-hosted fonts' },
+  { id: '2', pkg: '@prunellejs/ui', loc: 2200, role: 'Platform-first primitives + CSS Grammars' },
+  { id: '3', pkg: '@prunellejs/auth', loc: 1285, role: 'Argon2id, sessions, SQLite, OAuth2+PKCE' },
+  { id: '4', pkg: '@prunellejs/images', loc: 210, role: 'AVIF/WebP pipeline + cache' },
+  { id: '5', pkg: '@prunellejs/mail', loc: 184, role: 'Resend + dev outbox preview' },
+  { id: '6', pkg: '@prunellejs/seo', loc: 230, role: 'Meta, JSON-LD, sitemap, self-hosted fonts' },
 ]
 
 export default function ShowcasePage({ data, locals, url }: PageProps<typeof load>) {
@@ -131,7 +131,7 @@ export default function ShowcasePage({ data, locals, url }: PageProps<typeof loa
         </Card>
 
         <Card>
-          <CardHeader>@prunelle/auth — Live Progressive Auth</CardHeader>
+          <CardHeader>@prunellejs/auth — Live Progressive Auth</CardHeader>
           <CardBody>
             {locals?.user
               ? (
@@ -206,7 +206,7 @@ export default function ShowcasePage({ data, locals, url }: PageProps<typeof loa
                 No — it uses native HTML <code>&lt;details name="faq"&gt;</code> for exclusive disclosure with 0 KB JS.
               </AccordionItem>
               <AccordionItem title="Can I mix Tailwind v4 classes on top?" group="faq">
-                Yes — because all @prunelle/ui styles live in <code>@layer kui</code>, Tailwind utilities override cleanly with zero specificity battles.
+                Yes — because all @prunellejs/ui styles live in <code>@layer kui</code>, Tailwind utilities override cleanly with zero specificity battles.
               </AccordionItem>
             </Accordion>
           </Stack>

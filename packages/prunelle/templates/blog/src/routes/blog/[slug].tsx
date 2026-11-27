@@ -1,5 +1,5 @@
 import type { RequestContext } from 'prunelle/server'
-import { Button, Stack } from '@prunelle/ui'
+import { Button, Stack } from '@prunellejs/ui'
 import { Head } from 'prunelle'
 import { posts } from '../../posts'
 

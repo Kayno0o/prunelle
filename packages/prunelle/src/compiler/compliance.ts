@@ -382,7 +382,7 @@ function checkThirdPartyElement(
     rule: 'rgpd/third-party-url',
     urlOrigin: origin,
     start: attr.start,
-    message: `[rgpd/third-party-url] <${tag} ${attrName}="${url}"> in ${filename} loads a third-party resource without consent: self-host it (e.g. @prunelle/seo fonts or public/) or wrap it in <ConsentGate category="...">.`,
+    message: `[rgpd/third-party-url] <${tag} ${attrName}="${url}"> in ${filename} loads a third-party resource without consent: self-host it (e.g. @prunellejs/seo fonts or public/) or wrap it in <ConsentGate category="...">.`,
   })
 }
 
@@ -511,7 +511,7 @@ export function checkCssCompliance(
       return
     seenUrls.add(key)
     const loc = formatLoc(relFile, code, offset)
-    out.push(formatDiagnostic(loc, `[rgpd/third-party-url] "${rawUrl}" in ${relFile} loads a third-party resource without consent: self-host it (e.g. @prunelle/seo fonts or public/) or gate it with <ConsentGate category="...">.`, 'warning'))
+    out.push(formatDiagnostic(loc, `[rgpd/third-party-url] "${rawUrl}" in ${relFile} loads a third-party resource without consent: self-host it (e.g. @prunellejs/seo fonts or public/) or gate it with <ConsentGate category="...">.`, 'warning'))
   }
 
   for (const re of [CSS_IMPORT_RE, CSS_URL_RE]) {

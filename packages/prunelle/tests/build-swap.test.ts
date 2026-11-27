@@ -27,7 +27,7 @@ const COUNTER = `
 function appWith(files: Record<string, string>): string {
   const dir = mkdtempSync(join(tmpdir(), 'prunelle-swap-'))
   tempDirs.push(dir)
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(join(repoRoot, 'packages/prunelle'), join(dir, 'node_modules/prunelle'))
   const all: Record<string, string> = {
     'src/components/Counter.tsx': COUNTER,

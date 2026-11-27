@@ -1,5 +1,5 @@
 /// <reference path="./ambient.d.ts" />
-// The browser-safe side of @prunelle/icons: the <Icon> component and the icon data types. The plugin is `@prunelle/icons/plugin`.
+// The browser-safe side of @prunellejs/icons: the <Icon> component and the icon data types. The plugin is `@prunellejs/icons/plugin`.
 
 export { Icon } from './Icon'
 export type { IconComponentProps } from './Icon'

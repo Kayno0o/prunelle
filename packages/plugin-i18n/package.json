@@ -1,5 +1,5 @@
 {
-  "name": "@prunelle/i18n",
+  "name": "@prunellejs/i18n",
   "version": "0.1.0",
   "description": "Locale URL rewriting and dictionary internationalization plugin for Prunelle",
   "license": "MIT",

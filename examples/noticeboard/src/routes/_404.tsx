@@ -1,4 +1,4 @@
-import { Button, Notice, Stack } from '@prunelle/ui'
+import { Button, Notice, Stack } from '@prunellejs/ui'
 import { Head } from 'prunelle'
 
 export default function NotFoundPage() {

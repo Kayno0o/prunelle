@@ -5,14 +5,14 @@ import { describe, expect, test } from 'bun:test'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { createDataTable, toast } from '@prunelle/ui'
+import { createDataTable, toast } from '@prunellejs/ui'
 import { build } from '../src/build/index'
 import { createOwner, disposeOwner, effect, runWithOwner, signal } from '../src/reactivity/index'
 import { createServer } from '../src/server/index'
 
 const UI_MOD = resolve(import.meta.dir, '../../ui/src/index.ts')
 
-describe('#3571 @prunelle/ui component bugs & consolidation', () => {
+describe('#3571 @prunellejs/ui component bugs & consolidation', () => {
   test('two <Tabs> instances with overlapping item IDs emit unique scoped ARIA IDs without collisions', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'prunelle-3571-tabs-'))
     try {
@@ -159,7 +159,7 @@ export default function Page() {
   })
 })
 
-describe('#3636 @prunelle/ui RGAA accessibility & state regressions', () => {
+describe('#3636 @prunellejs/ui RGAA accessibility & state regressions', () => {
   test('<Field><Select /></Field> in SSR associates <label for> with the Select combobox trigger id', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'prunelle-3636-field-select-'))
     try {

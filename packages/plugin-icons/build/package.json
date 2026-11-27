@@ -2,7 +2,7 @@
   "name": "prunelle-icons-build",
   "type": "module",
   "private": true,
-  "description": "Builds the word table of @prunelle/icons and benches it, apart from the workspace so its model runtime is installed only to rebuild",
+  "description": "Builds the word table of @prunellejs/icons and benches it, apart from the workspace so its model runtime is installed only to rebuild",
   "scripts": {
     "table": "$npm_execpath table.ts",
     "bench": "$npm_execpath bench.ts"

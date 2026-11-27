@@ -26,7 +26,7 @@ afterAll(() => {
     rmSync(d, { recursive: true, force: true })
 })
 
-describe('Ecosystem plugins (@prunelle/icons, @prunelle/images, @prunelle/seo, @prunelle/mail)', () => {
+describe('Ecosystem plugins (@prunellejs/icons, @prunellejs/images, @prunellejs/seo, @prunellejs/mail)', () => {
   it('composes icons, responsive AVIF/WebP images, SEO/fonts/sitemap/redirects, and mail outbox with 0 KB core leaks', async () => {
     const dir = makeTemp('prunelle-eco-')
     mkdirSync(join(dir, 'src/routes'), { recursive: true })
@@ -206,7 +206,7 @@ describe('Ecosystem plugins (@prunelle/icons, @prunelle/images, @prunelle/seo, @
     expect(redir2.status).toBe(307)
     expect(redir2.headers.get('location')).toBe('/services')
 
-    // Verify @prunelle/mail send + /_pru/mail preview + JSON outbox
+    // Verify @prunellejs/mail send + /_pru/mail preview + JSON outbox
     await contactMailer.send({
       replyTo: { name: 'Marie', address: 'marie@example.test' },
       subject: 'Demande de devis',

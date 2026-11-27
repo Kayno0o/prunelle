@@ -111,7 +111,7 @@ function renderMarkdownInternal(
     return `<h${level} id="${id}">${inner}</h${level}>`
   })
 
-  // 4b. Image rewriting (explicit resolveImage or auto-wired @prunelle/images; `false` disables)
+  // 4b. Image rewriting (explicit resolveImage or auto-wired @prunellejs/images; `false` disables)
   const resolveImageFn = options.resolveImage === false
     ? undefined
     : (options.resolveImage ?? findDefaultImageResolver(options.file))

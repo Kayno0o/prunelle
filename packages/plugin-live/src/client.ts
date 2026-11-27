@@ -1,4 +1,4 @@
-// Browser client helper for @prunelle/live SSE rooms (~65 LOC, zero dependencies).
+// Browser client helper for @prunellejs/live SSE rooms (~65 LOC, zero dependencies).
 
 import type { Signal } from 'prunelle'
 import { onMount, signal } from 'prunelle'

@@ -1,5 +1,5 @@
 {
-  "name": "@prunelle/icons",
+  "name": "@prunellejs/icons",
   "version": "0.1.0",
   "description": "Compile-time Iconify SVG icon plugin (~icons/<set>/<name>) for Prunelle",
   "license": "MIT",

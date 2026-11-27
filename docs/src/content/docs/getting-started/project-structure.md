@@ -50,8 +50,8 @@ Enable Prunelle's JSX import source in `tsconfig.json`:
 
 ```ts
 import { defineConfig } from 'prunelle/config'
-import { ui } from '@prunelle/ui/plugin'
-import { seo } from '@prunelle/seo'
+import { ui } from '@prunellejs/ui/plugin'
+import { seo } from '@prunellejs/seo'
 
 export default defineConfig({
   lang: 'en',

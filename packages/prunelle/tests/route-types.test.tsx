@@ -1,4 +1,4 @@
-import type { PublicUser } from '@prunelle/auth'
+import type { PublicUser } from '@prunellejs/auth'
 import type { ExtractRouteParams, PrunelleLocals, LayoutProps, LoaderData, PageProps, RouteContext } from 'prunelle'
 import type { ActionErrorFlash, RequestContext } from 'prunelle/server'
 import { afterAll, describe, expect, it } from 'bun:test'

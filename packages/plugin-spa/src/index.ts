@@ -1,4 +1,4 @@
-// @prunelle/spa — opt-in in-place navigation: `spa()` swaps whole pages and keeps persistent islands (~700 B gzip), `regions()` swaps one <Region> of a page. 0 B when uninstalled.
+// @prunellejs/spa — opt-in in-place navigation: `spa()` swaps whole pages and keeps persistent islands (~700 B gzip), `regions()` swaps one <Region> of a page. 0 B when uninstalled.
 
 import type { BuildPluginContext, PrunellePlugin } from 'prunelle/config'
 import { resolve } from 'node:path'
@@ -15,7 +15,7 @@ function emitIslandStylesheet(ctx: BuildPluginContext): void {
 
 export function spa(): PrunellePlugin {
   return definePlugin({
-    name: '@prunelle/spa',
+    name: '@prunellejs/spa',
     clientEntry: resolve(import.meta.dir, 'client.ts'),
     build: emitIslandStylesheet,
   })
@@ -23,7 +23,7 @@ export function spa(): PrunellePlugin {
 
 export function regions(): PrunellePlugin {
   return definePlugin({
-    name: '@prunelle/spa/regions',
+    name: '@prunellejs/spa/regions',
     regionClientEntry: resolve(import.meta.dir, 'regions.ts'),
     build: emitIslandStylesheet,
     check: checkRegionTargets,

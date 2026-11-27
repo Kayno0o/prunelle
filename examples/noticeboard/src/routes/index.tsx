@@ -1,5 +1,5 @@
 import type { PageProps } from 'prunelle'
-import { Button, Split, Stack } from '@prunelle/ui'
+import { Button, Split, Stack } from '@prunellejs/ui'
 import { Head } from 'prunelle'
 import { LiveBoard } from '../components/LiveBoard'
 import { NewNoticeModal } from '../components/NewNoticeModal'

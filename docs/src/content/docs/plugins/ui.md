@@ -1,11 +1,11 @@
 ---
-title: "@prunelle/ui (6 Style Grammars)"
+title: "@prunellejs/ui (6 Style Grammars)"
 description: Platform-first headless UI primitives and pure CSS @layer kui Style Grammars with zero JS styling runtime and one-file eject.
 section: plugins
 order: 1
 ---
 
-`@prunelle/ui` pairs **platform-first headless TSX primitives** (zero-JS native HTML wherever the platform suffices: `<details name>`, `<dialog>`, `popover`, `<input type="checkbox">`) with **6 structurally distinct pure CSS `@layer kui` Style Grammars**.
+`@prunellejs/ui` pairs **platform-first headless TSX primitives** (zero-JS native HTML wherever the platform suffices: `<details name>`, `<dialog>`, `popover`, `<input type="checkbox">`) with **6 structurally distinct pure CSS `@layer kui` Style Grammars**.
 
 <Callout title="Try all 6 grammars live" tone="tip">
 Visit the interactive [UI Grammars sandbox](/grammars) to switch this site between **Prunelle**, **Orbit**, **Editorial**, **Workshop**, **Console**, **Soft**, and **Bare** in real time.
@@ -16,7 +16,7 @@ Visit the interactive [UI Grammars sandbox](/grammars) to switch this site betwe
 ```ts
 // prunelle.config.ts
 import { defineConfig } from 'prunelle/config'
-import { ui } from '@prunelle/ui/plugin'
+import { ui } from '@prunellejs/ui/plugin'
 
 export default defineConfig({
   plugins: [ui({ grammar: 'prunelle' })],
@@ -37,7 +37,7 @@ Available grammars: `'prunelle'` · `'orbit'` · `'editorial'` · `'workshop'` �
 A browser that lacks one of these features, such as Safari before 26.2 or Firefox before 147, loads a fallback of about 700 bytes that does their work; other browsers fetch nothing. The `ui()` plugin adds that check to pages with a `commandfor` button, a `Menu`, a `Select` or a `Popover`, so your own `commandfor` buttons get it too.
 
 ```tsx
-import { Button, Card, CardBody, CardHeader, Switch } from '@prunelle/ui'
+import { Button, Card, CardBody, CardHeader, Switch } from '@prunellejs/ui'
 
 export default function Settings() {
   return (
@@ -59,7 +59,7 @@ export default function Settings() {
 <Progress label="Deploying" value={62} />
 ```
 
-The `prunelle` grammar draws its controls as an eye, in the accent colour. A radio is a shut eye that opens when checked, and a switch's knob opens its eye when on. A loading `Progress` looks left and right, then blinks; with a value, its pupil widens until it fills the eye. Its titles are set in Fraunces, which the app loads itself, for instance through the `fonts` option of `@prunelle/seo`; Georgia stands in until then.
+The `prunelle` grammar draws its controls as an eye, in the accent colour. A radio is a shut eye that opens when checked, and a switch's knob opens its eye when on. A loading `Progress` looks left and right, then blinks; with a value, its pupil widens until it fills the eye. Its titles are set in Fraunces, which the app loads itself, for instance through the `fonts` option of `@prunellejs/seo`; Georgia stands in until then.
 
 ## Eject & own your CSS
 

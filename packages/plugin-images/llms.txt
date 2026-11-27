@@ -1,11 +1,11 @@
-# @prunelle/images Reference
+# @prunellejs/images Reference
 
-> Build-time AVIF/WebP responsive image pipeline with content-hashed disk cache, `<Picture>` / `image()` helpers, automatic `@prunelle/content` Markdown image optimization, and 1200×630 PNG OG `shareCard()`.
+> Build-time AVIF/WebP responsive image pipeline with content-hashed disk cache, `<Picture>` / `image()` helpers, automatic `@prunellejs/content` Markdown image optimization, and 1200×630 PNG OG `shareCard()`.
 
 ## Imports
 
-- `@prunelle/images`: `images`, `image`, `Picture`, `shareCard`, `configureShareCard`, `optimizeImageFile`, `createMarkdownImageResolver`, `readImageDimensions`; types `ImagesPluginOptions`, `ImageAsset`, `ImageHelperOptions`, `ImgSpreadProps`, `PictureProps`, `ShareCardDefaults`, `ShareCardInput`, `OptimizeImageFileOptions`, `MarkdownImageResolverOptions`.
-- `@prunelle/images/ambient`: ambient module declarations for `.png`, `.jpg`, `.jpeg`, `.webp`, `.avif`, `.gif` imports as `ImageAsset` (auto-referenced when importing `@prunelle/images`).
+- `@prunellejs/images`: `images`, `image`, `Picture`, `shareCard`, `configureShareCard`, `optimizeImageFile`, `createMarkdownImageResolver`, `readImageDimensions`; types `ImagesPluginOptions`, `ImageAsset`, `ImageHelperOptions`, `ImgSpreadProps`, `PictureProps`, `ShareCardDefaults`, `ShareCardInput`, `OptimizeImageFileOptions`, `MarkdownImageResolverOptions`.
+- `@prunellejs/images/ambient`: ambient module declarations for `.png`, `.jpg`, `.jpeg`, `.webp`, `.avif`, `.gif` imports as `ImageAsset` (auto-referenced when importing `@prunellejs/images`).
 
 ## Plugin Setup (`images(options?)`)
 
@@ -13,7 +13,7 @@
 - `formats`: `('avif' | 'webp')[]` (default `['avif', 'webp']`; uses ImageMagick `magick` on `PATH`, falls back to original file with parsed dimensions when unavailable). Each image is decoded once per format, one `magick` run writing all its widths; runs share one budget for the whole build (half the cores, at most 8 `magick` at once), each limited to one thread and 512 MiB and killed after 2 min; a failed run warns with the file, the widths and `magick`'s error and leaves those variants out until the next build retries them (the original ships when none succeeds).
 - `quality` (WebP, default `80`), `avifQuality` (default `55`), `cacheDir` (default `'.prunelle-cache/images'`), `pruneCache` (default `true`).
 - `card`: `ShareCardDefaults` (`{ site?, publicDir?, cacheDir?, background?, color?, accent?, mutedColor?, fontFamily?, width? (1200), height? (630) }`).
-- `markdownSizes`: default `sizes` attribute for relative images inside `@prunelle/content` Markdown (auto-wired via `CONTENT_IMAGE_RESOLVER_SERVICE`).
+- `markdownSizes`: default `sizes` attribute for relative images inside `@prunellejs/content` Markdown (auto-wired via `CONTENT_IMAGE_RESOLVER_SERVICE`).
 
 ## Components & Helpers
 
@@ -27,7 +27,7 @@
 
 ```ts
 // prunelle.config.ts
-import { images } from '@prunelle/images'
+import { images } from '@prunellejs/images'
 import { defineConfig } from 'prunelle/config'
 
 export default defineConfig({
@@ -37,7 +37,7 @@ export default defineConfig({
 ```
 
 ```tsx
-import { Picture, shareCard } from '@prunelle/images'
+import { Picture, shareCard } from '@prunellejs/images'
 import { Head } from 'prunelle'
 import hero from '../assets/hero.png'
 

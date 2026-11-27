@@ -6,7 +6,7 @@ import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writ
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { Glob } from 'bun'
-import { mcp } from '@prunelle/mcp'
+import { mcp } from '@prunellejs/mcp'
 import { build } from '../src/build/index'
 import { createServer, formatSchemaIssues, validateSchema, validateSchemaSync } from '../src/server/index'
 import type { StandardSchemaV1 } from '../src/server/index'
@@ -57,7 +57,7 @@ describe('#3570 ecosystem packaging & shared helpers', () => {
   test('an app installed from the packed files resolves prunelle from the plugin packages', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'prunelle-ext-consumer-'))
     try {
-      const nmPrunelle = join(dir, 'node_modules', '@prunelle')
+      const nmPrunelle = join(dir, 'node_modules', '@prunellejs')
       mkdirSync(nmPrunelle, { recursive: true })
       // Copy packed files (package.json + src) to simulate real npm install — with no workspace links.
       const copyPkg = (srcDir: string, dstName: string) => {
@@ -82,12 +82,12 @@ describe('#3570 ecosystem packaging & shared helpers', () => {
       }, null, 2))
 
       writeFileSync(join(dir, 'smoke.ts'), `
-import { createAuth } from '@prunelle/auth'
-import { defineCollection } from '@prunelle/content'
-import { mcp } from '@prunelle/mcp'
-import { images } from '@prunelle/images'
-import { seo } from '@prunelle/seo'
-import { ui } from '@prunelle/ui/plugin'
+import { createAuth } from '@prunellejs/auth'
+import { defineCollection } from '@prunellejs/content'
+import { mcp } from '@prunellejs/mcp'
+import { images } from '@prunellejs/images'
+import { seo } from '@prunellejs/seo'
+import { ui } from '@prunellejs/ui/plugin'
 import { defineConfig } from 'prunelle/config'
 
 const cfg = defineConfig({

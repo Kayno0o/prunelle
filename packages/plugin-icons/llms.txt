@@ -1,13 +1,13 @@
-# @prunelle/icons Reference
+# @prunellejs/icons Reference
 
 > Compile-time Iconify & local SVG icon imports (`~icons/<set>/<name>`) with zero runtime set overhead, accessible `<Icon>`, CLI discovery, and server-side search.
 
 ## Imports
 
-- `@prunelle/icons`: `Icon`, `iconData`; types `IconComponentProps`, `IconData`, `IconifyIcon`, `IconSet`.
-- `@prunelle/icons/plugin`: `icons(options?)`; type `IconsPluginOptions`. Registering it in `prunelle.config.ts` automatically loads ambient `~icons/*` types.
-- `@prunelle/icons/ambient`: `/// <reference types="@prunelle/icons/ambient" />` (only needed if `prunelle.config.ts` is outside your `tsconfig` include).
-- `@prunelle/icons/search` (server-only — 1.7 MB word table; build warns if imported in an island): `findIcons(source, query, { limit?, offset? }?)`, `relatedWords(word)`; types `IconifyNames`, `IconPage`.
+- `@prunellejs/icons`: `Icon`, `iconData`; types `IconComponentProps`, `IconData`, `IconifyIcon`, `IconSet`.
+- `@prunellejs/icons/plugin`: `icons(options?)`; type `IconsPluginOptions`. Registering it in `prunelle.config.ts` automatically loads ambient `~icons/*` types.
+- `@prunellejs/icons/ambient`: `/// <reference types="@prunellejs/icons/ambient" />` (only needed if `prunelle.config.ts` is outside your `tsconfig` include).
+- `@prunellejs/icons/search` (server-only — 1.7 MB word table; build warns if imported in an island): `findIcons(source, query, { limit?, offset? }?)`, `relatedWords(word)`; types `IconifyNames`, `IconPage`.
 
 ## Plugin Setup (`icons(options?)`)
 
@@ -25,7 +25,7 @@
 
 ```ts
 // prunelle.config.ts
-import { icons } from '@prunelle/icons/plugin'
+import { icons } from '@prunellejs/icons/plugin'
 import { defineConfig } from 'prunelle/config'
 
 export default defineConfig({
@@ -34,7 +34,7 @@ export default defineConfig({
 ```
 
 ```tsx
-import { Icon } from '@prunelle/icons'
+import { Icon } from '@prunellejs/icons'
 import check from '~icons/tabler/check'
 import logo from '~icons/brand/logo'
 

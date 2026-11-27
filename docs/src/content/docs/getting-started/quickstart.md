@@ -16,8 +16,8 @@ Pick one of the four built-in starter templates:
 ```bash
 bunx prunelle new my-app --template minimal    # Static route + 1 auto-island
 bunx prunelle new my-app --template fullstack  # Layouts, API route, Standard-Schema action
-bunx prunelle new my-app --template blog       # @prunelle/content + @prunelle/ui + RSS (0 KB JS)
-bunx prunelle new my-app --template app        # @prunelle/auth + @prunelle/ui + guarded /dashboard
+bunx prunelle new my-app --template blog       # @prunellejs/content + @prunellejs/ui + RSS (0 KB JS)
+bunx prunelle new my-app --template app        # @prunellejs/auth + @prunellejs/ui + guarded /dashboard
 ```
 
 Install dependencies and start the dev server:

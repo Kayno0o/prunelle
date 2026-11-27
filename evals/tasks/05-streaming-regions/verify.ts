@@ -43,14 +43,14 @@ export async function verify({ dir, app }: VerifyContext): Promise<AssertionResu
     assert(!/<!doctype html>/i.test(partialHtml), 'filtered partial response must not contain <!DOCTYPE html>')
   })
 
-  await c.run('source uses <Suspense>, <Region>, and regions() from @prunelle/spa', async () => {
+  await c.run('source uses <Suspense>, <Region>, and regions() from @prunellejs/spa', async () => {
     const sources = [...readAppSourceFiles(dir).values()].join('\n')
     const cfgPath = `${dir}/prunelle.config.ts`
     const cfg = await Bun.file(cfgPath).exists() ? await Bun.file(cfgPath).text() : ''
     assert(/<Suspense\b/.test(sources), 'missing <Suspense> in src/')
     assert(/<Region\b/.test(sources), 'missing <Region> in src/')
     assert(/regions\s*\(/.test(cfg), 'missing regions() plugin in prunelle.config.ts')
-    assert(/@prunelle\/spa/.test(cfg), 'missing @prunelle/spa import in prunelle.config.ts')
+    assert(/@prunellejs\/spa/.test(cfg), 'missing @prunellejs/spa import in prunelle.config.ts')
   })
 
   return c.results

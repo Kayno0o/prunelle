@@ -97,14 +97,14 @@ export function collectBudgetViolations(footprint: McpFootprint, budget: McpBudg
     for (const tool of footprint.tools) {
       if (tool.bytes > maxToolBytes) {
         violations.push(
-          `[@prunelle/mcp] tool "${tool.name}" is ${tool.bytes} B (~${tool.estimatedTokens} tok; desc ${tool.descriptionBytes} B, schema ${tool.schemaBytes} B), exceeding ${maxToolBytes} B budget`,
+          `[@prunellejs/mcp] tool "${tool.name}" is ${tool.bytes} B (~${tool.estimatedTokens} tok; desc ${tool.descriptionBytes} B, schema ${tool.schemaBytes} B), exceeding ${maxToolBytes} B budget`,
         )
       }
     }
   }
   if (maxTotalBytes !== undefined && maxTotalBytes > 0 && footprint.totalBytes > maxTotalBytes) {
     violations.push(
-      `[@prunelle/mcp] total MCP surface is ${footprint.totalBytes} B (~${footprint.estimatedTokens} tok), exceeding ${maxTotalBytes} B budget`,
+      `[@prunellejs/mcp] total MCP surface is ${footprint.totalBytes} B (~${footprint.estimatedTokens} tok), exceeding ${maxTotalBytes} B budget`,
     )
   }
   return violations
@@ -114,7 +114,7 @@ export function collectBudgetViolations(footprint: McpFootprint, budget: McpBudg
 export function formatMcpFootprint(footprint: McpFootprint, budget?: McpBudgetOptions | false): string {
   const maxToolBytes = budget === false ? undefined : (budget?.maxToolBytes ?? DEFAULT_MAX_TOOL_BYTES)
   const lines = [
-    `@prunelle/mcp footprint: ${footprint.totalBytes} B (~${footprint.estimatedTokens} tok) — instructions: ${footprint.instructionsBytes} B, tools: ${footprint.toolsBytes} B (${footprint.tools.length} tools)`,
+    `@prunellejs/mcp footprint: ${footprint.totalBytes} B (~${footprint.estimatedTokens} tok) — instructions: ${footprint.instructionsBytes} B, tools: ${footprint.toolsBytes} B (${footprint.tools.length} tools)`,
   ]
   const nameWidth = footprint.tools.reduce((max, t) => Math.max(max, t.name.length), 0)
   for (const t of footprint.tools) {

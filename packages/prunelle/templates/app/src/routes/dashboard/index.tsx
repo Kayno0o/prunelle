@@ -1,5 +1,5 @@
 import type { PageProps } from 'prunelle'
-import { Card, CardBody, CardHeader } from '@prunelle/ui'
+import { Card, CardBody, CardHeader } from '@prunellejs/ui'
 
 export default async function DashboardPage({ locals }: PageProps) {
   return (

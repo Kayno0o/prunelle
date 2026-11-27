@@ -71,7 +71,7 @@ describe('a throwing onError or onShutdown hook (#3584)', () => {
 })
 
 describe('PrunellePlugin lifecycle, build-to-server handoff & HTTP/CSRF precedence (#3566)', () => {
-  it('runs afterPrerender after Step 3 so @prunelle/seo sitemap includes dynamic paths() and @prunelle/i18n routes', async () => {
+  it('runs afterPrerender after Step 3 so @prunellejs/seo sitemap includes dynamic paths() and @prunellejs/i18n routes', async () => {
     const dir = makeTemp('prunelle-seo-sitemap-')
     mkdirSync(join(dir, 'src/routes/posts'), { recursive: true })
 
@@ -110,7 +110,7 @@ describe('PrunellePlugin lifecycle, build-to-server handoff & HTTP/CSRF preceden
     expect(sitemapStatic).toContain('<loc>https://example.test/fr/posts/beta</loc>')
   })
 
-  it('persists @prunelle/images build data for cold-start createServer() and resolves Markdown images + shareCard independent of plugin order', async () => {
+  it('persists @prunellejs/images build data for cold-start createServer() and resolves Markdown images + shareCard independent of plugin order', async () => {
     const dir = makeTemp('prunelle-coldstart-')
     mkdirSync(join(dir, 'src/routes'), { recursive: true })
     mkdirSync(join(dir, 'content/posts'), { recursive: true })
@@ -149,7 +149,7 @@ describe('PrunellePlugin lifecycle, build-to-server handoff & HTTP/CSRF preceden
       }),
     ]
     const manifest = await build({ root: dir, plugins: buildPlugins })
-    expect(manifest.pluginData?.['@prunelle/images']).toBeDefined()
+    expect(manifest.pluginData?.['@prunellejs/images']).toBeDefined()
 
     // Simulate a cold-start server with brand-new plugin instances whose build() was NEVER called
     const coldApp = await createServer({
@@ -335,7 +335,7 @@ describe('PrunellePlugin lifecycle, build-to-server handoff & HTTP/CSRF preceden
     expect(htmlB).toContain('TRANSFORMED_TSX_B')
   })
 
-  it('unifies CSRF for @prunelle/auth trustedOrigins, allows bearer cross-origin @prunelle/mcp, and serves CSP-clean /_pru/mail', async () => {
+  it('unifies CSRF for @prunellejs/auth trustedOrigins, allows bearer cross-origin @prunellejs/mcp, and serves CSP-clean /_pru/mail', async () => {
     const dir = makeTemp('prunelle-csrf-csp-')
     mkdirSync(join(dir, 'src/routes'), { recursive: true })
     writeFileSync(join(dir, 'src/routes/index.tsx'), `export default function Home() { return <p>ok</p> }`)
@@ -360,7 +360,7 @@ describe('PrunellePlugin lifecycle, build-to-server handoff & HTTP/CSRF preceden
       plugins: [auth, mcpPlugin, mail],
     })
 
-    // 1. @prunelle/auth trustedOrigins works WITHOUT duplicating trustedOrigins in PrunelleConfig
+    // 1. @prunellejs/auth trustedOrigins works WITHOUT duplicating trustedOrigins in PrunelleConfig
     const authRes = await app.fetch('/auth/signup', {
       method: 'POST',
       headers: {
@@ -384,7 +384,7 @@ describe('PrunellePlugin lifecycle, build-to-server handoff & HTTP/CSRF preceden
     })
     expect(badAuthRes.status).toBe(403)
 
-    // 2. @prunelle/mcp bearer-authed POST and DELETE succeed even with a cross-origin Origin header
+    // 2. @prunellejs/mcp bearer-authed POST and DELETE succeed even with a cross-origin Origin header
     const mcpPost = await app.fetch('/mcp/tools', {
       method: 'POST',
       headers: {
@@ -405,7 +405,7 @@ describe('PrunellePlugin lifecycle, build-to-server handoff & HTTP/CSRF preceden
     })
     expect(mcpDelete.status).toBe(204)
 
-    // 3. @prunelle/mail /_pru/mail renders without inline style="..." attributes and sets a matching CSP style hash
+    // 3. @prunellejs/mail /_pru/mail renders without inline style="..." attributes and sets a matching CSP style hash
     const mailRes = await app.get('/_pru/mail')
     expect(mailRes.status).toBe(200)
     const mailHtml = await mailRes.text()
@@ -554,17 +554,17 @@ describe('PrunellePlugin.requires: what a plugin needs to run in production (#36
     expect(res.errors.filter(e => e.includes('broken'))).toEqual(['prunelle.config.ts:1:1: error: broken: requires() threw: boom'])
   })
 
-  it('@prunelle/auth requires a store that outlives the process', async () => {
+  it('@prunellejs/auth requires a store that outlives the process', async () => {
     const { sqliteAuthStore } = await import('../../plugin-auth/src/sqlite')
     const secret = 'test-secret-012345678901234567890123'
-    const message = '`store` keeps accounts and sessions in memory, so a restart signs everyone out and loses every account: pass `store: sqliteAuthStore(\'data/auth.db\')` from `@prunelle/auth/sqlite`, or your own `AuthStore`.'
+    const message = '`store` keeps accounts and sessions in memory, so a restart signs everyone out and loses every account: pass `store: sqliteAuthStore(\'data/auth.db\')` from `@prunellejs/auth/sqlite`, or your own `AuthStore`.'
     expect(await createAuth({ secret }).requires!(ctx)).toEqual([message])
     expect(await createAuth({ secret, store: memoryAuthStore() }).requires!(ctx)).toEqual([message])
     expect(await createAuth({ secret, store: sqliteAuthStore() }).requires!(ctx)).toEqual([message])
     expect(await createAuth({ secret, store: sqliteAuthStore(join(makeTemp('prunelle-auth-db-'), 'auth.db')) }).requires!(ctx)).toEqual([])
   })
 
-  it('@prunelle/mail requires a transport and a sender, a transport only when mail is not optional', async () => {
+  it('@prunellejs/mail requires a transport and a sender, a transport only when mail is not optional', async () => {
     const transport = { async send() {} }
     expect(await createMailer().requires!(ctx)).toEqual([
       'no transport, so every send() throws: set `RESEND_API_KEY`, or pass `transport` to `createMailer()` (`optional: true` drops mail instead).',
@@ -585,9 +585,9 @@ describe('PrunellePlugin.requires: what a plugin needs to run in production (#36
     }
   })
 
-  it('@prunelle/mail refuses a mail with no recipient, naming the call, in development and in production', async () => {
+  it('@prunellejs/mail refuses a mail with no recipient, naming the call, in development and in production', async () => {
     const mailer = createMailer({ from: 'a@b.test', transport: { async send() {} } })
-    const refusal = '@prunelle/mail: send({ subject: "Hi" }) has no recipient: give it `to`, pass `to` to `createMailer()`, or set `MAIL_TO`.'
+    const refusal = '@prunellejs/mail: send({ subject: "Hi" }) has no recipient: give it `to`, pass `to` to `createMailer()`, or set `MAIL_TO`.'
     await expect(mailer.send({ subject: 'Hi' })).rejects.toThrow(refusal)
     const prev = process.env.NODE_ENV
     process.env.NODE_ENV = 'production'
@@ -602,7 +602,7 @@ describe('PrunellePlugin.requires: what a plugin needs to run in production (#36
     }
   })
 
-  it('@prunelle/mcp requires a token that resolves, @prunelle/seo a site', async () => {
+  it('@prunellejs/mcp requires a token that resolves, @prunellejs/seo a site', async () => {
     const noToken = ['no `token`, so the endpoint answers 404 to every call: pass `token: { env: \'MCP_TOKEN\' }` and set `MCP_TOKEN`, or `token: { file }`.']
     expect(await mcp({ tools: {} }).requires!(ctx)).toEqual(noToken)
     expect(await mcp({ tools: {}, token: { env: 'PRUNELLE_TEST_UNSET_MCP_TOKEN' } }).requires!(ctx)).toEqual(noToken)
@@ -612,7 +612,7 @@ describe('PrunellePlugin.requires: what a plugin needs to run in production (#36
     expect(await seo({ site: 'https://example.test' }).requires!(ctx)).toEqual([])
   })
 
-  it('@prunelle/content requires a site for each feed that has none of its own', async () => {
+  it('@prunellejs/content requires a site for each feed that has none of its own', async () => {
     const posts = defineCollection({ dir: makeTemp('prunelle-feed-') })
     const feed = { collection: posts, title: 'Posts', description: 'All posts' }
     const plugin = content({ feeds: [feed, { ...feed, path: '/fr/rss.xml' }, { ...feed, path: '/own.xml', site: 'https://own.example' }] })

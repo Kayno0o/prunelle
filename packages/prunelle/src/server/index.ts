@@ -482,7 +482,7 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
       // 5. Full Router + Plugin Rewrites + Plugin Routes + Middleware + Streaming/Head/Error pipeline
       const { ctx, cookieStore } = makeRequestContext(request, {}, { trustProxy, remoteIp, url, consent })
 
-      // Apply plugin URL rewrites (e.g. @prunelle/i18n stripping /fr prefix and setting ctx.locals.locale)
+      // Apply plugin URL rewrites (e.g. @prunellejs/i18n stripping /fr prefix and setting ctx.locals.locale)
       let effectivePath = rawPathname
       for (const rewrite of pluginHost.rewrites) {
         const nextPath = rewrite(effectivePath, ctx)

@@ -44,7 +44,7 @@ docs-up:
 docs-down:
 	docker compose -f docs/compose.yaml down
 
-# Start the @prunelle/ui Grammar Switcher showcase example
+# Start the @prunellejs/ui Grammar Switcher showcase example
 showcase:
 	cd examples/showcase && bun run dev
 

@@ -1,6 +1,6 @@
 # __APP_NAME__
 
-A prunelle app. Read `node_modules/prunelle/llms.txt` before writing code: it holds prunelle's whole API for the version installed here, on one page. When using first-party plugins (`@prunelle/*`), also read each installed plugin's `node_modules/@prunelle/<plugin>/llms.txt` if present.
+A prunelle app. Read `node_modules/prunelle/llms.txt` before writing code: it holds prunelle's whole API for the version installed here, on one page. When using first-party plugins (`@prunellejs/*`), also read each installed plugin's `node_modules/@prunellejs/<plugin>/llms.txt` if present.
 
 ## Workflow
 

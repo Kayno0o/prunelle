@@ -1,5 +1,5 @@
 {
-  "name": "@prunelle/mail",
+  "name": "@prunellejs/mail",
   "version": "0.1.0",
   "description": "Zero-dependency email delivery (Resend / custom transport) and dev outbox plugin for Prunelle",
   "license": "MIT",

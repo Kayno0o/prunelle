@@ -15,7 +15,7 @@ function write(file: string, text: string): void {
 }
 
 beforeAll(async () => {
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(join(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'), 'dir')
   write('prunelle.config.ts', `import { defineConfig } from 'prunelle/config'\nexport default defineConfig({})`)
   // Notes what the page change did: a view transition on arrival, in the storage the next test reads.

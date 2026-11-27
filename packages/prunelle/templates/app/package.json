@@ -11,8 +11,8 @@
   },
   "dependencies": {
     "prunelle": "__PRUNELLE_VERSION__",
-    "@prunelle/auth": "__PRUNELLE_VERSION__",
-    "@prunelle/ui": "__PRUNELLE_VERSION__"
+    "@prunellejs/auth": "__PRUNELLE_VERSION__",
+    "@prunellejs/ui": "__PRUNELLE_VERSION__"
   },
   "devDependencies": {
     "@types/bun": "latest",

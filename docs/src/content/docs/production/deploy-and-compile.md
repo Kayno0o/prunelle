@@ -33,7 +33,7 @@ prunelle build --compile ./server
 
 ## Stopping the server
 
-`prunelle start` and a compiled binary stop gracefully on `SIGTERM`, `SIGINT` or `SIGHUP`, so a rolling deploy drops no request. The server stops taking connections, `@prunelle/live` ends its open streams, and each plugin's `api.onShutdown()` hook runs. The process exits 0 once the requests already in flight have answered. A request still open after 10 seconds is cut, and the process exits 1.
+`prunelle start` and a compiled binary stop gracefully on `SIGTERM`, `SIGINT` or `SIGHUP`, so a rolling deploy drops no request. The server stops taking connections, `@prunellejs/live` ends its open streams, and each plugin's `api.onShutdown()` hook runs. The process exits 0 once the requests already in flight have answered. A request still open after 10 seconds is cut, and the process exits 1.
 
 ## How a build replaces `dist/`
 
@@ -52,7 +52,7 @@ prunelle build --static
 ```
 
 Outputs a ready-to-host directory in `dist/` containing:
-- Every route and `paths()` page (expanded across locales if `@prunelle/i18n` is enabled). A dynamic page with no `paths()` fails the build, because a static host cannot render it. Dynamic API routes are left out.
+- Every route and `paths()` page (expanded across locales if `@prunellejs/i18n` is enabled). A dynamic page with no `paths()` fails the build, because a static host cannot render it. Dynamic API routes are left out.
 - `404.html` (if `src/routes/_404.tsx` exists)
 - Hashed client CSS/JS/font assets under `dist/_pru/`
 - All `public/` files, RSS feeds, `sitemap.xml`, and generated OG `shareCard()` PNGs

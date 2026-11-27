@@ -1,4 +1,4 @@
-import { Badge, Card, CardBody, CardFooter, CardHeader, Cluster, Stack } from '@prunelle/ui'
+import { Badge, Card, CardBody, CardFooter, CardHeader, Cluster, Stack } from '@prunellejs/ui'
 import { posts } from '../posts'
 
 export const prerender = true

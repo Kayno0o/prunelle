@@ -44,14 +44,14 @@ describe('Plugin ordering, definePlugin & locals validation (#3550)', () => {
 
   it('refuses two plugins sharing a name, and an `after` name one typo away from a registered plugin (#3657)', () => {
     expect(() => resolvePlugins([definePlugin({ name: 'cache' }), definePlugin({ name: 'other' }), definePlugin({ name: 'cache' })])).toThrow('prunelle: two plugins are named "cache" in prunelle.config.ts: register it once, or give each instance its own `name`.')
-    const images = definePlugin({ name: '@prunelle/images' })
-    expect(() => resolvePlugins([images, definePlugin({ name: 'gallery', after: ['@prunelle/imgaes'] })])).toThrow('prunelle: plugin "gallery" runs `after` "@prunelle/imgaes", which no plugin is named: did you mean "@prunelle/images"?')
+    const images = definePlugin({ name: '@prunellejs/images' })
+    expect(() => resolvePlugins([images, definePlugin({ name: 'gallery', after: ['@prunellejs/imgaes'] })])).toThrow('prunelle: plugin "gallery" runs `after` "@prunellejs/imgaes", which no plugin is named: did you mean "@prunellejs/images"?')
     expect(() => resolvePlugins([definePlugin({ name: 'ui' }), definePlugin({ name: 'theme', after: ['uix'] })])).toThrow('did you mean "ui"?')
     expect(() => resolvePlugins([definePlugin({ name: 'ui' }), definePlugin({ name: 'theme', after: ['iu'] })])).toThrow('did you mean "ui"?')
     expect(resolvePlugins([definePlugin({ name: 'uixy' }), definePlugin({ name: 'theme', after: ['ui'] })]).map(p => p.name)).toEqual(['uixy', 'theme'])
-    expect(() => resolvePlugins([images, definePlugin({ name: 'gallery', after: ['@prunelle/imagexy'] })])).toThrow('did you mean "@prunelle/images"?')
-    expect(resolvePlugins([images, definePlugin({ name: 'gallery', after: ['@prunelle/imagesxyz'] })]).map(p => p.name)).toEqual(['@prunelle/images', 'gallery'])
-    expect(resolvePlugins([definePlugin({ name: 'gallery', after: ['@prunelle/i18n', '@prunelle/images'] }), images]).map(p => p.name)).toEqual(['@prunelle/images', 'gallery'])
+    expect(() => resolvePlugins([images, definePlugin({ name: 'gallery', after: ['@prunellejs/imagexy'] })])).toThrow('did you mean "@prunellejs/images"?')
+    expect(resolvePlugins([images, definePlugin({ name: 'gallery', after: ['@prunellejs/imagesxyz'] })]).map(p => p.name)).toEqual(['@prunellejs/images', 'gallery'])
+    expect(resolvePlugins([definePlugin({ name: 'gallery', after: ['@prunellejs/i18n', '@prunellejs/images'] }), images]).map(p => p.name)).toEqual(['@prunellejs/images', 'gallery'])
   })
 
   it('refuses a prunelle.config.ts key prunelle does not read, naming the one it most likely meant (#3657)', async () => {
@@ -64,7 +64,7 @@ describe('Plugin ordering, definePlugin & locals validation (#3550)', () => {
     expect(await loadConfig(dir, { fresh: true })).toEqual({ outDir: 'out', compliance: {}, port: 3000 })
   })
 
-  it('automatically orders @prunelle/seo after @prunelle/i18n even when seo() is listed first', async () => {
+  it('automatically orders @prunellejs/seo after @prunellejs/i18n even when seo() is listed first', async () => {
     const dir = makeTemp('prunelle-plugin-order-')
     mkdirSync(join(dir, 'src/routes'), { recursive: true })
     writeFileSync(join(dir, 'src/routes/index.tsx'), 'export default function Home() { return <h1>Hi</h1> }\n')
@@ -72,7 +72,7 @@ describe('Plugin ordering, definePlugin & locals validation (#3550)', () => {
     const app = await testApp({
       root: dir,
       plugins: [
-        // Listed BEFORE i18n on purpose — core must sort i18n (pre) ahead of seo (after: ['@prunelle/i18n'])
+        // Listed BEFORE i18n on purpose — core must sort i18n (pre) ahead of seo (after: ['@prunellejs/i18n'])
         seo({
           site: 'https://example.com',
           description: { en: 'English desc', fr: 'Description FR' },

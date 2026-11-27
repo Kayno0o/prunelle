@@ -1,7 +1,7 @@
-import type { ContentEntry } from '@prunelle/content'
+import type { ContentEntry } from '@prunellejs/content'
 import type { RequestContext } from 'prunelle/server'
 import { join } from 'node:path'
-import { shareCard } from '@prunelle/images'
+import { shareCard } from '@prunellejs/images'
 import { Head } from 'prunelle'
 import { type DocFrontmatter, docs, DOCS_ROOT, getFlatNav, getNavGroups, type NavItem, SECTIONS } from '../../content'
 

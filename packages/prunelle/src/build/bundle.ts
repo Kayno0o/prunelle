@@ -70,7 +70,7 @@ function reuseDirFiles(srcDir: string, dstDir: string, relFiles?: readonly strin
   return count > 0
 }
 
-const PRUNELLE_SCOPE_RE = /^@prunelle\//
+const PRUNELLE_SCOPE_RE = /^@prunellejs\//
 const LEADING_DOT_SLASH_RE = /^\.\//
 const EXTERNAL_PRUNELLE_SPECIFIERS = new Set(['prunelle/build', 'prunelle/test'])
 

@@ -9,7 +9,7 @@ const tempDirs: string[] = []
 function appWith(files: Record<string, string>, navigation = ''): string {
   const dir = mkdtempSync(join(tmpdir(), 'prunelle-navigation-'))
   tempDirs.push(dir)
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(join(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'), 'dir')
   const all: Record<string, string> = {
     'prunelle.config.ts': `import { defineConfig } from 'prunelle/config'\nexport default defineConfig({ ${navigation} })`,

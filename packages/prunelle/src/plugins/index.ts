@@ -1,6 +1,6 @@
 // Prunelle public Plugin API & config helpers.
-// Strict architectural rule: every non-core capability (@prunelle/tailwind, @prunelle/spa, @prunelle/i18n, etc.)
-// is built strictly through these public hooks - never hardcoded in @prunelle/core.
+// Strict architectural rule: every non-core capability (@prunellejs/tailwind, @prunellejs/spa, @prunellejs/i18n, etc.)
+// is built strictly through these public hooks - never hardcoded in @prunellejs/core.
 
 export { defineConfig, definePlugin, pickRuntimeConfig, resolveServerConfig } from './config'
 export { createAppContext, getAppContext, runWithAppContext } from './context'

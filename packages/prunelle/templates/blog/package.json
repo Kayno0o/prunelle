@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "prunelle": "__PRUNELLE_VERSION__",
-    "@prunelle/content": "__PRUNELLE_VERSION__",
-    "@prunelle/seo": "__PRUNELLE_VERSION__",
-    "@prunelle/ui": "__PRUNELLE_VERSION__"
+    "@prunellejs/content": "__PRUNELLE_VERSION__",
+    "@prunellejs/seo": "__PRUNELLE_VERSION__",
+    "@prunellejs/ui": "__PRUNELLE_VERSION__"
   },
   "devDependencies": {
     "@types/bun": "latest",

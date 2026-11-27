@@ -1,7 +1,7 @@
 import type { PinnedNotice } from '../db'
 import type { BoardMessage } from '../services'
-import { useLive } from '@prunelle/live/client'
-import { toast } from '@prunelle/ui'
+import { useLive } from '@prunellejs/live/client'
+import { toast } from '@prunellejs/ui'
 import { signal } from 'prunelle'
 
 export interface LiveBoardProps {

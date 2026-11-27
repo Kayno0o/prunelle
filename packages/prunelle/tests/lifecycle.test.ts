@@ -25,7 +25,7 @@ async function builtApp(compile?: string): Promise<string> {
         plugins: [rooms, feed, { name: 'probe', server(api) { api.onShutdown(() => appendFileSync(${JSON.stringify(join(dir, 'hooks-ran'))}, 'yes')) } }],
       })
     `,
-    'src/live.ts': 'import { createRooms } from \'@prunelle/live\'\nexport const rooms = createRooms<string, string>({ path: \'/events\', member: () => \'guest\', pingMs: 0 })\nexport const feed = createRooms<string, string>()\n',
+    'src/live.ts': 'import { createRooms } from \'@prunellejs/live\'\nexport const rooms = createRooms<string, string>({ path: \'/events\', member: () => \'guest\', pingMs: 0 })\nexport const feed = createRooms<string, string>()\n',
     'src/routes/feed.ts': `
       import type { RequestContext } from 'prunelle/server'
       import { feed } from '../live'
@@ -52,9 +52,9 @@ async function builtApp(compile?: string): Promise<string> {
     mkdirSync(join(dir, file, '..'), { recursive: true })
     writeFileSync(join(dir, file), text)
   }
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(prunelleDir, join(dir, 'node_modules/prunelle'))
-  symlinkSync(join(prunelleDir, '../plugin-live'), join(dir, 'node_modules/@prunelle/live'))
+  symlinkSync(join(prunelleDir, '../plugin-live'), join(dir, 'node_modules/@prunellejs/live'))
   await build({ root: dir, ...(compile !== undefined ? { compile: join(dir, compile) } : {}) })
   return dir
 }

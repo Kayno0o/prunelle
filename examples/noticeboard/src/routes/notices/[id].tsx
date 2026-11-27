@@ -1,5 +1,5 @@
 import type { PageProps, RouteContext } from 'prunelle/server'
-import { Button, Card, CardBody, CardFooter, CardHeader, Stack } from '@prunelle/ui'
+import { Button, Card, CardBody, CardFooter, CardHeader, Stack } from '@prunellejs/ui'
 import { Head } from 'prunelle'
 import { notFound } from 'prunelle/server'
 import { findNotice } from '../../db'

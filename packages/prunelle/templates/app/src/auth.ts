@@ -1,6 +1,6 @@
 import { join } from 'node:path'
-import { createAuth } from '@prunelle/auth'
-import { sqliteAuthStore } from '@prunelle/auth/sqlite'
+import { createAuth } from '@prunellejs/auth'
+import { sqliteAuthStore } from '@prunellejs/auth/sqlite'
 
 // Set AUTH_SECRET (at least 32 bytes) in production — see .env.example.
 const defaultDb = import.meta.dir.startsWith('/$bunfs')

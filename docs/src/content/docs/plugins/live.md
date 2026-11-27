@@ -1,17 +1,17 @@
 ---
-title: "@prunelle/live"
+title: "@prunellejs/live"
 description: Zero-dependency typed Server-Sent Events (SSE) rooms, microtask-coalesced presence broadcasts, and reactive useLive() browser signal hooks.
 section: plugins
 order: 4
 ---
 
-`@prunelle/live` adds real-time push updates and online presence over standard HTTP Server-Sent Events (`text/event-stream`) in ~280 LOC with **zero external dependencies** and no WebSocket proxy headaches.
+`@prunellejs/live` adds real-time push updates and online presence over standard HTTP Server-Sent Events (`text/event-stream`) in ~280 LOC with **zero external dependencies** and no WebSocket proxy headaches.
 
 ## 1. Create typed rooms on the server
 
 ```ts
 // src/live.ts
-import { createRooms } from '@prunelle/live'
+import { createRooms } from '@prunellejs/live'
 
 export type BoardMessage
   = | { type: 'presence', count: number }
@@ -39,7 +39,7 @@ rooms.publish('main', { type: 'notice', title: 'Shipped v2!' })
 
 ```tsx
 import { signal } from 'prunelle'
-import { useLive } from '@prunelle/live/client'
+import { useLive } from '@prunellejs/live/client'
 import type { BoardMessage } from '../live'
 
 export function LiveBoard() {

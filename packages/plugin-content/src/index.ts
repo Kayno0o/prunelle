@@ -1,4 +1,4 @@
-// @prunelle/content — Zero-dependency Bun-native Markdown collections, nested YAML frontmatter (Bun.YAML),
+// @prunellejs/content — Zero-dependency Bun-native Markdown collections, nested YAML frontmatter (Bun.YAML),
 // Shiki/custom highlight hook, MDX-lite embedded TSX components, localized collections, TOC, and RSS (`0 KB` client JS).
 
 import type { PrunellePlugin } from 'prunelle/config'
@@ -102,8 +102,8 @@ export function content(options: { feeds?: readonly ContentFeed[] | undefined, c
   }
 
   return definePlugin({
-    name: '@prunelle/content',
-    after: ['@prunelle/i18n', '@prunelle/images'],
+    name: '@prunellejs/content',
+    after: ['@prunellejs/i18n', '@prunellejs/images'],
     watchPaths: (root) => {
       const dirs = new Set<string>()
       for (const c of activeCollections(root))

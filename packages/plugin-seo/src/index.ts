@@ -1,4 +1,4 @@
-// @prunelle/seo — SEO metadata, titleTemplate, JSON-LD, sitemap.xml, redirects, manifest, favicon, and self-hosted fonts.
+// @prunellejs/seo — SEO metadata, titleTemplate, JSON-LD, sitemap.xml, redirects, manifest, favicon, and self-hosted fonts.
 // Built strictly on the public PrunellePlugin API (server, build, transformHtml).
 
 import type { Html } from 'prunelle'
@@ -151,7 +151,7 @@ function emitFavicons(ctx: BuildPluginContext, favicon: string | string[]): void
   for (const fav of favicons) {
     const abs = resolveFileOrPkg(ctx.root, fav)
     if (abs === undefined)
-      throw new Error(`@prunelle/seo: favicon "${fav}" is neither a file under the app root nor a package file: fix the path given to \`seo({ favicon })\`.`)
+      throw new Error(`@prunellejs/seo: favicon "${fav}" is neither a file under the app root nor a package file: fix the path given to \`seo({ favicon })\`.`)
     const ext = extname(abs).toLowerCase()
     const key = ext === '.svg' ? '.svg' : ext === '.png' ? '.png' : '.ico'
     extCounts.set(key, (extCounts.get(key) ?? 0) + 1)
@@ -213,7 +213,7 @@ function emitFonts(ctx: BuildPluginContext, fonts: FontEntry[]): void {
   for (const font of fonts) {
     const abs = resolveFileOrPkg(ctx.root, font.src)
     if (abs === undefined)
-      throw new Error(`@prunelle/seo: could not resolve font "${font.src}"`)
+      throw new Error(`@prunellejs/seo: could not resolve font "${font.src}"`)
     const bytes = new Uint8Array(readFileSync(abs))
     const hash = Bun.hash(bytes).toString(36)
     const ext = extname(abs).toLowerCase() || '.woff2'
@@ -405,8 +405,8 @@ export function seo(options: SeoPluginOptions = {}): PrunellePlugin {
     options.site?.replace(/\/$/, '') ?? ctxSite?.replace(/\/$/, '') ?? activeSite
 
   return definePlugin({
-    name: '@prunelle/seo',
-    after: ['@prunelle/i18n'],
+    name: '@prunellejs/seo',
+    after: ['@prunellejs/i18n'],
     readsLocals: ['locale'],
 
     requires(ctx) {

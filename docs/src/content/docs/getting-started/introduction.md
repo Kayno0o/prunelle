@@ -14,7 +14,7 @@ Prunelle is a Bun-native web framework. You write standard TypeScript and JSX. S
 - **Flat-string SSR**: Static JSX compiles directly to flat string concatenation (`7,017 renders/s` on the products benchmark).
 - **Unified server actions**: Write one `action(schema, handler)` with any Standard Schema validator (Zod, Valibot, ArkType, TypeBox). It works as a zero-JS `<form action={fn} method="post">` and as a typed RPC call from islands.
 - **Single-pass build & `--compile`**: One `Bun.build()` pass compiles your app in `18.8 ms` clean. `prunelle build --compile` packs routes, plugins, and `public/` assets into a single executable with a `35.4 ms` cold start.
-- **Small core, modular plugins**: Everything optional (`@prunelle/ui`, `@prunelle/auth`, `@prunelle/content`, `@prunelle/live`, `@prunelle/mcp`, `@prunelle/images`, `@prunelle/seo`, `@prunelle/i18n`, `@prunelle/mail`, `@prunelle/icons`, `@prunelle/tailwind`, `@prunelle/spa`) plugs in through `PrunellePlugin`.
+- **Small core, modular plugins**: Everything optional (`@prunellejs/ui`, `@prunellejs/auth`, `@prunellejs/content`, `@prunellejs/live`, `@prunellejs/mcp`, `@prunellejs/images`, `@prunellejs/seo`, `@prunellejs/i18n`, `@prunellejs/mail`, `@prunellejs/icons`, `@prunellejs/tailwind`, `@prunellejs/spa`) plugs in through `PrunellePlugin`.
 
 <Callout title="Coding-agent reference" tone="tip">
 The entire Prunelle API fits on one dense page at [`/llms.txt`](/llms.txt). Every install carries the copy for its own version at `node_modules/prunelle/llms.txt`, and the `AGENTS.md` that `prunelle new` writes points coding agents at it.

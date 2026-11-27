@@ -1,5 +1,5 @@
 import type { LayoutProps } from 'prunelle'
-import { Button, Cluster, Toaster } from '@prunelle/ui'
+import { Button, Cluster, Toaster } from '@prunellejs/ui'
 import { Head } from 'prunelle'
 
 export default function Layout({ children, locals }: LayoutProps) {

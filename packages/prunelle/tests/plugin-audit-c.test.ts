@@ -32,8 +32,8 @@ afterAll(() => {
     rmSync(d, { recursive: true, force: true })
 })
 
-describe('Cross-plugin audit part 3 (#3635): @prunelle/i18n & plugin host safety', () => {
-  describe('@prunelle/i18n actions, public/, regions, escaping, assetPrefix & prefixDefault', () => {
+describe('Cross-plugin audit part 3 (#3635): @prunellejs/i18n & plugin host safety', () => {
+  describe('@prunellejs/i18n actions, public/, regions, escaping, assetPrefix & prefixDefault', () => {
     it('populates ctx.locals.locale and t before Server Actions, serves localized public/ links, and runs transformHtml on <Region> without double-escaping &amp;', async () => {
       const dir = appWith('prunelle-i18n-audit-', {
         'public/brochure.txt': 'SHARED BROCHURE',

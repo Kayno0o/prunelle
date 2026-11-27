@@ -41,8 +41,8 @@ function makeCtx(urlStr: string, init?: RequestInit, ip?: string) {
   } as unknown as import('../src/server/index').RequestContext
 }
 
-describe('Cross-plugin audit part 2 (#3635): @prunelle/live, @prunelle/mail, @prunelle/mcp', () => {
-  describe('@prunelle/live server', () => {
+describe('Cross-plugin audit part 2 (#3635): @prunellejs/live, @prunellejs/mail, @prunellejs/mcp', () => {
+  describe('@prunellejs/live server', () => {
     it('does not fire onLeave when onJoin throws and restores room and client counts', () => {
       const rooms = createRooms<{ ok: boolean }, string>({ maxConnectionsPerClient: 1 })
       let leftCalls = 0
@@ -193,7 +193,7 @@ describe('Cross-plugin audit part 2 (#3635): @prunelle/live, @prunelle/mail, @pr
     })
   })
 
-  describe('@prunelle/live client', () => {
+  describe('@prunellejs/live client', () => {
     it('avoids duplicate message listeners when events includes "message" and caps retries on 401/403/404', async () => {
       const origEventSource = globalThis.EventSource
       const instances: MockES[] = []
@@ -322,7 +322,7 @@ describe('Cross-plugin audit part 2 (#3635): @prunelle/live, @prunelle/mail, @pr
     })
   })
 
-  describe('@prunelle/mail', () => {
+  describe('@prunellejs/mail', () => {
     it('rejects CR/LF/NUL header injection and escapes display names safely', async () => {
       const delivered: Array<{ from: string, to: string[], replyTo?: string | undefined, subject: string }> = []
       const mailer = createMailer({
@@ -434,10 +434,10 @@ describe('Cross-plugin audit part 2 (#3635): @prunelle/live, @prunelle/mail, @pr
 
     it('gives up on resend() after two retries, and never retries a 4xx other than 429', async () => {
       const unavailable = await resendAgainst([{ status: 500, retryAfter: '0.05' }, { status: 500, retryAfter: '0.05' }, { status: 500, retryAfter: '0.05' }])
-      await expect(unavailable.sent).rejects.toThrow('@prunelle/mail (resend): HTTP 500: answer 3')
+      await expect(unavailable.sent).rejects.toThrow('@prunellejs/mail (resend): HTTP 500: answer 3')
       expect(unavailable.keys).toHaveLength(3)
       const refused = await resendAgainst([{ status: 422 }])
-      await expect(refused.sent).rejects.toThrow('@prunelle/mail (resend): HTTP 422: answer 1')
+      await expect(refused.sent).rejects.toThrow('@prunellejs/mail (resend): HTTP 422: answer 1')
       expect(refused.keys).toHaveLength(1)
     })
 
@@ -493,7 +493,7 @@ describe('Cross-plugin audit part 2 (#3635): @prunelle/live, @prunelle/mail, @pr
     })
   })
 
-  describe('@prunelle/mcp', () => {
+  describe('@prunellejs/mcp', () => {
     it('validates transforming action schemas only once (no double validateSchema)', async () => {
       const dir = makeTemp('prunelle-mcp-transform-')
       mkdirSync(join(dir, 'src/routes'), { recursive: true })

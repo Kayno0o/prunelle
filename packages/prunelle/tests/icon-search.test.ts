@@ -212,7 +212,7 @@ describe('findIcons', () => {
   })
 
   it('refuses a page that is not whole, a negative offset or a limit below 1', () => {
-    const refusal = '@prunelle/icons: findIcons pages from a whole offset of 0 or more, by a whole limit of 1 or more: clamp the page a request asks for before searching.'
+    const refusal = '@prunellejs/icons: findIcons pages from a whole offset of 0 or more, by a whole limit of 1 or more: clamp the page a request asks for before searching.'
 
     expect(() => findIcons(['home'], 'home', { offset: -1 })).toThrow(refusal)
     expect(() => findIcons(['home'], 'home', { offset: 0.5 })).toThrow(refusal)

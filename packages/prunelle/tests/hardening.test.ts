@@ -19,7 +19,7 @@ function makeTemp(prefix: string): string {
   return dir
 }
 function linkPrunelle(dir: string): void {
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(PRUNELLE_PKG_DIR, join(dir, 'node_modules/prunelle'), 'dir')
   const pkgRoot = join(PRUNELLE_PKG_DIR, '..')
   const links: Record<string, string> = {
@@ -31,7 +31,7 @@ function linkPrunelle(dir: string): void {
     ui: 'ui',
   }
   for (const [name, folder] of Object.entries(links))
-    symlinkSync(join(pkgRoot, folder), join(dir, 'node_modules/@prunelle', name), 'dir')
+    symlinkSync(join(pkgRoot, folder), join(dir, 'node_modules/@prunellejs', name), 'dir')
 }
 
 afterAll(() => {
@@ -427,7 +427,7 @@ describe('Milestone 4: prunelle new scaffolder & prunelle check validator', () =
     expect(checkFail.errors.some(e => e.includes('async route component'))).toBe(true)
   })
 
-  it('scaffolds blog (0 KB JS + RSS) and app (@prunelle/auth + @prunelle/ui) templates that build and run end-to-end', async () => {
+  it('scaffolds blog (0 KB JS + RSS) and app (@prunellejs/auth + @prunellejs/ui) templates that build and run end-to-end', async () => {
     const dir = makeTemp('prunelle-m4-new-eco-')
 
     // 1. Blog template (0 KB JS, prerendered posts, /rss.xml, /sitemap.xml)
@@ -451,7 +451,7 @@ describe('Milestone 4: prunelle new scaffolder & prunelle check validator', () =
     expect(rss.status).toBe(200)
     expect(await rss.text()).toContain('<title>Welcome to my-blog</title>')
 
-    // 2. App template (@prunelle/auth + @prunelle/ui + guarded /dashboard)
+    // 2. App template (@prunellejs/auth + @prunellejs/ui + guarded /dashboard)
     const appDir = join(dir, 'my-saas')
     scaffoldProject(appDir, { template: 'app' })
     linkPrunelle(appDir)

@@ -1,12 +1,12 @@
-# @prunelle/spa Reference
+# @prunellejs/spa Reference
 
 > Opt-in in-place navigation: `regions()` swaps individual `<Region>` fragments from the server, and `spa()` swaps whole pages with `[data-persist]` islands (`0 B` when uninstalled).
 
 ## Imports
 
-- `@prunelle/spa`: `spa()`, `regions()` (both return `PrunellePlugin` for `prunelle.config.ts`).
-- `@prunelle/spa/regions`: `refreshRegion(name: string): Promise<void>` (redraws `<Region name>` from the current URL without touching history or focus; skips prefetch cache; rejects if region is missing or fetch fails).
-- `@prunelle/spa/client`: `prefetch(url: string, region?: string)` (populates the shared 8-entry / 15s prefetch cache; respects `Save-Data`).
+- `@prunellejs/spa`: `spa()`, `regions()` (both return `PrunellePlugin` for `prunelle.config.ts`).
+- `@prunellejs/spa/regions`: `refreshRegion(name: string): Promise<void>` (redraws `<Region name>` from the current URL without touching history or focus; skips prefetch cache; rejects if region is missing or fetch fails).
+- `@prunellejs/spa/client`: `prefetch(url: string, region?: string)` (populates the shared 8-entry / 15s prefetch cache; respects `Save-Data`).
 
 ## Partial Swaps (`regions()`)
 
@@ -42,7 +42,7 @@ Most apps want plain page loads (with the browser's cross-document view transiti
 ```ts
 // prunelle.config.ts
 import { defineConfig } from 'prunelle/config'
-import { regions, spa } from '@prunelle/spa'
+import { regions, spa } from '@prunellejs/spa'
 
 export default defineConfig({
   plugins: [regions(), spa()],

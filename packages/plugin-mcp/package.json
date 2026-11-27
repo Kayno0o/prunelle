@@ -1,5 +1,5 @@
 {
-  "name": "@prunelle/mcp",
+  "name": "@prunellejs/mcp",
   "version": "0.1.0",
   "description": "Zero-dependency MCP Streamable HTTP (2025-03-26) plugin exposing Prunelle server actions as AI agent tools",
   "license": "MIT",

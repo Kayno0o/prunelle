@@ -1,16 +1,16 @@
 ---
-title: "@prunelle/images & @prunelle/seo"
+title: "@prunellejs/images & @prunellejs/seo"
 description: Build-time AVIF/WebP image optimization, OG shareCard() PNG generation, self-hosted fonts, JSON-LD, sitemaps, and redirects.
 section: plugins
 order: 5
 ---
 
-## Responsive images & OG `shareCard()` (`@prunelle/images`)
+## Responsive images & OG `shareCard()` (`@prunellejs/images`)
 
 Add `images()` to `prunelle.config.ts` to optimize imported `.png`/`.jpg`/`.webp` assets into content-hashed AVIF & WebP variants cached in `.prunelle-cache/images/`:
 
 ```ts
-import { images } from '@prunelle/images'
+import { images } from '@prunellejs/images'
 
 export default defineConfig({
   plugins: [
@@ -35,7 +35,7 @@ An image reports the size it is displayed at. A phone photo stored sideways, wit
 Render responsive images with `image()` or `<Picture>`:
 
 ```tsx
-import { image, Picture } from '@prunelle/images'
+import { image, Picture } from '@prunellejs/images'
 import hero from '../assets/hero.jpg'
 
 <Picture asset={hero} sizes="(min-width: 48rem) 50vw, 100vw" alt="Hero" priority />
@@ -45,15 +45,15 @@ import hero from '../assets/hero.jpg'
 Generate 1200×630 OG PNG cards at build time:
 
 ```tsx
-import { shareCard } from '@prunelle/images'
+import { shareCard } from '@prunellejs/images'
 
 const og = shareCard({ title: post.title, badge: 'Release' })
 ```
 
-## Metadata, Self-Hosted Fonts & Sitemap (`@prunelle/seo`)
+## Metadata, Self-Hosted Fonts & Sitemap (`@prunellejs/seo`)
 
 ```ts
-import { seo } from '@prunelle/seo'
+import { seo } from '@prunellejs/seo'
 
 seo({
   site: 'https://example.com',
@@ -68,4 +68,4 @@ seo({
 })
 ```
 
-`@prunelle/seo` emits immutable hashed `.woff2` files, injects `<link rel="preload" as="font">` + `@font-face` CSS, applies `titleTemplate`, adds canonical URLs, and generates `/sitemap.xml`.
+`@prunellejs/seo` emits immutable hashed `.woff2` files, injects `<link rel="preload" as="font">` + `@font-face` CSS, applies `titleTemplate`, adds canonical URLs, and generates `/sitemap.xml`.

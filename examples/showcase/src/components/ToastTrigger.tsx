@@ -1,4 +1,4 @@
-import { toast } from '@prunelle/ui'
+import { toast } from '@prunellejs/ui'
 
 export function ToastTrigger() {
   return (

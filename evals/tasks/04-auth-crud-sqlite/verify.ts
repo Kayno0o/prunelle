@@ -72,11 +72,11 @@ export async function verify({ dir, app }: VerifyContext): Promise<AssertionResu
     assert(after.status === 302 || after.status === 303, `expected redirect after signout, got ${after.status}`)
   })
 
-  await c.run('uses sqliteAuthStore, auth.guard(), @prunelle/ui, bun:sqlite, and testApp tests', async () => {
+  await c.run('uses sqliteAuthStore, auth.guard(), @prunellejs/ui, bun:sqlite, and testApp tests', async () => {
     const sources = [...readAppSourceFiles(dir).values()].join('\n')
-    assert(/\bsqliteAuthStore\b/.test(sources), 'missing sqliteAuthStore from @prunelle/auth/sqlite')
+    assert(/\bsqliteAuthStore\b/.test(sources), 'missing sqliteAuthStore from @prunellejs/auth/sqlite')
     assert(/auth\.guard\s*\(/.test(sources), 'missing auth.guard() middleware')
-    assert(/@prunelle\/ui/.test(sources), 'missing @prunelle/ui import')
+    assert(/@prunellejs\/ui/.test(sources), 'missing @prunellejs/ui import')
     assert(/bun:sqlite/.test(sources), 'missing bun:sqlite usage')
 
     const testsDir = join(dir, 'tests')

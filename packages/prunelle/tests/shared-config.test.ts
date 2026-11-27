@@ -35,7 +35,7 @@ describe('Shared site, locales, proxy trust & localized sitemap (#3551)', () => 
     const posts = defineCollection({
       dir: join(dir, 'src/content/posts'),
       localized: true,
-      // Intentionally omit `defaultLocale` — must inherit `'fr'` from active @prunelle/i18n!
+      // Intentionally omit `defaultLocale` — must inherit `'fr'` from active @prunellejs/i18n!
     })
 
     writeFileSync(join(dir, 'src/routes/index.tsx'), `

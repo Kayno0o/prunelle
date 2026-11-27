@@ -1,12 +1,12 @@
-# @prunelle/auth Reference
+# @prunellejs/auth Reference
 
 > Zero-dependency Bun-native authentication: Argon2id passwords, hashed DB sessions, email verification, magic links, OAuth 2.0 + PKCE, route guards, and RGPD helpers.
 
 ## Imports
 
-- `@prunelle/auth`: `createAuth`, `memoryAuthStore`, `normalizeEmail`, `toPublicUser`, `safeRedirect` (re-exported from `prunelle/server`), `createRateLimiter` (deprecated: `rateLimit` on `api.route()` and `action()`, or `api.rateLimiter()`), `github`, `discord`, `google`, `oauthProvider`; types `Auth`, `AuthOptions`, `GuardOptions`, `AuthStore`, `AuthUser`, `PublicUser`, `AuthSession`, `OAuthAccount`, `TokenKind`, `VerificationToken`, `UserExport`, `AuthMailPayload`, `AuthMailer`, `CreateUserInput`, `OAuthProvider`, `OAuthPresetConfig`, `OAuthProfile`, `RateLimiter`, `RateLimitOptions`.
-- `@prunelle/auth/sqlite`: `sqliteAuthStore(dbOrPath?: string | Database)` (returns `AuthStore & { readonly db: Database }`, uses `bun:sqlite` in WAL mode).
-- `@prunelle/auth/oauth`: `github`, `discord`, `google`, `oauthProvider`.
+- `@prunellejs/auth`: `createAuth`, `memoryAuthStore`, `normalizeEmail`, `toPublicUser`, `safeRedirect` (re-exported from `prunelle/server`), `createRateLimiter` (deprecated: `rateLimit` on `api.route()` and `action()`, or `api.rateLimiter()`), `github`, `discord`, `google`, `oauthProvider`; types `Auth`, `AuthOptions`, `GuardOptions`, `AuthStore`, `AuthUser`, `PublicUser`, `AuthSession`, `OAuthAccount`, `TokenKind`, `VerificationToken`, `UserExport`, `AuthMailPayload`, `AuthMailer`, `CreateUserInput`, `OAuthProvider`, `OAuthPresetConfig`, `OAuthProfile`, `RateLimiter`, `RateLimitOptions`.
+- `@prunellejs/auth/sqlite`: `sqliteAuthStore(dbOrPath?: string | Database)` (returns `AuthStore & { readonly db: Database }`, uses `bun:sqlite` in WAL mode).
+- `@prunellejs/auth/oauth`: `github`, `discord`, `google`, `oauthProvider`.
 
 ## Configuration (`createAuth(options)`)
 
@@ -20,7 +20,7 @@
 - `sessionTtlSeconds` (default 30 days), `renewalIntervalSeconds` (sliding renewal), `tokenTtlSeconds` (default 15 min).
 - `minPasswordLength`: default `12` (CNIL guidance). `defaultRole`: `'user'`. `defaultRedirect`: `'/'`.
 - `requireEmailVerification`: default `true` (signup sends verification link and returns `202` without opening a session; signin refuses unverified users with `403`).
-- `mailer`: pass a `@prunelle/mail` `Mailer` directly, or `sendMail(mail: AuthMailPayload)`.
+- `mailer`: pass a `@prunellejs/mail` `Mailer` directly, or `sendMail(mail: AuthMailPayload)`.
 - `providers`: `[github({ clientId, clientSecret, scopes? }), discord(...), google(...), oauthProvider(...)]`.
 - `trustProxy`: inherits `PrunelleConfig.trustProxy`. `trustedOrigins`: merged with `PrunelleConfig.trustedOrigins`.
 - `rateLimit`: `{ max?, windowMs? } | false` (default 15 a minute, per scope and address and per scope and email, counted in the server's store; a refusal is a `429` with `Retry-After`). `pruneIntervalMs`: default 15 min (`false` disables).
@@ -46,8 +46,8 @@
 
 ```ts
 // src/auth.ts
-import { createAuth, github } from '@prunelle/auth'
-import { sqliteAuthStore } from '@prunelle/auth/sqlite'
+import { createAuth, github } from '@prunellejs/auth'
+import { sqliteAuthStore } from '@prunellejs/auth/sqlite'
 import { mail } from './mail'
 
 export const auth = createAuth({

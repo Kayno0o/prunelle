@@ -1,13 +1,13 @@
 # Task 01: Localized Static Blog (0 KB JS)
 
-Build a bilingual (`en` and `fr`) static blog using `@prunelle/content` and `@prunelle/i18n` that ships **0 KB of client JavaScript** (`--max-js 0kb`).
+Build a bilingual (`en` and `fr`) static blog using `@prunellejs/content` and `@prunellejs/i18n` that ships **0 KB of client JavaScript** (`--max-js 0kb`).
 
 ## Requirements
 
 1. **Configuration (`prunelle.config.ts`)**:
    - Configure `site: 'https://example.com'`.
-   - Register `@prunelle/i18n` with `locales: ['en', 'fr']`, `defaultLocale: 'en'`, and complete translation dictionaries (`messages`) for both `en` and `fr` (e.g. site title, intro, "Read more", "Back to blog") so `prunelle check` passes with zero missing translation keys.
-   - Register `@prunelle/content` with an RSS feed at `/rss.xml` (`linkPrefix: '/blog'`).
+   - Register `@prunellejs/i18n` with `locales: ['en', 'fr']`, `defaultLocale: 'en'`, and complete translation dictionaries (`messages`) for both `en` and `fr` (e.g. site title, intro, "Read more", "Back to blog") so `prunelle check` passes with zero missing translation keys.
+   - Register `@prunellejs/content` with an RSS feed at `/rss.xml` (`linkPrefix: '/blog'`).
 
 2. **Content Collection (`src/posts.ts` & `src/content/posts/`)**:
    - Define a localized collection with `defineCollection({ dir: 'src/content/posts', localized: true, defaultLocale: 'en', schema })`.

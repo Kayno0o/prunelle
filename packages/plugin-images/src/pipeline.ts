@@ -1,4 +1,4 @@
-// Variant encoding pipeline helpers shared by @prunelle/images build loader and Markdown image optimizer.
+// Variant encoding pipeline helpers shared by @prunellejs/images build loader and Markdown image optimizer.
 
 import type { ImageAsset } from './helpers'
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
@@ -177,7 +177,7 @@ async function encodeFormatAsync(srcPath: string, jobs: readonly VariantEncodeJo
       missing.push(job.width)
   }
   if (missing.length > 0)
-    console.warn(`@prunelle/images: magick could not encode ${srcPath} at ${missing.map(w => `${w}w`).join(', ')} (${jobs[0]!.format}), so those variants are left out: ${result.error || 'no output'}`)
+    console.warn(`@prunellejs/images: magick could not encode ${srcPath} at ${missing.map(w => `${w}w`).join(', ')} (${jobs[0]!.format}), so those variants are left out: ${result.error || 'no output'}`)
 }
 
 /** Encodes the jobs not in the cache yet, one `magick` run per format, and returns every job whose file is now in the cache, in plan order. */

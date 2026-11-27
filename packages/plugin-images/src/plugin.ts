@@ -1,4 +1,4 @@
-// @prunelle/images — Build-time AVIF/WebP responsive image optimization with content-hashed disk cache.
+// @prunellejs/images — Build-time AVIF/WebP responsive image optimization with content-hashed disk cache.
 // Built strictly on the public PrunellePlugin API (bunPlugins + build(ctx).emitAsset).
 
 import type { BunPlugin } from 'bun'
@@ -52,13 +52,13 @@ export interface ImagesPluginOptions {
   pruneCache?: boolean | undefined
   /** Optional defaults for build-time `shareCard()` OG image generation. */
   card?: ShareCardDefaults | undefined
-  /** Default `sizes` attribute for relative images auto-optimized inside `@prunelle/content` Markdown. */
+  /** Default `sizes` attribute for relative images auto-optimized inside `@prunellejs/content` Markdown. */
   markdownSizes?: string | undefined
 }
 
 const DEFAULT_WIDTHS = [320, 640, 960, 1280, 1920]
 const DEFAULT_FORMATS: ('avif' | 'webp')[] = ['avif', 'webp']
-const MISSING_MAGICK_MESSAGE = '@prunelle/images: ImageMagick ("magick") was not found on PATH; AVIF/WebP optimization is disabled. Install ImageMagick to enable responsive image optimization.'
+const MISSING_MAGICK_MESSAGE = '@prunellejs/images: ImageMagick ("magick") was not found on PATH; AVIF/WebP optimization is disabled. Install ImageMagick to enable responsive image optimization.'
 
 interface PersistedImagesConfig {
   cacheDirRel: string
@@ -91,7 +91,7 @@ export function images(options: ImagesPluginOptions = {}): PrunellePlugin {
   }
 
   return definePlugin({
-    name: '@prunelle/images',
+    name: '@prunellejs/images',
     check(ctx) {
       if (!hasMagick())
         ctx.error(MISSING_MAGICK_MESSAGE)
@@ -124,7 +124,7 @@ export function images(options: ImagesPluginOptions = {}): PrunellePlugin {
             if (!magickAvailable) {
               const dims = readImageDimensions(rawBytes)
               if (dims === undefined)
-                throw new Error(`@prunelle/images: could not determine dimensions for "${args.path}" (ImageMagick is unavailable and binary header could not be parsed)`)
+                throw new Error(`@prunellejs/images: could not determine dimensions for "${args.path}" (ImageMagick is unavailable and binary header could not be parsed)`)
               return emitRaw(dims.width, dims.height)
             }
 
@@ -137,7 +137,7 @@ export function images(options: ImagesPluginOptions = {}): PrunellePlugin {
             if (meta === undefined) {
               const dims = readImageDimensions(rawBytes) ?? await identifyImageAsync(args.path)
               if (dims === undefined)
-                throw new Error(`@prunelle/images: could not determine dimensions for "${args.path}"`)
+                throw new Error(`@prunellejs/images: could not determine dimensions for "${args.path}"`)
 
               const jobs = planVariantJobs(dims, stem, hash, cacheRoot, pipelineCfg)
               const encoded = await encodeVariants(args.path, jobs)
@@ -298,7 +298,7 @@ function optimizeForRuntime(
 export function optimizeImageFile(absPath: string, options: OptimizeImageFileOptions = {}): ImageAsset {
   const ext = extname(absPath).toLowerCase()
   if (!ALLOWED_IMAGE_EXTS.has(ext))
-    throw new Error(`@prunelle/images: unsupported image extension "${ext || '(none)'}" for "${absPath}"`)
+    throw new Error(`@prunellejs/images: unsupported image extension "${ext || '(none)'}" for "${absPath}"`)
 
   const pipelineCfg: VariantPipelineConfig = {
     widths: (options.widths ?? [640, 1280]).slice().sort((a, b) => a - b),
@@ -311,7 +311,7 @@ export function optimizeImageFile(absPath: string, options: OptimizeImageFileOpt
   const rawBytes = new Uint8Array(readFileSync(absPath))
   const dims = readImageDimensions(rawBytes)
   if (dims === undefined)
-    throw new Error(`@prunelle/images: could not determine dimensions for "${absPath}"`)
+    throw new Error(`@prunellejs/images: could not determine dimensions for "${absPath}"`)
 
   const { hash, stem, rawFileName } = computeImageKey(absPath, rawBytes, pipelineCfg)
   const cacheRoot = resolve(options.cacheDir ?? '.prunelle-cache/images')
@@ -374,7 +374,7 @@ export interface MarkdownImageResolverOptions extends OptimizeImageFileOptions {
   root?: string | undefined
 }
 
-/** Creates a `@prunelle/content` `resolveImage` function backed by `optimizeImageFile()`. Automatically wired by `images()`. */
+/** Creates a `@prunellejs/content` `resolveImage` function backed by `optimizeImageFile()`. Automatically wired by `images()`. */
 export function createMarkdownImageResolver(options: MarkdownImageResolverOptions = {}) {
   const sizes = options.sizes ?? '(min-width: 48rem) 42rem, 100vw'
   return (src: string, file: string | undefined) => {

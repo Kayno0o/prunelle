@@ -1,4 +1,4 @@
-// @prunelle/mcp — Zero-dependency MCP Streamable HTTP (2025-03-26) plugin for Prunelle.
+// @prunellejs/mcp — Zero-dependency MCP Streamable HTTP (2025-03-26) plugin for Prunelle.
 // Exposes typed Prunelle server `action()` handlers (and standalone tool handlers) as MCP tools
 // over a bearer-authenticated endpoint via `PrunellePlugin.server`, keeping core free of MCP code.
 
@@ -481,7 +481,7 @@ export function mcp(options: McpOptions): PrunellePlugin {
   }
 
   return definePlugin({
-    name: '@prunelle/mcp',
+    name: '@prunellejs/mcp',
 
     async requires() {
       return await resolveToken(options.token, readTokenFile) === undefined

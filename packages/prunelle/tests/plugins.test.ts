@@ -134,7 +134,7 @@ describe('PrunellePlugin API (tailwind + i18n + spa + custom transform)', () => 
     expect(cssRes.status).toBe(200)
     expect(await cssRes.text()).toContain('.badge')
 
-    // 2. French localized route via @prunelle/i18n rewrite + transformHtml + custom transform plugin
+    // 2. French localized route via @prunellejs/i18n rewrite + transformHtml + custom transform plugin
     const frRes = await app.get('/fr/about')
     expect(frRes.status).toBe(200)
     const frHtml = await frRes.text()
@@ -145,12 +145,12 @@ describe('PrunellePlugin API (tailwind + i18n + spa + custom transform)', () => 
     expect(frHtml).toContain('href="/fr/about"')
     expect(frHtml).toContain('href="/raw"') // data-no-localize respected!
 
-    // 3. Custom route registered by @prunelle/i18n via api.route()
+    // 3. Custom route registered by @prunellejs/i18n via api.route()
     const localesRes = await app.get('/_i18n/locales')
     expect(localesRes.status).toBe(200)
     expect(await localesRes.json()).toEqual({ locales: ['en', 'fr'], defaultLocale: 'en', current: 'en' })
 
-    // 4. Verify @prunelle/spa client script is bundled and preserves persistent island state across navigation in Chromium!
+    // 4. Verify @prunellejs/spa client script is bundled and preserves persistent island state across navigation in Chromium!
     const allClientJs = app.manifest!.assets
       .filter(f => f.endsWith('.js'))
       .map(f => readFileSync(join(fixtureDir, 'dist/client', f), 'utf8'))

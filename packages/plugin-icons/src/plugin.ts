@@ -1,5 +1,5 @@
 /// <reference path="./ambient.d.ts" />
-// The build side of @prunelle/icons: resolves `~icons/<set>/<name>` imports to inline SVG data at compile time, and adds `prunelle icons-find`.
+// The build side of @prunellejs/icons: resolves `~icons/<set>/<name>` imports to inline SVG data at compile time, and adds `prunelle icons-find`.
 // The reference above types those imports in every app registering icons() in prunelle.config.ts.
 
 import type { BunPlugin } from 'bun'
@@ -17,7 +17,7 @@ import { installedPrefixes, isSetPrefix, setFile } from './sets'
 import { readSvgDir } from './svg-dir'
 
 const ICON_SPEC_RE = /^~icons\/([^/]+)\/(.+)$/
-const SEARCH_ENTRY_RE = /^@prunelle\/icons\/search$/
+const SEARCH_ENTRY_RE = /^@prunellejs\/icons\/search$/
 const ICON_IMPORT_RE = /\b(?:from|import)\s*\(?\s*(['"])(~icons\/[^/'"]+\/[^'"]+)\1/g
 const SELF_CLOSING_RE = /<([a-z][\w:-]*)([^<>]*?)\s*\/>/gi
 const LOCAL_DIR = 'src/icons'
@@ -109,18 +109,18 @@ export function icons(options: IconsPluginOptions = {}): PrunellePlugin {
   }
 
   return definePlugin({
-    name: '@prunelle/icons',
+    name: '@prunellejs/icons',
     async check(ctx) {
       const lookup = lookupIn(ctx.root)
       for (const [prefix, dir] of Object.entries(options.dirs ?? {})) {
         if (!isSetPrefix(prefix))
-          ctx.error(`@prunelle/icons: "${prefix}" in icons({ dirs }) is not an icon set name: name it in lowercase words joined by dashes, such as brand.`)
+          ctx.error(`@prunellejs/icons: "${prefix}" in icons({ dirs }) is not an icon set name: name it in lowercase words joined by dashes, such as brand.`)
         else if (!existsSync(lookup.dirs.get(prefix)!))
-          ctx.error(`@prunelle/icons: icons({ dirs }) reads the set "${prefix}" from ${dir}, which does not exist.`)
+          ctx.error(`@prunellejs/icons: icons({ dirs }) reads the set "${prefix}" from ${dir}, which does not exist.`)
       }
       for (const prefix of lookup.dirs.keys()) {
         for (const [name, problem] of (await lookup.dirSet(prefix))?.problems ?? [])
-          ctx.error(`${relative(ctx.root, join(lookup.dirs.get(prefix)!, `${name}.svg`))}:1:1: error: @prunelle/icons: this file ${problem}.`)
+          ctx.error(`${relative(ctx.root, join(lookup.dirs.get(prefix)!, `${name}.svg`))}:1:1: error: @prunellejs/icons: this file ${problem}.`)
       }
       for (const file of new Bun.Glob('src/**/*.{ts,tsx,mts}').scanSync({ cwd: ctx.root })) {
         const code = await Bun.file(join(ctx.root, file)).text()
@@ -135,7 +135,7 @@ export function icons(options: IconsPluginOptions = {}): PrunellePlugin {
             continue
           const problem = await iconProblem(prefix!, name!, '', lookup)
           if (problem !== undefined)
-            ctx.error(`${file}:${lineAndColumn(code, found.index + found[0].length - found[2]!.length - 2)}: error: @prunelle/icons: ${problem}`)
+            ctx.error(`${file}:${lineAndColumn(code, found.index + found[0].length - found[2]!.length - 2)}: error: @prunellejs/icons: ${problem}`)
         }
       }
     },
@@ -146,7 +146,7 @@ export function icons(options: IconsPluginOptions = {}): PrunellePlugin {
         const lookup = lookupIn(root)
         if (target === 'client') {
           b.onResolve({ filter: SEARCH_ENTRY_RE }, (args) => {
-            console.warn(`@prunelle/icons: ${relative(root, args.importer)} imports @prunelle/icons/search into an island, which ships its 1.7 MB word table to the browser. Search on the server instead, in a route or an action.`)
+            console.warn(`@prunellejs/icons: ${relative(root, args.importer)} imports @prunellejs/icons/search into an island, which ships its 1.7 MB word table to the browser. Search on the server instead, in a route or an action.`)
             return undefined
           })
         }
@@ -165,8 +165,8 @@ export function icons(options: IconsPluginOptions = {}): PrunellePlugin {
           if (data === undefined) {
             const broken = await fileProblem(lookup, root, prefix!, name!)
             if (broken !== undefined)
-              throw new Error(`@prunelle/icons: ${broken.file}, imported by ${importers.get(args.path)}, ${broken.problem}.`)
-            throw new Error(`@prunelle/icons: ${await iconProblem(prefix!, name!, `, imported by ${importers.get(args.path)}`, lookup)}`)
+              throw new Error(`@prunellejs/icons: ${broken.file}, imported by ${importers.get(args.path)}, ${broken.problem}.`)
+            throw new Error(`@prunellejs/icons: ${await iconProblem(prefix!, name!, `, imported by ${importers.get(args.path)}`, lookup)}`)
           }
 
           return {

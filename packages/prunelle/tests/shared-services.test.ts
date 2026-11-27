@@ -19,12 +19,12 @@ function makeTemp(prefix: string): string {
 
 const repoRoot = join(import.meta.dir, '../../..')
 function linkWorkspace(dir: string): void {
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(join(repoRoot, 'packages/prunelle'), join(dir, 'node_modules/prunelle'))
-  symlinkSync(join(repoRoot, 'packages/plugin-auth'), join(dir, 'node_modules/@prunelle/auth'))
-  symlinkSync(join(repoRoot, 'packages/plugin-live'), join(dir, 'node_modules/@prunelle/live'))
-  symlinkSync(join(repoRoot, 'packages/plugin-mail'), join(dir, 'node_modules/@prunelle/mail'))
-  symlinkSync(join(repoRoot, 'packages/plugin-mcp'), join(dir, 'node_modules/@prunelle/mcp'))
+  symlinkSync(join(repoRoot, 'packages/plugin-auth'), join(dir, 'node_modules/@prunellejs/auth'))
+  symlinkSync(join(repoRoot, 'packages/plugin-live'), join(dir, 'node_modules/@prunellejs/live'))
+  symlinkSync(join(repoRoot, 'packages/plugin-mail'), join(dir, 'node_modules/@prunellejs/mail'))
+  symlinkSync(join(repoRoot, 'packages/plugin-mcp'), join(dir, 'node_modules/@prunellejs/mcp'))
 }
 
 afterAll(() => {
@@ -67,9 +67,9 @@ describe('Shared server module instances & createAuth({ mailer }) (#3552)', () =
     mkdirSync(join(dir, 'src/routes'), { recursive: true })
 
     writeFileSync(join(dir, 'src/services.ts'), `
-      import { createAuth, memoryAuthStore } from '@prunelle/auth'
-      import { createRooms } from '@prunelle/live'
-      import { createMailer } from '@prunelle/mail'
+      import { createAuth, memoryAuthStore } from '@prunellejs/auth'
+      import { createRooms } from '@prunellejs/live'
+      import { createMailer } from '@prunellejs/mail'
 
       export const mail = createMailer({ from: 'Demo <noreply@demo.local>', optional: true })
       export const auth = createAuth({
@@ -235,7 +235,7 @@ describe('one bundled entry assembles the app (#3577)', () => {
         export const addNote = action(async () => 'added')
       `,
       'prunelle.config.ts': `
-        import { mcp } from '@prunelle/mcp'
+        import { mcp } from '@prunellejs/mcp'
         import { defineConfig } from 'prunelle/config'
         import { addNote } from './src/routes/admin/notes'
         export default defineConfig({

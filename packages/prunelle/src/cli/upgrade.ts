@@ -18,7 +18,7 @@ export interface UpgradeResult {
 // The specifiers and file names every kind of file may name.
 const PATH_RULES: [RegExp, string][] = [
   [/@kayjs\/kay(?![\w-])/g, 'prunelle'],
-  [/@kayjs\//g, '@prunelle/'],
+  [/@kayjs\//g, '@prunellejs/'],
   [/\.kay-(cache|dev)\b/g, '.prunelle-$1'],
   [/\bkay\.config\b/g, 'prunelle.config'],
   [/\bkay v2\b/g, 'prunelle'],
@@ -165,7 +165,7 @@ function sourceFiles(root: string, dir = root, out: string[] = []): string[] {
   return out.sort()
 }
 
-// Every `@prunelle/*` package is released at prunelle's version, so they all move with it.
+// Every `@prunellejs/*` package is released at prunelle's version, so they all move with it.
 function upgradePackageJson(text: string): string {
   const json = JSON.parse(text) as Record<string, unknown>
   const indent = /^\{\n([ \t]+)"/.exec(text)?.[1] ?? '  '

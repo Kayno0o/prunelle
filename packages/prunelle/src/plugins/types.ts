@@ -177,7 +177,7 @@ export interface PrunellePlugin {
   head?: (head: DocumentHeadContext, ctx: RequestContext) => void | Promise<void>
   /** Post-process rendered HTML before sending (applies to pages, `<Suspense>` shells, `_error.tsx`, and `_404.tsx`). */
   transformHtml?: (html: string, ctx: RequestContext) => string | Promise<string>
-  /** Expand or filter prerender URLs for a route (e.g. @prunelle/i18n expanding `/posts/a` -> `['/posts/a', '/fr/posts/a']`). */
+  /** Expand or filter prerender URLs for a route (e.g. @prunellejs/i18n expanding `/posts/a` -> `['/posts/a', '/fr/posts/a']`). */
   prerenderPaths?: (paths: string[], route: RouteManifestEntry) => string[] | Promise<string[]>
   /** Client bootstrap module path — bundled ONLY when this plugin is active. */
   clientEntry?: string | undefined
@@ -200,7 +200,7 @@ export interface PrunellePlugin {
 
 /** Shared runtime server options inherited from `prunelle.config.ts` and overridable by `createServer`, `testApp`, `devServer`, and `--compile`. */
 export interface ServerRuntimeConfig {
-  /** Public origin of the site (e.g. 'https://example.com'), inherited by @prunelle/seo, @prunelle/i18n, @prunelle/content, @prunelle/images, and @prunelle/auth. */
+  /** Public origin of the site (e.g. 'https://example.com'), inherited by @prunellejs/seo, @prunellejs/i18n, @prunellejs/content, @prunellejs/images, and @prunellejs/auth. */
   site?: string | undefined
   lang?: string | undefined
   assetPrefix?: string | undefined

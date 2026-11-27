@@ -1,10 +1,10 @@
-# @prunelle/mcp Reference
+# @prunellejs/mcp Reference
 
 > Zero-dependency MCP Streamable HTTP (`2025-03-26`) plugin exposing typed Prunelle `action()` handlers and standalone handlers as bearer-authenticated AI agent tools and resources.
 
 ## Imports
 
-- `@prunelle/mcp`: `mcp`, `mcpTool`, `inspectMcpFootprint`, `formatMcpFootprint`, `formatLines`, `formatTable`, `pruneEmpty`, `truncateOutput`, `compactSchema`, `schemaToJsonSchema`, `MCP_PROTOCOL_VERSION`, `MAX_BATCH_SIZE`; types `McpOptions`, `McpTool`, `McpActionTool`, `McpHandlerTool`, `McpToolsRecord`, `McpResource`, `McpTokenSource`, `McpToolAnnotations`, `McpBudgetOptions`, `McpFootprint`, `McpToolFootprint`, `McpContentBlock`, `McpToolResult`, `McpPruneMode`, `PruneEmptyOptions`, `CompactListOptions`, `CompactSchemaOptions`, `JsonSchemaObject`.
+- `@prunellejs/mcp`: `mcp`, `mcpTool`, `inspectMcpFootprint`, `formatMcpFootprint`, `formatLines`, `formatTable`, `pruneEmpty`, `truncateOutput`, `compactSchema`, `schemaToJsonSchema`, `MCP_PROTOCOL_VERSION`, `MAX_BATCH_SIZE`; types `McpOptions`, `McpTool`, `McpActionTool`, `McpHandlerTool`, `McpToolsRecord`, `McpResource`, `McpTokenSource`, `McpToolAnnotations`, `McpBudgetOptions`, `McpFootprint`, `McpToolFootprint`, `McpContentBlock`, `McpToolResult`, `McpPruneMode`, `PruneEmptyOptions`, `CompactListOptions`, `CompactSchemaOptions`, `JsonSchemaObject`.
 
 ## Plugin Setup (`mcp(options)`)
 
@@ -29,7 +29,7 @@
 ```ts
 // prunelle.config.ts
 import { defineConfig } from 'prunelle/config'
-import { formatTable, mcp, mcpTool } from '@prunelle/mcp'
+import { formatTable, mcp, mcpTool } from '@prunellejs/mcp'
 import { createTodo, listTodos } from './src/actions/todos'
 
 export default defineConfig({

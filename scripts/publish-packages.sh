@@ -14,9 +14,9 @@ fi
 
 registry="$1"
 
-wrong=$(cat .npmrc packages/*/.npmrc 2>/dev/null | grep '^@prunelle:registry=' | grep -vxF "@prunelle:registry=$registry" || true)
+wrong=$(cat .npmrc packages/*/.npmrc 2>/dev/null | grep '^@prunellejs:registry=' | grep -vxF "@prunellejs:registry=$registry" || true)
 if [ -n "$wrong" ]; then
-  echo "A project .npmrc sends @prunelle elsewhere than $registry: $wrong"
+  echo "A project .npmrc sends @prunellejs elsewhere than $registry: $wrong"
   exit 1
 fi
 

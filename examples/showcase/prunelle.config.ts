@@ -1,7 +1,7 @@
-// Prunelle Showcase config: @prunelle/ui (live grammar switcher serves all 6 CSS grammars) + @prunelle/auth.
+// Prunelle Showcase config: @prunellejs/ui (live grammar switcher serves all 6 CSS grammars) + @prunellejs/auth.
 
-import { createAuth, memoryAuthStore } from '@prunelle/auth'
-import { ui } from '@prunelle/ui/plugin'
+import { createAuth, memoryAuthStore } from '@prunellejs/auth'
+import { ui } from '@prunellejs/ui/plugin'
 import { defineConfig } from 'prunelle/config'
 
 export const auth = createAuth({

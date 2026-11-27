@@ -95,10 +95,10 @@ export async function verify({ dir, app }: VerifyContext): Promise<AssertionResu
       assert(rejected, `expected tool "${writeTool.name}" to reject invalid empty input, got ${JSON.stringify(badBody)}`)
     })
 
-    await c.run('config wires @prunelle/mcp with token env, action() tools, and budget', async () => {
+    await c.run('config wires @prunellejs/mcp with token env, action() tools, and budget', async () => {
       const cfg = await Bun.file(`${dir}/prunelle.config.ts`).text()
       const sources = [...readAppSourceFiles(dir).values()].join('\n')
-      assert(/@prunelle\/mcp/.test(cfg), 'missing @prunelle/mcp import in prunelle.config.ts')
+      assert(/@prunellejs\/mcp/.test(cfg), 'missing @prunellejs/mcp import in prunelle.config.ts')
       assert(/\baction\s*\(/.test(sources), 'missing action() export in src/')
       assert(/\bbudget\b/.test(cfg), 'missing budget configuration in prunelle.config.ts')
     })

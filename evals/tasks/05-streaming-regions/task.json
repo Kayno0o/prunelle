@@ -1,12 +1,12 @@
 {
   "id": "05-streaming-regions",
   "title": "Streaming Suspense & Partial Region Swaps",
-  "description": "Search & detail page combining streaming <Suspense> and <Region> partial swaps with @prunelle/spa regions(), verifying x-pru-region responses, Vary header, and zero-JS fallback.",
+  "description": "Search & detail page combining streaming <Suspense> and <Region> partial swaps with @prunellejs/spa regions(), verifying x-pru-region responses, Vary header, and zero-JS fallback.",
   "template": "minimal",
   "maxJs": "15kb",
   "packages": [
     "prunelle",
-    "@prunelle/spa"
+    "@prunellejs/spa"
   ],
   "tags": [
     "suspense",

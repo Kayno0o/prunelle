@@ -88,7 +88,7 @@ const failingAction = action(async () => {
   throw new DomainError('Vault is read-only')
 })
 
-describe('@prunelle/mcp — Streamable HTTP (2025-03-26) plugin', () => {
+describe('@prunellejs/mcp — Streamable HTTP (2025-03-26) plugin', () => {
   test('schemaToJsonSchema reads Standard JSON Schema v1 and falls back cleanly', () => {
     expect(schemaToJsonSchema(noteSchema)).toEqual({
       type: 'object',

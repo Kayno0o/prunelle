@@ -24,10 +24,10 @@ async function prunelle(args: string[], cwd = process.cwd(), extraEnv?: Record<s
 }
 
 function linkWorkspacePackages(appDir: string): void {
-  mkdirSync(join(appDir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(appDir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(PRUNELLE_PKG_DIR, join(appDir, 'node_modules/prunelle'), 'dir')
-  symlinkSync(join(PACKAGES_DIR, 'ui'), join(appDir, 'node_modules/@prunelle/ui'), 'dir')
-  symlinkSync(join(PACKAGES_DIR, 'plugin-auth'), join(appDir, 'node_modules/@prunelle/auth'), 'dir')
+  symlinkSync(join(PACKAGES_DIR, 'ui'), join(appDir, 'node_modules/@prunellejs/ui'), 'dir')
+  symlinkSync(join(PACKAGES_DIR, 'plugin-auth'), join(appDir, 'node_modules/@prunellejs/auth'), 'dir')
 }
 
 describe('#3610 prunelle inspect [dir] [--json]', () => {
@@ -133,7 +133,7 @@ describe('#3610 prunelle inspect [dir] [--json]', () => {
         },
       ])
 
-      const authRoutes = report.routes.filter(r => r.plugin === '@prunelle/auth')
+      const authRoutes = report.routes.filter(r => r.plugin === '@prunellejs/auth')
       expect(authRoutes.map(r => r.path)).toContain('/auth/signin')
       expect(authRoutes.map(r => r.path)).toContain('/auth/signup')
       expect(authRoutes.map(r => r.path)).toContain('/auth/session')
@@ -149,17 +149,17 @@ describe('#3610 prunelle inspect [dir] [--json]', () => {
       ])
       expect(report.actions).toEqual([])
 
-      // Resolved order places `@prunelle/auth` (`enforce: 'pre'`) before `@prunelle/ui` even though `prunelle.config.ts` lists `ui` first.
+      // Resolved order places `@prunellejs/auth` (`enforce: 'pre'`) before `@prunellejs/ui` even though `prunelle.config.ts` lists `ui` first.
       expect(report.plugins).toEqual([
         {
-          name: '@prunelle/auth',
+          name: '@prunellejs/auth',
           enforce: 'pre',
           providesLocals: ['user', 'session'],
           readsLocals: [],
           commands: [],
         },
         {
-          name: '@prunelle/ui',
+          name: '@prunellejs/ui',
           providesLocals: [],
           readsLocals: [],
           commands: ['ui-eject'],

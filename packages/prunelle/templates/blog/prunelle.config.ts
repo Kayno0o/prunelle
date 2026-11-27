@@ -1,6 +1,6 @@
-import { content } from '@prunelle/content'
-import { seo } from '@prunelle/seo'
-import { ui } from '@prunelle/ui/plugin'
+import { content } from '@prunellejs/content'
+import { seo } from '@prunellejs/seo'
+import { ui } from '@prunellejs/ui/plugin'
 import { defineConfig } from 'prunelle/config'
 import { posts } from './src/posts'
 

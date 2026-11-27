@@ -69,7 +69,7 @@ describe('#3664 <Catch> on the server', () => {
 describe('#3664 <Catch> in a served page', () => {
   const dir = mkdtempSync(join(tmpdir(), 'prunelle-catch-'))
   afterAll(() => rmSync(dir, { recursive: true, force: true }))
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(join(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'), 'dir')
   const page = `import { Catch } from 'prunelle'
 function Stock() { throw new Error('no stock') }

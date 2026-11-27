@@ -39,8 +39,8 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
     expect(read(dir, 'package.json')).toBe(`${JSON.stringify({
       name: 'app',
       scripts: { dev: 'prunelle dev', build: 'bunx prunelle build && echo okay', kayak: 'kayak paddle' },
-      dependencies: { '@prunelle/ui': `^${pkg.version}`, 'hono': '^4.0.0', 'prunelle': `^${pkg.version}` },
-      devDependencies: { '@prunelle/auth': `^${pkg.version}` },
+      dependencies: { '@prunellejs/ui': `^${pkg.version}`, 'hono': '^4.0.0', 'prunelle': `^${pkg.version}` },
+      devDependencies: { '@prunellejs/auth': `^${pkg.version}` },
     }, null, '\t')}\n`)
   })
 
@@ -76,7 +76,7 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
       'import type { PrunellePlugin as Plugin, PrunelleConfig } from \'prunelle/config\'',
       'import { defineConfig } from "prunelle/config"',
       'import * as kay from \'prunelle/server\'',
-      'import { seo } from \'@prunelle/seo\'',
+      'import { seo } from \'@prunellejs/seo\'',
       'const plugins: Plugin[] = [seo({ site: \'https://a.test\' })]',
       'export const config: PrunelleConfig = defineConfig({ plugins })',
       'export const table = { KayConfig: 1 }',

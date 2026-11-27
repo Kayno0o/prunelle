@@ -93,25 +93,25 @@ Core holds the compiler, runtime, router, SSR and build. Every optional capabili
 | Package | Purpose | Notes |
 | :--- | :--- | :--- |
 | **`prunelle`** | Compiler, linked-list signals, DOM runtime, router, SSR/Suspense, actions, build/compile, `prunelle/test` | 2 runtime deps (`oxc-parser`, `@kaynooo/cli-kit` for the CLI) |
-| **`@prunelle/ui`** | Platform-first headless primitives + 6 structurally distinct pure CSS `@layer kui` Grammars (`prunelle`, `editorial`, `workshop`, `console`, `soft`, `orbit`) + `prunelle ui-eject` | Zero JS recipe engine, zero Tailwind lock-in |
-| **`@prunelle/auth`** | Argon2id passwords, hashed DB sessions, email verification, magic links, OAuth 2.0 + PKCE (GitHub/Discord/Google), `auth.guard()`, RGPD helpers, `bun:sqlite` store | Zero external deps |
-| **`@prunelle/live`** | Typed real-time SSE rooms, microtask-coalesced presence, `useLive()` browser signal hook | Zero external deps |
-| **`@prunelle/content`** | `Bun.markdown` GFM collections, YAML frontmatter + Standard Schema, lazy `render()`, heading TOC, `paths()` prerender, RSS XML | Zero external deps |
-| **`@prunelle/mcp`** | Streamable HTTP (`2025-03-26`) MCP server exposing typed `action()` tools with schema compaction, shared schemas, `resources`, output shaping, and `prunelle mcp-footprint` | Zero external deps |
-| **`@prunelle/mail`** | Resend HTTP transport, custom transports, and dev-only `/_pru/mail` outbox preview | Zero external deps |
-| **`@prunelle/images`** | Build-time responsive AVIF/WebP pipeline + content-hash cache + `<Picture>` + OG `shareCard()` | ImageMagick / librsvg-backed (zero npm deps) |
-| **`@prunelle/icons`** | Virtual `~icons/<set>/<name>` imports + browser-pure `<Icon>`, your `.svg` folders as sets, `prunelle icons-find` search by related word or typo | Iconify JSON sets |
-| **`@prunelle/seo`** | `titleTemplate`, OpenGraph/Twitter meta, JSON-LD, sitemap, redirects, self-hosted fonts | Zero external deps |
-| **`@prunelle/tailwind`** | Tailwind v4 CSS integration (auto-loads `bun-plugin-tailwind`) | Opt-in |
-| **`@prunelle/spa`** | `regions()` swaps one `<Region>` of a page in a view transition and keeps its scroll per history entry, shipping its client only on pages that render one (the default beside plain page loads); opt-in `spa()` navigation for apps that need `[data-persist]` islands kept alive | Opt-in |
-| **`@prunelle/i18n`** | Locale URL rewriting, dictionary lookup, localized HTML & `prunelle i18n-check` | Zero external deps |
+| **`@prunellejs/ui`** | Platform-first headless primitives + 6 structurally distinct pure CSS `@layer kui` Grammars (`prunelle`, `editorial`, `workshop`, `console`, `soft`, `orbit`) + `prunelle ui-eject` | Zero JS recipe engine, zero Tailwind lock-in |
+| **`@prunellejs/auth`** | Argon2id passwords, hashed DB sessions, email verification, magic links, OAuth 2.0 + PKCE (GitHub/Discord/Google), `auth.guard()`, RGPD helpers, `bun:sqlite` store | Zero external deps |
+| **`@prunellejs/live`** | Typed real-time SSE rooms, microtask-coalesced presence, `useLive()` browser signal hook | Zero external deps |
+| **`@prunellejs/content`** | `Bun.markdown` GFM collections, YAML frontmatter + Standard Schema, lazy `render()`, heading TOC, `paths()` prerender, RSS XML | Zero external deps |
+| **`@prunellejs/mcp`** | Streamable HTTP (`2025-03-26`) MCP server exposing typed `action()` tools with schema compaction, shared schemas, `resources`, output shaping, and `prunelle mcp-footprint` | Zero external deps |
+| **`@prunellejs/mail`** | Resend HTTP transport, custom transports, and dev-only `/_pru/mail` outbox preview | Zero external deps |
+| **`@prunellejs/images`** | Build-time responsive AVIF/WebP pipeline + content-hash cache + `<Picture>` + OG `shareCard()` | ImageMagick / librsvg-backed (zero npm deps) |
+| **`@prunellejs/icons`** | Virtual `~icons/<set>/<name>` imports + browser-pure `<Icon>`, your `.svg` folders as sets, `prunelle icons-find` search by related word or typo | Iconify JSON sets |
+| **`@prunellejs/seo`** | `titleTemplate`, OpenGraph/Twitter meta, JSON-LD, sitemap, redirects, self-hosted fonts | Zero external deps |
+| **`@prunellejs/tailwind`** | Tailwind v4 CSS integration (auto-loads `bun-plugin-tailwind`) | Opt-in |
+| **`@prunellejs/spa`** | `regions()` swaps one `<Region>` of a page in a view transition and keeps its scroll per history entry, shipping its client only on pages that render one (the default beside plain page loads); opt-in `spa()` navigation for apps that need `[data-persist]` islands kept alive | Opt-in |
+| **`@prunellejs/i18n`** | Locale URL rewriting, dictionary lookup, localized HTML & `prunelle i18n-check` | Zero external deps |
 
 ---
 
 ## Examples
 
-- **[`examples/showcase`](examples/showcase)** — Live `@prunelle/ui` Grammar Switcher (`prunelle` / `editorial` / `workshop` / `console` / `soft` / `orbit` / `bare`), every UI primitive, and guarded `@prunelle/auth` routes.
-- **[`examples/noticeboard`](examples/noticeboard)** — Full-stack real-time app combining `@prunelle/auth`, `@prunelle/live` (SSE presence & live push), `@prunelle/mail`, `@prunelle/ui`, Standard-Schema `action()`, and `bun:sqlite`.
+- **[`examples/showcase`](examples/showcase)** — Live `@prunellejs/ui` Grammar Switcher (`prunelle` / `editorial` / `workshop` / `console` / `soft` / `orbit` / `bare`), every UI primitive, and guarded `@prunellejs/auth` routes.
+- **[`examples/noticeboard`](examples/noticeboard)** — Full-stack real-time app combining `@prunellejs/auth`, `@prunellejs/live` (SSE presence & live push), `@prunellejs/mail`, `@prunellejs/ui`, Standard-Schema `action()`, and `bun:sqlite`.
 
 ```sh
 cd examples/showcase && bun run dev
@@ -129,8 +129,8 @@ prunelle build --static                     # Pure static HTML export
 prunelle build --compile [out]              # Single standalone executable
 prunelle start [--port 3000] [--host [addr]] # Serve the built app or static export, reloading each new build
 prunelle upgrade [--no-install]             # Move an app written for kay v2 onto prunelle
-prunelle ui-eject <grammar> [dest]          # Eject a standalone @prunelle/ui CSS Grammar
-prunelle mcp-footprint                      # Inspect @prunelle/mcp tool byte & token budgets
+prunelle ui-eject <grammar> [dest]          # Eject a standalone @prunellejs/ui CSS Grammar
+prunelle mcp-footprint                      # Inspect @prunellejs/mcp tool byte & token budgets
 prunelle --completions fish                 # Shell completion script (also bash, zsh)
 ```
 

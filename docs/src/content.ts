@@ -1,7 +1,7 @@
 import type { StandardSchemaV1 } from 'prunelle/server'
 import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { defineCollection } from '@prunelle/content'
+import { defineCollection } from '@prunellejs/content'
 
 export type DocSectionId = 'getting-started' | 'core' | 'plugins' | 'production'
 

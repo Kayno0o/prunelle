@@ -1,18 +1,18 @@
 ---
-title: "@prunelle/auth"
+title: "@prunellejs/auth"
 description: Zero-dependency Bun-native authentication — Argon2id passwords, hashed sessions, email verification, magic links, OAuth 2.0 + PKCE, route guards, RGPD helpers, and SQLite.
 section: plugins
 order: 2
 ---
 
-`@prunelle/auth` ships a complete authentication layer with **zero external dependencies**, built natively on `Bun.password` (Argon2id), Web Crypto, and `bun:sqlite`.
+`@prunellejs/auth` ships a complete authentication layer with **zero external dependencies**, built natively on `Bun.password` (Argon2id), Web Crypto, and `bun:sqlite`.
 
 ## Setup
 
 ```ts
 // src/auth.ts
-import { createAuth, github } from '@prunelle/auth'
-import { sqliteAuthStore } from '@prunelle/auth/sqlite'
+import { createAuth, github } from '@prunellejs/auth'
+import { sqliteAuthStore } from '@prunellejs/auth/sqlite'
 import { mail } from './mail'
 
 export const auth = createAuth({
@@ -56,7 +56,7 @@ export default defineConfig({
 | `POST /auth/signin` | Timing-safe Argon2id verify, rejects unverified accounts (`403`) when verification is required, IP + email rate limiting (`429`) |
 | `POST /auth/signout` | Revokes hashed session + clears cookie |
 | `GET /auth/session` | Returns current public user JSON |
-| `POST /auth/magic-link` & `GET` / `POST /auth/magic-link/verify` | One-time email login via `@prunelle/mail`. Like verification, the link opens a page whose button `POST`s the token and signs in. The first sign-in by link verifies the address and drops any password, sessions and provider links set before it |
+| `POST /auth/magic-link` & `GET` / `POST /auth/magic-link/verify` | One-time email login via `@prunellejs/mail`. Like verification, the link opens a page whose button `POST`s the token and signs in. The first sign-in by link verifies the address and drops any password, sessions and provider links set before it |
 | `GET /auth/oauth/:provider` & callback | OAuth 2.0 + PKCE (`S256`) with HMAC-signed state (`github`, `discord`, `google`, or custom `oauthProvider`), rate limited |
 
 ## Protecting routes & actions

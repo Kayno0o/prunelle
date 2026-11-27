@@ -417,7 +417,7 @@ describe('#3632 — 3. <Region> HTTP semantics, Vary composition, prerendered ro
         }
       `,
     })
-    mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+    mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
     symlinkSync(prunelleDir, join(dir, 'node_modules/prunelle'), 'dir')
 
     const dev = await devServer({ root: dir, port: 0 })
@@ -623,7 +623,7 @@ describe('#3632 — 5. Graceful shutdown drain order and re-entrancy', () => {
   it('keeps DB/plugin resources open during in-flight HTTP drain while immediately closing SSE streams on SIGTERM + SIGINT', async () => {
     const dir = appWith({
       'src/live.ts': `
-        import { createRooms } from '@prunelle/live'
+        import { createRooms } from '@prunellejs/live'
         export const rooms = createRooms<string, string>({ path: '/events', member: () => 'guest', pingMs: 0 })
       `,
       'src/routes/slow.ts': `
@@ -659,9 +659,9 @@ describe('#3632 — 5. Graceful shutdown drain order and re-entrancy', () => {
         ],
       })
     `)
-    mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+    mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
     symlinkSync(prunelleDir, join(dir, 'node_modules/prunelle'))
-    symlinkSync(join(prunelleDir, '../plugin-live'), join(dir, 'node_modules/@prunelle/live'))
+    symlinkSync(join(prunelleDir, '../plugin-live'), join(dir, 'node_modules/@prunellejs/live'))
     await build({ root: dir })
 
     const proc: Subprocess<'ignore', 'pipe', 'pipe'> = Bun.spawn(

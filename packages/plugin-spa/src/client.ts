@@ -1,4 +1,4 @@
-// @prunelle/spa client bootstrap:
+// @prunellejs/spa client bootstrap:
 // - Intercepts internal <a> clicks with AbortController cancellation (no dropped rapid clicks)
 // - Diffs <head> stylesheets (zero-FOUC load-before-remove), <html lang>, <title>, meta/canonical tags
 // - Preserves [data-persist] islands alive across View Transitions swaps

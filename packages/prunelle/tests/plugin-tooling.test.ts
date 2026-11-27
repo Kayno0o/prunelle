@@ -5,8 +5,8 @@ import { describe, expect, test } from 'bun:test'
 import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { images, optimizeImageFile, readImageDimensions } from '@prunelle/images'
-import { tailwind } from '@prunelle/tailwind'
+import { images, optimizeImageFile, readImageDimensions } from '@prunellejs/images'
+import { tailwind } from '@prunellejs/tailwind'
 import { build } from '../src/build/index'
 import { checkProject } from '../src/cli/check'
 import { createServer } from '../src/server/index'
@@ -59,7 +59,7 @@ function jpegWithOrientation(orientation: number, { endian = 'MM', jfif = false,
   ])
 }
 
-describe('@prunelle/images sizes a photo as it is displayed, after its EXIF orientation (#3676)', () => {
+describe('@prunellejs/images sizes a photo as it is displayed, after its EXIF orientation (#3676)', () => {
   test('swaps width and height for orientations 5 to 8, in either byte order and after a JFIF segment', () => {
     expect(readImageDimensions(jpegWithOrientation(6))).toEqual({ width: 480, height: 640 })
     expect(readImageDimensions(jpegWithOrientation(8))).toEqual({ width: 480, height: 640 })
@@ -172,7 +172,7 @@ describe('#3553 plugin tooling checks & real image dimensions', () => {
     expect(readImageDimensions(new Uint8Array([1, 2, 3, 4]))).toBeUndefined()
   })
 
-  test('@prunelle/images without magick warns once at startup, fails prunelle check, and reports real dimensions (never 0x0)', async () => {
+  test('@prunellejs/images without magick warns once at startup, fails prunelle check, and reports real dimensions (never 0x0)', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'prunelle-3553-img-'))
     const prevPath = process.env.PATH
     const warnings: string[] = []
@@ -221,7 +221,7 @@ export default { plugins: [images()] }
     }
   })
 
-  test('@prunelle/images fails the build instead of exporting 0x0 for unreadable image bytes', async () => {
+  test('@prunellejs/images fails the build instead of exporting 0x0 for unreadable image bytes', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'prunelle-3553-corrupt-'))
     const prevPath = process.env.PATH
     const origWarn = console.warn
@@ -262,7 +262,7 @@ export default function Home() {
     }
   })
 
-  test('@prunelle/tailwind without bun-plugin-tailwind warns once at startup and fails prunelle check', async () => {
+  test('@prunellejs/tailwind without bun-plugin-tailwind warns once at startup and fails prunelle check', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'prunelle-3553-tw-'))
     const warnings: string[] = []
     const origWarn = console.warn

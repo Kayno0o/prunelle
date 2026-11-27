@@ -4,18 +4,18 @@ Prunelle is designed to help teams ship fast, accessible web applications by def
 
 ## Goals & Standards
 
-- **Target baseline**: [WCAG 2.2 Level AA](https://www.w3.org/TR/WCAG22/) across Prunelle's first-party UI library (`@prunelle/ui`), starter templates (`prunelle new`), and documentation site (`docs/`).
+- **Target baseline**: [WCAG 2.2 Level AA](https://www.w3.org/TR/WCAG22/) across Prunelle's first-party UI library (`@prunellejs/ui`), starter templates (`prunelle new`), and documentation site (`docs/`).
 - **Platform-first semantics**: Prefer native HTML elements and browser APIs over custom `<div>` reimplementations so keyboard behavior, focus management, top-layer stacking, and assistive technology announcements work reliably out of the box.
 - **Progressive enhancement**: Pages render complete semantic HTML on the server (`0 KB` JS for static routes), forms work without JavaScript via server `action()` endpoints, and interactive islands hydrate progressively without blocking content.
 
 ## How Prunelle Implements Accessibility
 
 ### Core Framework (`prunelle`)
-- **Document semantics**: Every HTML response sets `<html lang="...">` (configurable via `prunelle.config.ts` and localized automatically by `@prunelle/i18n`) and deduplicates `<title>` / `<meta>` tags cleanly through `<Head>`.
+- **Document semantics**: Every HTML response sets `<html lang="...">` (configurable via `prunelle.config.ts` and localized automatically by `@prunellejs/i18n`) and deduplicates `<title>` / `<meta>` tags cleanly through `<Head>`.
 - **Progressive forms**: Standard-Schema `action()` handlers accept standard HTML `<form method="post">` submissions with field-level validation feedback even when JavaScript is disabled or still loading.
 - **Zero-JS navigation by default**: Standard `<a href>` navigation preserves native browser history, focus reset, and screen reader page-change announcements.
 
-### UI Library (`@prunelle/ui`)
+### UI Library (`@prunellejs/ui`)
 - **Native browser primitives first**:
   - `Dialog` and `Drawer` use native `<dialog>` (`showModal()`, native `Escape` dismissal, inert background, top-layer stacking).
   - `Popover` uses the native HTML Popover API (`popover` / `popovertarget`).
@@ -31,7 +31,7 @@ Prunelle is designed to help teams ship fast, accessible web applications by def
 
 ## Expectations for Contributors
 
-When opening a pull request that touches `@prunelle/ui`, templates, or `docs/`:
+When opening a pull request that touches `@prunellejs/ui`, templates, or `docs/`:
 
 1. **Keyboard test**: Verify every new or modified interactive control is reachable and operable using only `Tab`, `Shift+Tab`, `Enter`, `Space`, `Escape`, and arrow keys.
 2. **Contrast check**: Verify text, icons, borders, and interactive states (default, hover, focus, disabled) remain legible in both **light** and **dark** modes.
@@ -42,7 +42,7 @@ When opening a pull request that touches `@prunelle/ui`, templates, or `docs/`:
 
 Accessibility defects are treated as bugs, not low-priority enhancements.
 
-If you encounter a barrier in Prunelle, `@prunelle/ui`, or the documentation site, please [open an issue](https://github.com/Kayno0o/prunelle/issues) (or on [Forgejo](https://git.kaynooo.fr/kaynooo/prunelle/issues)) with:
+If you encounter a barrier in Prunelle, `@prunellejs/ui`, or the documentation site, please [open an issue](https://github.com/Kayno0o/prunelle/issues) (or on [Forgejo](https://git.kaynooo.fr/kaynooo/prunelle/issues)) with:
 
 - The package, component, or docs page affected
 - Browser, OS, and assistive technology used (e.g. NVDA, VoiceOver, Orca, keyboard-only, zoom/high-contrast mode)

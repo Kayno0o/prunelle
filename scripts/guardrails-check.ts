@@ -176,7 +176,7 @@ export function pluginPackageDir(file: string): string | undefined {
 }
 
 function defaultPluginPackageName(dir: string): string {
-  return `@prunelle/${dir.slice('plugin-'.length)}`
+  return `@prunellejs/${dir.slice('plugin-'.length)}`
 }
 
 function checkBrowserPureImport(
@@ -255,7 +255,7 @@ function checkCrossPluginImport(
   specifier: string,
   line: number,
 ): GuardrailViolation | undefined {
-  if (specifier.startsWith('@prunelle/')) {
+  if (specifier.startsWith('@prunellejs/')) {
     const parts = specifier.split('/')
     const targetPkg = `${parts[0]}/${parts[1] ?? ''}`
     if (targetPkg !== 'prunelle' && targetPkg !== ownPkgName) {

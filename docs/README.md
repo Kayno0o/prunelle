@@ -1,6 +1,6 @@
 # Prunelle Docs
 
-100% static documentation site built with Prunelle itself (`@prunelle/ui` Orbit grammar, `@prunelle/content`, `@prunelle/images`, `@prunelle/seo`, `@prunelle/icons`).
+100% static documentation site built with Prunelle itself (`@prunellejs/ui` Orbit grammar, `@prunellejs/content`, `@prunellejs/images`, `@prunellejs/seo`, `@prunellejs/icons`).
 
 ## Local development & static build
 

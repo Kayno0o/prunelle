@@ -1,4 +1,4 @@
-// RSS 2.0 XML feed generation and ETag matching for @prunelle/content.
+// RSS 2.0 XML feed generation and ETag matching for @prunellejs/content.
 
 import type { Collection, ContentEntry } from './collection'
 import { escAttr } from 'prunelle/server'

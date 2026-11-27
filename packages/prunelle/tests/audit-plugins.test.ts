@@ -44,7 +44,7 @@ function makeCtx(urlStr: string, locals: import('../src/server/index').PrunelleL
 
 describe('Batch 5 Audit — Ecosystem Plugins & Publish Script (#3526)', () => {
   // ── Box 6 + Audit line 21: plugin-seo & plugin-i18n replace patterns + JSON-LD escaping ──
-  describe('Box 6 + JSON-LD (@prunelle/seo & @prunelle/i18n)', () => {
+  describe('Box 6 + JSON-LD (@prunellejs/seo & @prunellejs/i18n)', () => {
     it('keeps $&, $`, $\', $$ verbatim in seo titleTemplate and canonical/description head additions', async () => {
       const plugin = seo({
         site: 'https://example.com',
@@ -118,7 +118,7 @@ describe('Batch 5 Audit — Ecosystem Plugins & Publish Script (#3526)', () => {
   })
 
   // ── Box 14: Markdown component props parsed as literals ONLY (zero new Function) ──
-  describe('Box 14 (@prunelle/content literal-only component props)', () => {
+  describe('Box 14 (@prunellejs/content literal-only component props)', () => {
     it('contains zero new Function or eval calls in plugin-content', () => {
       const src = readFileSync(join(REPO_ROOT, 'packages/plugin-content/src/index.ts'), 'utf8')
       expect(src).not.toMatch(/\bnew\s+Function\b/)
@@ -173,7 +173,7 @@ describe('Batch 5 Audit — Ecosystem Plugins & Publish Script (#3526)', () => {
   })
 
   // ── Box 15: Markdown HTML sanitized by default unless trusted: true ──
-  describe('Box 15 (@prunelle/content Markdown HTML sanitization)', () => {
+  describe('Box 15 (@prunellejs/content Markdown HTML sanitization)', () => {
     it('sanitizes dangerous tags, event handlers, srcdoc, and dangerous URL schemes by default', () => {
       const md = `
 # Hello
@@ -250,7 +250,7 @@ Safe **bold** and [good link](https://example.com) and ![ok](/img/a.png).
   })
 
   // ── Box 42: Content collection file-list caching & memoised RSS feed with ETag ──
-  describe('Box 42 (@prunelle/content file-list cache & memoised RSS with ETag)', () => {
+  describe('Box 42 (@prunellejs/content file-list cache & memoised RSS with ETag)', () => {
     it('caches directory walk in production, invalidates on clearCache(), and refreshes in dev (PRUNELLE_DEV=1)', () => {
       const dir = makeTemp('prunelle-content-cache-')
       writeFileSync(join(dir, 'a.md'), '---\ntitle: A\ndate: 2026-01-01\n---\nHello A\n')
@@ -350,7 +350,7 @@ Safe **bold** and [good link](https://example.com) and ![ok](/img/a.png).
   })
 
   // ── Box 16: plugin-images refuses ../../.env, non-image extensions, and escapes ──
-  describe('Box 16 (@prunelle/images Markdown resolver confinement & extensions)', () => {
+  describe('Box 16 (@prunellejs/images Markdown resolver confinement & extensions)', () => {
     it('refuses path traversal, symlinks outside root, and non-image extensions while resolving valid project images', () => {
       const outer = makeTemp('prunelle-img-audit-')
       const projectRoot = join(outer, 'project')
@@ -403,7 +403,7 @@ Safe **bold** and [good link](https://example.com) and ![ok](/img/a.png).
   })
 
   // ── Box 17: plugin-i18n localizePath & //cdn protocol-relative links ──
-  describe('Box 17 (@prunelle/i18n open-redirect & protocol-relative hrefs)', () => {
+  describe('Box 17 (@prunellejs/i18n open-redirect & protocol-relative hrefs)', () => {
     it('collapses leading slashes in localizePath so /fr//evil.com never yields //evil.com', () => {
       expect(localizePath('/fr//evil.com', 'en', 'en', ['en', 'fr'])).toBe('/evil.com')
       expect(localizePath('///evil.com', 'en', 'en', ['en', 'fr'])).toBe('/evil.com')
@@ -422,7 +422,7 @@ Safe **bold** and [good link](https://example.com) and ![ok](/img/a.png).
   })
 
   // ── Box 18: plugin-live server caps, stalled drop, CR/LF refusal, authorize ──
-  describe('Box 18 (@prunelle/live server hardening)', () => {
+  describe('Box 18 (@prunellejs/live server hardening)', () => {
     it('refuses CR or LF in SSE event names to prevent frame injection', () => {
       const rooms = createRooms<{ msg: string }, string>()
       expect(() => rooms.publish('r1', { msg: 'hi' }, 'update\ndata: injected')).toThrow()
@@ -565,7 +565,7 @@ Safe **bold** and [good link](https://example.com) and ![ok](/img/a.png).
   })
 
   // ── Box 39: plugin-live client reconnects closed EventSource with backoff & jitter ──
-  describe('Box 39 (@prunelle/live client EventSource reconnect)', () => {
+  describe('Box 39 (@prunellejs/live client EventSource reconnect)', () => {
     it('recreates closed EventSource with exponential backoff + jitter and cleans up on close()', async () => {
       const origEventSource = globalThis.EventSource
       const instances: MockES[] = []
@@ -654,7 +654,7 @@ Safe **bold** and [good link](https://example.com) and ![ok](/img/a.png).
   })
 
   // ── Box 23 & Box 38: plugin-spa client focus, live region, opt-in prefetch, error recovery, #100%, popstate ──
-  describe('Box 23 & Box 38 (@prunelle/spa client a11y & resilience)', () => {
+  describe('Box 23 & Box 38 (@prunellejs/spa client a11y & resilience)', () => {
     it('moves focus to main/h1, announces title in polite live region, opts-in prefetch, recovers fetch failure, handles #100%, and skips same-doc popstate', async () => {
       GlobalRegistrator.register({ url: 'http://localhost/', settings: { handleDisabledFileLoadingAsSuccess: true } })
       const origFetch = globalThis.fetch
@@ -760,7 +760,7 @@ Safe **bold** and [good link](https://example.com) and ![ok](/img/a.png).
       mkdirSync(pkgDir, { recursive: true })
 
       writeFileSync(join(pkgDir, 'package.json'), JSON.stringify({
-        name: '@prunelle/sample',
+        name: '@prunellejs/sample',
         version: '0.1.0',
         private: false,
       }))

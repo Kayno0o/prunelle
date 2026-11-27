@@ -1,4 +1,4 @@
-// Zero-dependency Bun-native crypto helpers for @prunelle/auth.
+// Zero-dependency Bun-native crypto helpers for @prunellejs/auth.
 // Uses crypto.getRandomValues, Bun.CryptoHasher (SHA-256 / HMAC-SHA256), and Bun.password (Argon2id).
 
 import { safeEqual } from 'prunelle/server'

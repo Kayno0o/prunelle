@@ -1,4 +1,4 @@
-// Output pruning, compact text/TSV formatting, truncation, and Response normalization for @prunelle/mcp.
+// Output pruning, compact text/TSV formatting, truncation, and Response normalization for @prunellejs/mcp.
 
 export interface McpContentBlock {
   type: 'text'

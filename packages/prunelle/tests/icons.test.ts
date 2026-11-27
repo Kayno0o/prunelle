@@ -24,12 +24,12 @@ afterAll(() => {
     rmSync(root, { recursive: true, force: true })
 })
 
-// An app installing @prunelle/icons and prunelle as links, the way a workspace or `file:` dependency does.
+// An app installing @prunellejs/icons and prunelle as links, the way a workspace or `file:` dependency does.
 function linkedApp(files: Record<string, string>): string {
   const root = mkdtempSync(join(tmpdir(), 'prunelle-icons-'))
   roots.push(root)
-  mkdirSync(join(root, 'node_modules/@prunelle'), { recursive: true })
-  symlinkSync(join(import.meta.dir, '../../plugin-icons'), join(root, 'node_modules/@prunelle/icons'))
+  mkdirSync(join(root, 'node_modules/@prunellejs'), { recursive: true })
+  symlinkSync(join(import.meta.dir, '../../plugin-icons'), join(root, 'node_modules/@prunellejs/icons'))
   symlinkSync(join(import.meta.dir, '..'), join(root, 'node_modules/prunelle'))
 
   for (const [path, source] of Object.entries(files)) {
@@ -49,7 +49,7 @@ function clientJs(root: string): string {
 async function staticMain(jsx: string): Promise<string> {
   const root = linkedApp({
     'src/routes/index.tsx': `
-      import { Icon } from '@prunelle/icons'
+      import { Icon } from '@prunellejs/icons'
       import arrow from '~icons/demo/arrow'
       export default function Home() { return <main>${jsx}</main> }
     `,
@@ -85,12 +85,12 @@ describe('<Icon> on the server', () => {
   })
 })
 
-describe('@prunelle/icons in an island', () => {
-  it('builds an island rendering <Icon> imported from @prunelle/icons', async () => {
+describe('@prunellejs/icons in an island', () => {
+  it('builds an island rendering <Icon> imported from @prunellejs/icons', async () => {
     const root = linkedApp({
       'src/Counter.tsx': `
         import { signal } from 'prunelle'
-        import { Icon } from '@prunelle/icons'
+        import { Icon } from '@prunellejs/icons'
         import arrow from '~icons/demo/arrow'
         export function Counter() {
           const count = signal(0)
@@ -136,7 +136,7 @@ describe('<Icon> in a hydrated island', () => {
     await withHydratedIsland({
       'src/Swap.tsx': `
         import { signal } from 'prunelle'
-        import { Icon } from '@prunelle/icons'
+        import { Icon } from '@prunellejs/icons'
         import arrow from '~icons/demo/arrow'
         import wide from '~icons/demo/wide'
         export function Swap() {
@@ -158,7 +158,7 @@ describe('<Icon> in a hydrated island', () => {
     await withHydratedIsland({
       'src/Counter.tsx': `
         import { signal } from 'prunelle'
-        import { Icon } from '@prunelle/icons'
+        import { Icon } from '@prunellejs/icons'
         import arrow from '~icons/demo/arrow'
         export function Counter() {
           const count = signal(0)
@@ -218,7 +218,7 @@ describe('icons() loading an installed set', () => {
     const root = linkedApp({
       'node_modules/@iconify-json/demo/icons.json': JSON.stringify(DEMO),
       'src/routes/index.tsx': `
-        import { Icon } from '@prunelle/icons'
+        import { Icon } from '@prunellejs/icons'
         import a from '~icons/demo/arrow'
         import b from '~icons/demo/wide'
         import c from '~icons/demo/demo:arrow'
@@ -240,7 +240,7 @@ describe('icons() loading an installed set', () => {
   it('loads a set installed after a build failed to find it', async () => {
     const root = linkedApp({
       'src/routes/index.tsx': `
-        import { Icon } from '@prunelle/icons'
+        import { Icon } from '@prunellejs/icons'
         import arrow from '~icons/demo/arrow'
         export default function Home() { return <main><Icon icon={arrow} /></main> }
       `,
@@ -286,7 +286,7 @@ describe('svgIcon', () => {
 describe('a folder of .svg files as a set', () => {
   const LOGO = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 16"><path d="M0 0h32"/></svg>'
   const page = (...specifiers: string[]): Record<string, string> => ({
-    'src/routes/index.tsx': `import { Icon } from '@prunelle/icons'\n${specifiers.map((specifier, i) => `import icon${i} from '${specifier}'`).join('\n')}\nexport default function Home() { return <main>${specifiers.map((_, i) => `<Icon icon={icon${i}} />`).join('')}</main> }\n`,
+    'src/routes/index.tsx': `import { Icon } from '@prunellejs/icons'\n${specifiers.map((specifier, i) => `import icon${i} from '${specifier}'`).join('\n')}\nexport default function Home() { return <main>${specifiers.map((_, i) => `<Icon icon={icon${i}} />`).join('')}</main> }\n`,
   })
   const html = (root: string): string => /<main>.*<\/main>/s.exec(readFileSync(join(root, 'dist/index.html'), 'utf8'))![0]
 
@@ -348,89 +348,89 @@ describe('a folder of .svg files as a set', () => {
     const root = linkedApp({ ...page('~icons/local/logo'), 'src/icons/logo.svg': '<svg><path d="M0 0h32"/></svg>' })
 
     await expect(build({ root, plugins: [icons()], static: true }))
-      .rejects.toThrow('@prunelle/icons: src/icons/logo.svg, imported by src/routes/index.tsx, has no viewBox, nor a width and height, to size it: add viewBox="0 0 <width> <height>" to its <svg>.')
+      .rejects.toThrow('@prunellejs/icons: src/icons/logo.svg, imported by src/routes/index.tsx, has no viewBox, nor a width and height, to size it: add viewBox="0 0 <width> <height>" to its <svg>.')
   })
 
   it('fails prunelle check once on an unusable file, at the file rather than its imports', async () => {
     const root = linkedApp({
       ...page('~icons/local/logo'),
       'src/icons/logo.svg': '<svg><path d="M0 0h32"/></svg>',
-      'prunelle.config.ts': `import { icons } from '@prunelle/icons/plugin'\nexport default { plugins: [icons()] }\n`,
+      'prunelle.config.ts': `import { icons } from '@prunellejs/icons/plugin'\nexport default { plugins: [icons()] }\n`,
     })
 
-    expect((await checkProject(root, { skipTypecheck: true })).errors.filter(error => error.includes('@prunelle/icons')))
-      .toEqual(['src/icons/logo.svg:1:1: error: @prunelle/icons: this file has no viewBox, nor a width and height, to size it: add viewBox="0 0 <width> <height>" to its <svg>.'])
+    expect((await checkProject(root, { skipTypecheck: true })).errors.filter(error => error.includes('@prunellejs/icons')))
+      .toEqual(['src/icons/logo.svg:1:1: error: @prunellejs/icons: this file has no viewBox, nor a width and height, to size it: add viewBox="0 0 <width> <height>" to its <svg>.'])
   })
 
   it('fails prunelle check on a dirs folder that does not exist or a prefix that is no set name', async () => {
-    const root = linkedApp({ 'prunelle.config.ts': `import { icons } from '@prunelle/icons/plugin'\nexport default { plugins: [icons({ dirs: { brand: 'assets/brand', Logos: 'src/icons' } })] }\n`, 'src/icons/logo.svg': LOGO })
+    const root = linkedApp({ 'prunelle.config.ts': `import { icons } from '@prunellejs/icons/plugin'\nexport default { plugins: [icons({ dirs: { brand: 'assets/brand', Logos: 'src/icons' } })] }\n`, 'src/icons/logo.svg': LOGO })
 
-    expect((await checkProject(root, { skipTypecheck: true })).errors.filter(error => error.includes('@prunelle/icons'))).toEqual([
-      'prunelle.config.ts:1:1: error: @prunelle/icons: icons({ dirs }) reads the set "brand" from assets/brand, which does not exist.',
-      'prunelle.config.ts:1:1: error: @prunelle/icons: "Logos" in icons({ dirs }) is not an icon set name: name it in lowercase words joined by dashes, such as brand.',
+    expect((await checkProject(root, { skipTypecheck: true })).errors.filter(error => error.includes('@prunellejs/icons'))).toEqual([
+      'prunelle.config.ts:1:1: error: @prunellejs/icons: icons({ dirs }) reads the set "brand" from assets/brand, which does not exist.',
+      'prunelle.config.ts:1:1: error: @prunellejs/icons: "Logos" in icons({ dirs }) is not an icon set name: name it in lowercase words joined by dashes, such as brand.',
     ])
   })
 })
 
 describe('an icon or set that does not exist', () => {
   const page = (specifier: string): Record<string, string> => ({
-    'src/routes/index.tsx': `import { Icon } from '@prunelle/icons'\nimport arrow from '${specifier}'\nexport default function Home() { return <main><Icon icon={arrow} /></main> }\n`,
+    'src/routes/index.tsx': `import { Icon } from '@prunellejs/icons'\nimport arrow from '${specifier}'\nexport default function Home() { return <main><Icon icon={arrow} /></main> }\n`,
   })
 
   it('fails the build naming the importing file and the closest icons', async () => {
     const root = linkedApp(page('~icons/demo/arow'))
 
     await expect(build({ root, plugins: [icons({ sets: { demo: DEMO } })], static: true }))
-      .rejects.toThrow('@prunelle/icons: no icon "arow" in set "demo", imported by src/routes/index.tsx. Did you mean ~icons/demo/arrow? Search with prunelle icons-find <words>.')
+      .rejects.toThrow('@prunellejs/icons: no icon "arow" in set "demo", imported by src/routes/index.tsx. Did you mean ~icons/demo/arrow? Search with prunelle icons-find <words>.')
   })
 
   it('fails prunelle check at the import, naming the closest icons', async () => {
     const root = linkedApp({
       ...page('~icons/demo/arow'),
-      'prunelle.config.ts': `import { icons } from '@prunelle/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
+      'prunelle.config.ts': `import { icons } from '@prunellejs/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
     })
 
     expect((await checkProject(root, { skipTypecheck: true })).errors)
-      .toContain('src/routes/index.tsx:2:19: error: @prunelle/icons: no icon "arow" in set "demo". Did you mean ~icons/demo/arrow? Search with prunelle icons-find <words>.')
+      .toContain('src/routes/index.tsx:2:19: error: @prunellejs/icons: no icon "arow" in set "demo". Did you mean ~icons/demo/arrow? Search with prunelle icons-find <words>.')
   })
 
   it('fails prunelle check on a set that is not installed, naming the closest installed set', async () => {
     const root = linkedApp({
       ...page('~icons/dmeo/arrow'),
-      'prunelle.config.ts': `import { icons } from '@prunelle/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
+      'prunelle.config.ts': `import { icons } from '@prunellejs/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
     })
 
     expect((await checkProject(root, { skipTypecheck: true })).errors)
-      .toContain('src/routes/index.tsx:2:19: error: @prunelle/icons: no icon set "dmeo" is installed. Did you mean ~icons/demo/arrow? Otherwise install @iconify-json/dmeo, or add it to icons({ sets }) or icons({ dirs }).')
+      .toContain('src/routes/index.tsx:2:19: error: @prunellejs/icons: no icon set "dmeo" is installed. Did you mean ~icons/demo/arrow? Otherwise install @iconify-json/dmeo, or add it to icons({ sets }) or icons({ dirs }).')
   })
 
   it('suggests no other set when the closest one lacks the icon', async () => {
     const root = linkedApp({
       ...page('~icons/dmeo/nope'),
-      'prunelle.config.ts': `import { icons } from '@prunelle/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
+      'prunelle.config.ts': `import { icons } from '@prunellejs/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
     })
 
     expect((await checkProject(root, { skipTypecheck: true })).errors)
-      .toContain('src/routes/index.tsx:2:19: error: @prunelle/icons: no icon set "dmeo" is installed. Otherwise install @iconify-json/dmeo, or add it to icons({ sets }) or icons({ dirs }).')
+      .toContain('src/routes/index.tsx:2:19: error: @prunellejs/icons: no icon set "dmeo" is installed. Otherwise install @iconify-json/dmeo, or add it to icons({ sets }) or icons({ dirs }).')
   })
 
   it('explains the specifier shape when the set part is not a set name', async () => {
     const root = linkedApp({
       ...page('~icons/Demo/arrow'),
-      'prunelle.config.ts': `import { icons } from '@prunelle/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
+      'prunelle.config.ts': `import { icons } from '@prunellejs/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
     })
 
     expect((await checkProject(root, { skipTypecheck: true })).errors)
-      .toContain('src/routes/index.tsx:2:19: error: @prunelle/icons: "Demo" is not an icon set name: write ~icons/<set>/<name>, such as ~icons/tabler/home.')
+      .toContain('src/routes/index.tsx:2:19: error: @prunellejs/icons: "Demo" is not an icon set name: write ~icons/<set>/<name>, such as ~icons/tabler/home.')
   })
 
   it('passes prunelle check when every imported icon exists', async () => {
     const root = linkedApp({
       ...page('~icons/demo/arrow'),
-      'prunelle.config.ts': `import { icons } from '@prunelle/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
+      'prunelle.config.ts': `import { icons } from '@prunellejs/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
     })
 
-    expect((await checkProject(root, { skipTypecheck: true })).errors.filter(error => error.includes('@prunelle/icons'))).toEqual([])
+    expect((await checkProject(root, { skipTypecheck: true })).errors.filter(error => error.includes('@prunellejs/icons'))).toEqual([])
   })
 
   it('checks only real imports, not an import spelled in a string, a template or a comment (#3618)', async () => {
@@ -442,11 +442,11 @@ describe('an icon or set that does not exist', () => {
         'export const lazy = (): Promise<unknown> => import(\'~icons/demo/gone\')',
         '',
       ].join('\n'),
-      'prunelle.config.ts': `import { icons } from '@prunelle/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
+      'prunelle.config.ts': `import { icons } from '@prunellejs/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
     })
 
-    expect((await checkProject(root, { skipTypecheck: true })).errors.filter(error => error.includes('@prunelle/icons')))
-      .toEqual(['src/snippets.ts:4:52: error: @prunelle/icons: no icon "gone" in set "demo". Search with prunelle icons-find <words>.'])
+    expect((await checkProject(root, { skipTypecheck: true })).errors.filter(error => error.includes('@prunellejs/icons')))
+      .toEqual(['src/snippets.ts:4:52: error: @prunellejs/icons: no icon "gone" in set "demo". Search with prunelle icons-find <words>.'])
   })
 })
 
@@ -454,7 +454,7 @@ describe('the type of an ~icons import', () => {
   it('comes with registering icons(), so an app declares no module', async () => {
     const root = linkedApp({
       'tsconfig.json': JSON.stringify({ compilerOptions: { module: 'ESNext', moduleResolution: 'bundler', strict: true, noEmit: true, skipLibCheck: true, jsx: 'react-jsx', jsxImportSource: 'prunelle' }, include: ['src', 'prunelle.config.ts'] }),
-      'prunelle.config.ts': `import { icons } from '@prunelle/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
+      'prunelle.config.ts': `import { icons } from '@prunellejs/icons/plugin'\nexport default { plugins: [icons({ sets: { demo: ${JSON.stringify(DEMO)} } })] }\n`,
       'src/size.ts': `import arrow from '~icons/demo/arrow'\nexport const width: string = arrow.width\n`,
     })
 
@@ -462,12 +462,12 @@ describe('the type of an ~icons import', () => {
   })
 })
 
-describe('@prunelle/icons/search in an island', () => {
+describe('@prunellejs/icons/search in an island', () => {
   it('warns at build that the island ships the word table, naming the file', async () => {
     const root = linkedApp({
       'src/Picker.tsx': `
         import { signal } from 'prunelle'
-        import { findIcons } from '@prunelle/icons/search'
+        import { findIcons } from '@prunellejs/icons/search'
         export function Picker() {
           const query = signal('')
           return <input value={query.value} onInput={e => { query.value = e.currentTarget.value }} title={findIcons(['home'], query.value).join(' ')} />
@@ -480,7 +480,7 @@ describe('@prunelle/icons/search in an island', () => {
     try {
       await build({ root, plugins: [icons()], static: true })
 
-      expect(warn.mock.calls.map(call => String(call[0])).filter(line => line.startsWith('@prunelle/icons'))).toEqual(['@prunelle/icons: src/Picker.tsx imports @prunelle/icons/search into an island, which ships its 1.7 MB word table to the browser. Search on the server instead, in a route or an action.'])
+      expect(warn.mock.calls.map(call => String(call[0])).filter(line => line.startsWith('@prunellejs/icons'))).toEqual(['@prunellejs/icons: src/Picker.tsx imports @prunellejs/icons/search into an island, which ships its 1.7 MB word table to the browser. Search on the server instead, in a route or an action.'])
     }
     finally {
       warn.mockRestore()

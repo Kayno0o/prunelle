@@ -1,5 +1,5 @@
 ---
-title: "@prunelle/i18n · mail · spa · tailwind · icons"
+title: "@prunellejs/i18n · mail · spa · tailwind · icons"
 description: Composable plugins for localization, email delivery, opt-in SPA swaps, Tailwind v4, and inline SVG icon sets.
 section: plugins
 order: 6
@@ -11,15 +11,15 @@ Every remaining capability is an opt-in package built strictly on `PrunellePlugi
 
 - **Stateless plugins** export a single camelCase factory matching the package name from the package root: `tailwind()`, `images()`, `i18n()`, `content()`, `seo()`, `spa()`, `mcp()`.
 - **Stateful service plugins** also give routes and actions a handle. Their `createX()` returns one object that is both the plugin and the handle: `plugins: [auth, mail, rooms]` registers what `createAuth()`, `createMailer()` and `createRooms()` returned.
-- **Client-safe barrels**: `@prunelle/ui` and `@prunelle/icons` export only what an island can import; their build plugins live at `@prunelle/ui/plugin` (`ui()`) and `@prunelle/icons/plugin` (`icons()`).
+- **Client-safe barrels**: `@prunellejs/ui` and `@prunellejs/icons` export only what an island can import; their build plugins live at `@prunellejs/ui/plugin` (`ui()`) and `@prunellejs/icons/plugin` (`icons()`).
 - **Declarative ordering**: plugins declare `enforce: 'pre' | 'post'`, `after: ['...']`, `providesLocals`, and `readsLocals`. Core sorts plugins deterministically (`pre` → normal → `post`, respecting `after`) and fails at startup if a plugin declares `readsLocals` before its provider runs. Two plugins with the same `name` also fail, since `after` and the build data find a plugin by its name. An `after` name that no plugin has counts as an optional plugin that is not installed, unless it is one typo away from a registered name: then prunelle fails and names it.
 
-## `@prunelle/i18n`
+## `@prunellejs/i18n`
 
 Prefix-free default locale with prefixed secondary locales (`/fr/...`), automatic `<html lang>` and internal `<a href="/...">` rewriting, `prerenderPaths` expansion, `hreflang` alternate links, and `Intl` helpers (`localizePath`, `alternateLinks`, `formatDate`, `formatNumber`):
 
 ```ts
-import { i18n } from '@prunelle/i18n'
+import { i18n } from '@prunellejs/i18n'
 
 i18n({
   locales: ['en', 'fr'],
@@ -33,13 +33,13 @@ i18n({
 - Add `data-no-localize` to any `<a>` tag to skip automatic locale prefixing.
 - Missing translation keys are reported by both `prunelle check` and `prunelle i18n-check`.
 
-## `@prunelle/mail`
+## `@prunellejs/mail`
 
 Send transactional email through Resend or any custom `MailTransport`, with a dev-only outbox preview at `/_pru/mail` (and `/_pru/mail.json`):
 
 ```ts
 // src/mail.ts
-import { createMailer, resend } from '@prunelle/mail'
+import { createMailer, resend } from '@prunellejs/mail'
 
 export const mail = createMailer({
   from: 'hello@example.com',
@@ -52,18 +52,18 @@ Register `mail` in `prunelle.config.ts`. In development and tests, sent messages
 
 `resend()` retries a `429` or `5xx` answer twice, after the wait Resend asks for. It sends the mail's id as idempotency key, so Resend never delivers a retried mail twice. Pass `retries: 0` to turn this off.
 
-## `@prunelle/icons`
+## `@prunellejs/icons`
 
-Zero-runtime inline SVGs from any `@iconify-json/*` icon pack. Register `icons()` from `@prunelle/icons/plugin` in `prunelle.config.ts`, then import icons anywhere, islands included:
+Zero-runtime inline SVGs from any `@iconify-json/*` icon pack. Register `icons()` from `@prunellejs/icons/plugin` in `prunelle.config.ts`, then import icons anywhere, islands included:
 
 ```tsx
-import { Icon } from '@prunelle/icons'
+import { Icon } from '@prunellejs/icons'
 import arrowRight from '~icons/tabler/arrow-right'
 
 <Icon icon={arrowRight} class="size-4" />
 ```
 
-Registering `icons()` also types the `~icons/*` imports. A tsconfig that leaves `prunelle.config.ts` out gets them from `/// <reference types="@prunelle/icons/ambient" />` in a `.d.ts` file.
+Registering `icons()` also types the `~icons/*` imports. A tsconfig that leaves `prunelle.config.ts` out gets them from `/// <reference types="@prunellejs/icons/ambient" />` in a `.d.ts` file.
 
 Your own icons go in `src/icons` as `.svg` files: `src/icons/logo.svg` imports as `~icons/local/logo`. Each file needs a `viewBox`, or a `width` and `height`. Name other folders with `icons({ dirs: { brand: 'assets/brand' } })`, or give `src/icons` another prefix with `dirs: { app: 'src/icons' }`. `prunelle dev` reloads an edited file.
 
@@ -73,29 +73,29 @@ An import of an icon or set that does not exist fails `prunelle check` and the b
 
 `prunelle icons-find garbage` prints the icons of the installed sets that match, such as `~icons/tabler/trash`, so an agent imports a name that exists. It searches `@iconify-json/*` packages, `@iconify/json` (hoisted installs included), your `.svg` folders and the sets passed to `icons({ sets })`, ten icons per set unless `--limit` says otherwise; `--set tabler` searches one. Matching is English-only and covers related words (`garbage` finds `trash`), typos (`calnedar`), other forms of a word (`searching`), half-typed words (`shopp`) and two words typed apart (`sign out` finds `logout`).
 
-An app's own icon picker gets the same search from `@prunelle/icons/search`:
+An app's own icon picker gets the same search from `@prunellejs/icons/search`:
 
 - `findIcons(set, query, { limit, offset })` ranks names holding the query as whole words first (in any word order), then related words — icons answering more query words rank ahead of partial matches — and mid-word hits (`pin` in `spinner`) last. It throws on a negative or fractional `offset` (`< 0`) or `limit` (`< 1`).
 - `relatedWords(word)` returns `[word, strength]` pairs for an "also searched" list.
 
-Keep `@prunelle/icons/search` server-side: it reads a ~1.7 MB word table on first call, and `prunelle build` warns when an island imports it.
+Keep `@prunellejs/icons/search` server-side: it reads a ~1.7 MB word table on first call, and `prunelle build` warns when an island imports it.
 
-## `@prunelle/tailwind`
+## `@prunellejs/tailwind`
 
 Opt-in Tailwind CSS v4 integration. `tailwind()` auto-loads `bun-plugin-tailwind` from your project and defaults to `src/app.css`:
 
 ```ts
-import { tailwind } from '@prunelle/tailwind'
+import { tailwind } from '@prunellejs/tailwind'
 
 tailwind({ css: 'src/app.css' })
 ```
 
-## `@prunelle/spa`
+## `@prunellejs/spa`
 
 Multi-page navigation (`0 KB` JS) is the default, and most apps are best served by it plus [`regions()`](#regions) for the parts of a page that change in place. Add `spa()` only when an island must stay alive from one page to the next:
 
 ```ts
-import { spa } from '@prunelle/spa'
+import { spa } from '@prunellejs/spa'
 
 export default defineConfig({
   plugins: [spa()],
@@ -115,7 +115,7 @@ export default defineConfig({
 A link that opens a detail pane or switches a tab should not download the whole page. `regions()` swaps one part of the page and asks the server for that part alone. It works with or without `spa()`.
 
 ```ts
-import { regions } from '@prunelle/spa'
+import { regions } from '@prunellejs/spa'
 
 export default defineConfig({
   plugins: [regions()],
@@ -154,6 +154,6 @@ The browser asks for `x-pru-region: pane`. The server skips the layouts and ever
 - **Title**: a swap sets `document.title` to what the whole page would have, `<Head>` title template included, and back and forward restore it. The server sends it in an `x-pru-title` header, so the response stays small.
 - **Loading and focus**: the region gets `aria-busy="true"` when a fetch takes more than 150 ms, so you can style it. A link moves focus to the region. A region with an `aria-label` announces it. Give the region an `aria-label` that says what changed.
 - **Islands** inside the new HTML hydrate as usual.
-- **Redraw from script**: after a change made in the background, such as a `fetch` to an action, `await refreshRegion('side')` from `@prunelle/spa/regions` asks the server for that region at the current address again and swaps it. It adds no history entry, leaves focus where it is and skips the prefetch cache. The promise rejects when the page has no such region, the fetch fails or the answer lacks it.
+- **Redraw from script**: after a change made in the background, such as a `fetch` to an action, `await refreshRegion('side')` from `@prunellejs/spa/regions` asks the server for that region at the current address again and swaps it. It adds no history entry, leaves focus where it is and skips the prefetch cache. The promise rejects when the page has no such region, the fetch fails or the answer lacks it.
 
 If the page has no region of that name, or the fetch fails, the link loads the whole page. `prunelle check` reports a `data-pru-target` that names no `<Region>`. Two regions with one name throw, and a region inside a region of the same name is a compile error. If you use `spa()` too, give each path either region links or page links, not both for the same history entries.

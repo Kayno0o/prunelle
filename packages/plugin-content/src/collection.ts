@@ -76,7 +76,7 @@ export interface CollectionRenderConfig {
   components?: Record<string, MarkdownComponent> | undefined
   /** Wrap h2-h6 headings in self-referencing `<a href="#id">` links. */
   headingLinks?: boolean | undefined
-  /** Optional image resolver (set to `false` to disable automatic `@prunelle/images` optimization). */
+  /** Optional image resolver (set to `false` to disable automatic `@prunellejs/images` optimization). */
   resolveImage?: MarkdownImageResolver | false | undefined
   /** Opt out of default Markdown HTML sanitization for fully trusted content (default: false). */
   trusted?: boolean | undefined
@@ -89,7 +89,7 @@ export interface RenderMarkdownOptions {
   headingLinks?: boolean | undefined
   /** Active locale passed into embedded components as `props.locale`. */
   locale?: string | undefined
-  /** Optional image resolver for rewriting `<img src="...">` (defaults to auto-wired `@prunelle/images` when active; `false` disables). */
+  /** Optional image resolver for rewriting `<img src="...">` (defaults to auto-wired `@prunellejs/images` when active; `false` disables). */
   resolveImage?: MarkdownImageResolver | false | undefined
   /** Source file path passed to `resolveImage`. */
   file?: string | undefined
@@ -112,7 +112,7 @@ export interface CollectionOptions<TData = Record<string, unknown>> {
   components?: Record<string, MarkdownComponent> | undefined
   /** Wrap h2-h6 headings in self-referencing `<a href="#id">` links. */
   headingLinks?: boolean | undefined
-  /** Optional image resolver for rewriting Markdown images (defaults to auto-wired `@prunelle/images`; `false` disables). */
+  /** Optional image resolver for rewriting Markdown images (defaults to auto-wired `@prunellejs/images`; `false` disables). */
   resolveImage?: MarkdownImageResolver | false | undefined
   /** Opt out of default Markdown HTML sanitization for fully trusted collections (default: false). */
   trusted?: boolean | undefined
@@ -196,7 +196,7 @@ function validateCollectionFiles(
     }
     catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      errors.push(`${rel}:1:1: error: @prunelle/content: invalid YAML frontmatter: ${msg}`)
+      errors.push(`${rel}:1:1: error: @prunellejs/content: invalid YAML frontmatter: ${msg}`)
       continue
     }
     if (schema === undefined)
@@ -204,13 +204,13 @@ function validateCollectionFiles(
     const checked = validateSchemaSync(
       schema,
       rawData,
-      `@prunelle/content: async frontmatter schema is not supported (${rel})`,
+      `@prunellejs/content: async frontmatter schema is not supported (${rel})`,
     )
     if (!checked.ok) {
       for (const issue of checked.issues) {
         const path = formatIssuePath(issue)
         const line = findFrontmatterFieldLine(rawSource, path || undefined)
-        errors.push(`${rel}:${line}:1: error: @prunelle/content: ${path ? `${path}: ` : ''}${issue.message}`)
+        errors.push(`${rel}:${line}:1: error: @prunellejs/content: ${path ? `${path}: ` : ''}${issue.message}`)
       }
     }
   }
@@ -244,7 +244,7 @@ function importAppTsxWithPrunelleJsx(root: string): void {
   prunelleJsxRoots.add(root)
   const filter = new RegExp(`^${`${root}/`.replace(REGEXP_SPECIAL_RE, '\\$&')}.*\\.tsx$`)
   Bun.plugin({
-    name: `@prunelle/content: prunelle JSX under ${root}`,
+    name: `@prunellejs/content: prunelle JSX under ${root}`,
     setup(build) {
       // The pragma goes last, where it moves no line of a stack trace.
       build.onLoad({ filter }, async ({ path }) => ({ contents: `${await Bun.file(path).text()}\n/** @jsxImportSource prunelle */\n`, loader: 'tsx' }))
@@ -323,7 +323,7 @@ export function defineCollection<TData = Record<string, unknown>>(options: Colle
         throw err
       })
       throw new Error(
-        `@prunelle/content: collection "${options.dir}" uses an async "render" loader; call \`await entry.render()\` (e.g. in \`load()\`) before reading \`entry.html\` or \`entry.headings\`.`,
+        `@prunellejs/content: collection "${options.dir}" uses an async "render" loader; call \`await entry.render()\` (e.g. in \`load()\`) before reading \`entry.html\` or \`entry.headings\`.`,
       )
     }
     resolvedRenderOpts = mergeRenderConfig(loaded)
@@ -374,11 +374,11 @@ export function defineCollection<TData = Record<string, unknown>>(options: Colle
       const checked = validateSchemaSync(
         options.schema,
         rawData,
-        `@prunelle/content: async frontmatter schema is not supported (${slug})`,
+        `@prunellejs/content: async frontmatter schema is not supported (${slug})`,
       )
       if (!checked.ok) {
         const msg = checked.issues.map(i => i.message).join('; ')
-        throw new Error(`@prunelle/content: invalid frontmatter in "${absFile}": ${msg}`)
+        throw new Error(`@prunellejs/content: invalid frontmatter in "${absFile}": ${msg}`)
       }
       data = checked.value
     }

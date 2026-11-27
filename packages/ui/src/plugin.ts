@@ -1,4 +1,4 @@
-// @prunelle/ui PrunellePlugin — wires a pure CSS Grammar (`editorial | workshop | console | soft | orbit | prunelle | bare`)
+// @prunellejs/ui PrunellePlugin — wires a pure CSS Grammar (`editorial | workshop | console | soft | orbit | prunelle | bare`)
 // and adds `prunelle ui-eject <grammar> [dest]` so apps can copy & own the entire look in ONE ~200-line CSS file.
 
 import type { PrunellePlugin } from 'prunelle/config'
@@ -71,7 +71,7 @@ export function ui(options: UiPluginOptions = {}): PrunellePlugin {
   const emit = resolveEmitGrammars(options.emitGrammars)
   let assetPrefix = '/_pru'
   return definePlugin({
-    name: '@prunelle/ui',
+    name: '@prunellejs/ui',
     css: grammar === false ? undefined : [grammarCssPath(grammar)],
     inlineScripts: [FALLBACK_GUARD],
     build(ctx) {
@@ -98,7 +98,7 @@ export function ui(options: UiPluginOptions = {}): PrunellePlugin {
         }
         const dest = args[1] ?? 'src/styles/ui.css'
         const outPath = ejectGrammar(root, name, dest)
-        console.log(`Ejected @prunelle/ui "${name}" grammar to ${outPath}`)
+        console.log(`Ejected @prunellejs/ui "${name}" grammar to ${outPath}`)
       },
     },
   })

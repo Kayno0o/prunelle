@@ -12,7 +12,7 @@ let browser: BrowserTest
 beforeAll(async () => {
   mkdirSync(join(dir, 'src/routes'), { recursive: true })
   mkdirSync(join(dir, 'src/components'), { recursive: true })
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(join(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'), 'dir')
   writeFileSync(join(dir, 'prunelle.config.ts'), `
     import { defineConfig } from 'prunelle/config'

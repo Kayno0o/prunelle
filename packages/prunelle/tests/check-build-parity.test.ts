@@ -14,7 +14,7 @@ function makeTemp(prefix: string): string {
 
 const repoRoot = join(import.meta.dir, '../../..')
 function linkPrunelle(dir: string): void {
-  mkdirSync(join(dir, 'node_modules/@prunelle'), { recursive: true })
+  mkdirSync(join(dir, 'node_modules/@prunellejs'), { recursive: true })
   symlinkSync(join(repoRoot, 'packages/prunelle'), join(dir, 'node_modules/prunelle'))
 }
 

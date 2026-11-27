@@ -1,5 +1,5 @@
 import type { StandardSchemaV1 } from 'prunelle/server'
-import { defineCollection } from '@prunelle/content'
+import { defineCollection } from '@prunellejs/content'
 
 export interface PostMeta {
   title: string

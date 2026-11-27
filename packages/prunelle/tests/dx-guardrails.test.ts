@@ -341,7 +341,7 @@ describe('DX Guardrails, Rich Island Props, Progressive Form Errors & Tailwind A
     expect(jsonBody.fieldErrors?.email).toBe('Invalid email')
   })
 
-  it('auto-resolves bun-plugin-tailwind inside @prunelle/tailwind when bunPlugin is omitted', () => {
+  it('auto-resolves bun-plugin-tailwind inside @prunellejs/tailwind when bunPlugin is omitted', () => {
     const dir = makeTemp('prunelle-tw-auto-')
     mkdirSync(join(dir, 'node_modules/bun-plugin-tailwind'), { recursive: true })
     writeFileSync(join(dir, 'package.json'), '{"name":"tw-app","private":true}')
@@ -373,7 +373,7 @@ describe('an import of kay, the name prunelle had before (#27)', () => {
       export { Button } from '@kayjs/ui'
       export default function About() { return <p>about</p> }
     `)
-    const reexport = `prunelle compiler: import from '@kayjs/ui' in src/routes/about.tsx: write '@prunelle/ui' (prunelle upgrade rewrites every import).`
+    const reexport = `prunelle compiler: import from '@kayjs/ui' in src/routes/about.tsx: write '@prunellejs/ui' (prunelle upgrade rewrites every import).`
     await expect(build({ root: dir, prerender: false })).rejects.toThrow(reexport)
     const { errors } = await checkProject(dir, { skipTypecheck: true })
     expect(errors).toContain(`src/routes/about.tsx:2:30: error: ${reexport}`)

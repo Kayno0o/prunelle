@@ -1,4 +1,4 @@
-// @prunelle/mail — Lightweight email delivery (Resend / custom transport / dev outbox) + `/_pru/mail` preview plugin.
+// @prunellejs/mail — Lightweight email delivery (Resend / custom transport / dev outbox) + `/_pru/mail` preview plugin.
 // Built strictly on the public PrunellePlugin API (server(api).route).
 
 import type { PrunellePlugin } from 'prunelle/config'
@@ -32,7 +32,7 @@ export interface MailTransport {
 }
 
 export class MailNotConfiguredError extends Error {
-  constructor(message = '@prunelle/mail: no transport configured (set RESEND_API_KEY or pass transport)') {
+  constructor(message = '@prunellejs/mail: no transport configured (set RESEND_API_KEY or pass transport)') {
     super(message)
     this.name = 'MailNotConfiguredError'
   }
@@ -45,7 +45,7 @@ const DEFAULT_RESEND_TIMEOUT_MS = 10_000
 
 function assertNoHeaderInjection(value: string, label: string): void {
   if (CR_LF_OR_NUL_RE.test(value))
-    throw new RangeError(`@prunelle/mail: ${label} must not contain CR, LF, or NUL characters`)
+    throw new RangeError(`@prunellejs/mail: ${label} must not contain CR, LF, or NUL characters`)
 }
 
 function escapeDisplayName(name: string): string {
@@ -66,7 +66,7 @@ function formatAddress(addr: MailAddress, label: string): string {
   assertNoHeaderInjection(addr.address, `${label} address`)
   const address = addr.address.trim()
   if (ANGLE_BRACKET_RE.test(address))
-    throw new RangeError(`@prunelle/mail: ${label} address must not contain angle brackets`)
+    throw new RangeError(`@prunellejs/mail: ${label} address must not contain angle brackets`)
   const displayName = escapeDisplayName(addr.name)
   return displayName.length > 0 ? `${displayName} <${address}>` : address
 }
@@ -123,7 +123,7 @@ export function resend(options: { apiKey?: string | undefined, endpoint?: string
           return
         const text = await res.text()
         if ((res.status !== 429 && res.status < 500) || attempt >= retries)
-          throw new Error(`@prunelle/mail (resend): HTTP ${res.status}: ${text}`)
+          throw new Error(`@prunellejs/mail (resend): HTTP ${res.status}: ${text}`)
         await Bun.sleep(resendRetryDelay(res, attempt))
       }
     },
@@ -182,7 +182,7 @@ export function createMailer(options: MailerOptions = {}): Mailer {
       const from = message.from ?? options.from ?? process.env.MAIL_FROM ?? 'noreply@localhost'
       const toList = normalizeList(message.to ?? options.to ?? process.env.MAIL_TO, 'to')
       if (toList.length === 0)
-        throw new Error(`@prunelle/mail: send({ subject: ${JSON.stringify(message.subject)} }) has no recipient: give it \`to\`, pass \`to\` to \`createMailer()\`, or set \`MAIL_TO\`.`)
+        throw new Error(`@prunellejs/mail: send({ subject: ${JSON.stringify(message.subject)} }) has no recipient: give it \`to\`, pass \`to\` to \`createMailer()\`, or set \`MAIL_TO\`.`)
       const record: SentMail = {
         id: crypto.randomUUID(),
         from: formatAddress(from, 'from'),
@@ -232,7 +232,7 @@ function previewPlugin(
   const route = options.previewRoute ?? '/_pru/mail'
 
   return definePlugin({
-    name: '@prunelle/mail',
+    name: '@prunellejs/mail',
     server(api) {
       onServerInit?.(api.dev)
       const enablePreview = options.preview !== false && isDevOrTest(api.dev)

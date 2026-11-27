@@ -1,4 +1,4 @@
-import { ui } from '@prunelle/ui/plugin'
+import { ui } from '@prunellejs/ui/plugin'
 import { defineConfig } from 'prunelle/config'
 import { auth } from './src/auth'
 

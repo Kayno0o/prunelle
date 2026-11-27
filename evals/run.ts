@@ -63,7 +63,7 @@ const commands: Commands = {
   },
 
   init: {
-    summary: 'scaffold a clean task workspace linked to local @prunelle/* packages',
+    summary: 'scaffold a clean task workspace linked to local @prunellejs/* packages',
     run: async (args) => {
       const { values, positionals } = parse(
         args,

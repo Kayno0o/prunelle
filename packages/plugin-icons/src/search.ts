@@ -34,7 +34,7 @@ const COMPLETION_WEIGHT = 0.7
 const RESPELLING_WEIGHT = 0.8
 // How strongly a joined word must relate to a word for that word to answer both typed words.
 const JOINED_ANSWERS = 0.5
-const PAGE_REFUSAL = '@prunelle/icons: findIcons pages from a whole offset of 0 or more, by a whole limit of 1 or more: clamp the page a request asks for before searching.'
+const PAGE_REFUSAL = '@prunellejs/icons: findIcons pages from a whole offset of 0 or more, by a whole limit of 1 or more: clamp the page a request asks for before searching.'
 
 // One index per names array or set object, so a set imported once is indexed once.
 const indexes = new WeakMap<readonly string[] | IconifyNames, Index>()
