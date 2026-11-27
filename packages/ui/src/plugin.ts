@@ -1,4 +1,4 @@
-// @prunelle/ui PrunellePlugin — wires a pure CSS Grammar (`editorial | workshop | console | soft | orbit | bare`)
+// @prunelle/ui PrunellePlugin — wires a pure CSS Grammar (`editorial | workshop | console | soft | orbit | prunelle | bare`)
 // and adds `prunelle ui-eject <grammar> [dest]` so apps can copy & own the entire look in ONE ~200-line CSS file.
 
 import type { PrunellePlugin } from 'prunelle/config'
@@ -9,9 +9,9 @@ import { FALLBACK_FILE, FALLBACK_GUARD, FALLBACK_JS, withPlatformFallback } from
 
 const UI_KUI_LAYER_SERVICE = serviceKey<boolean>('prunelle.ui.kuiLayer')
 
-export type GrammarName = 'bare' | 'editorial' | 'workshop' | 'console' | 'soft' | 'orbit'
+export type GrammarName = 'bare' | 'editorial' | 'workshop' | 'console' | 'soft' | 'orbit' | 'prunelle'
 
-export const GRAMMAR_NAMES: readonly GrammarName[] = ['bare', 'editorial', 'workshop', 'console', 'soft', 'orbit']
+export const GRAMMAR_NAMES: readonly GrammarName[] = ['bare', 'editorial', 'workshop', 'console', 'soft', 'orbit', 'prunelle']
 
 const STYLES_DIR = join(import.meta.dir, 'styles')
 const BARE_IMPORT_RE = /^@import\s+['"]\.\.\/bare\.css['"];?\s*/gm

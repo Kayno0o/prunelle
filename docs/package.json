@@ -9,17 +9,16 @@
     "check": "prunelle check"
   },
   "dependencies": {
-    "prunelle": "file:../packages/prunelle",
+    "@fontsource/fraunces": "5.3.0",
     "@prunelle/content": "file:../packages/plugin-content",
     "@prunelle/icons": "file:../packages/plugin-icons",
     "@prunelle/images": "file:../packages/plugin-images",
     "@prunelle/seo": "file:../packages/plugin-seo",
     "@prunelle/ui": "file:../packages/ui",
-    "@fontsource/chakra-petch": "^5.3.0",
-    "@fontsource/ibm-plex-sans": "^5.3.0",
     "@shikijs/core": "^4.6.0",
     "@shikijs/engine-oniguruma": "^4.6.0",
-    "@shikijs/langs": "^4.6.0"
+    "@shikijs/langs": "^4.6.0",
+    "prunelle": "file:../packages/prunelle"
   },
   "devDependencies": {
     "@iconify-json/tabler": "^1.2.41"

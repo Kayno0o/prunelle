@@ -37,12 +37,13 @@ export {
   Checkbox,
   Grid,
   Popover,
+  Progress,
   RadioGroup,
   Sidebar,
   Split,
   Switch,
 } from './primitives'
-export type { CheckControlProps, PopoverProps, RadioGroupProps, RadioOption } from './primitives'
+export type { CheckControlProps, PopoverProps, ProgressProps, RadioGroupProps, RadioOption } from './primitives'
 export { Select } from './Select'
 export type { SelectOption, SelectProps } from './Select'
 export {

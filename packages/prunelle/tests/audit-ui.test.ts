@@ -795,7 +795,7 @@ describe('Box 21 — Dialog, Drawer, Field, DataTable search & CommandPalette la
 })
 
 describe('Box 24 — WCAG Contrast >= 4.5:1 across all grammars, Orbit focus indicator, prefers-reduced-motion', () => {
-  const grammars = ['editorial', 'workshop', 'soft', 'console', 'orbit'] as const
+  const grammars = ['editorial', 'workshop', 'soft', 'console', 'orbit', 'prunelle'] as const
 
   for (const name of grammars) {
     it(`${name}.css: achieves >= 4.5:1 text contrast on paper, surface, accent & status fills, and >= 3:1 interactive borders (light & dark)`, () => {
@@ -862,6 +862,12 @@ describe('Box 24 — WCAG Contrast >= 4.5:1 across all grammars, Orbit focus ind
           const surfaceStrong = t['--ui-surface-strong']!
           expect(contrastRatio(accent, surfaceStrong)).toBeGreaterThanOrEqual(4.5)
           expect(contrastRatio(danger, mixSrgb(danger, 12, surface))).toBeGreaterThanOrEqual(4.5)
+        }
+        if (name === 'prunelle') {
+          // The main button is ink with gold text in light, gold with ink in dark; the eye is read against the paper
+          expect(contrastRatio(t['--ui-on-primary']!, accentFill)).toBeGreaterThanOrEqual(4.5)
+          expect(contrastRatio(t['--ui-iris']!, paper)).toBeGreaterThanOrEqual(3.0)
+          expect(contrastRatio(t['--ui-info']!, paper)).toBeGreaterThanOrEqual(4.5)
         }
         if (name === 'console') {
           expect(contrastRatio(danger, mixSrgb(danger, 12, paper))).toBeGreaterThanOrEqual(4.5)
@@ -970,7 +976,7 @@ describe('Box 40 — ControlledDialog, ControlledDrawer, CommandPalette: open={s
     const bare = readFileSync(join(STYLES_DIR, 'bare.css'), 'utf8')
     expect(bare).toMatch(/dialog\[data-ui="dialog"\][^\{]*\{[^}]*padding:\s*0;/)
 
-    for (const name of ['editorial', 'workshop', 'soft', 'console', 'orbit']) {
+    for (const name of ['editorial', 'workshop', 'soft', 'console', 'orbit', 'prunelle']) {
       const css = readFileSync(join(GRAMMARS_DIR, `${name}.css`), 'utf8')
       const dialogBlock = css.match(/dialog\[data-ui="dialog"\]\s*\{[\s\S]*?\n\s*\}/)?.[0] ?? ''
       expect(dialogBlock, `${name}.css dialog should not have direct non-zero padding`).not.toMatch(/^\s*padding:\s*[1-9]/m)

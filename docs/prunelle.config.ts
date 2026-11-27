@@ -62,16 +62,16 @@ const docsAssets = {
 export default defineConfig({
   lang: 'en',
   plugins: [
-    ui({ grammar: 'orbit', emitGrammars: true }),
+    ui({ grammar: 'prunelle', emitGrammars: true }),
     docsAssets,
     icons(),
     images({
       card: {
         site: SITE,
-        background: '#090c13',
-        color: '#dbe0ea',
-        accent: '#f5b83d',
-        fontFamily: 'Chakra Petch, system-ui, sans-serif',
+        background: '#130e16',
+        color: '#f8f4ee',
+        accent: '#e5c068',
+        fontFamily: 'Fraunces, Georgia, serif',
       },
     }),
     seo({
@@ -81,9 +81,7 @@ export default defineConfig({
       description: 'Prunelle — Bun-native TSX framework with zero-directive automatic islands, fine-grained .value signals, flat-string SSR, and single-binary deploys.',
       favicon: 'public/favicon.svg',
       fonts: [
-        { family: 'Chakra Petch', src: '@fontsource/chakra-petch/files/chakra-petch-latin-600-normal.woff2', weight: 600 },
-        { family: 'IBM Plex Sans', src: '@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff2', weight: 400 },
-        { family: 'IBM Plex Sans', src: '@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-600-normal.woff2', weight: 600 },
+        { family: 'Fraunces', src: '@fontsource/fraunces/files/fraunces-latin-500-normal.woff2', weight: 500 },
       ],
       redirects: {
         '/docs': '/docs/getting-started/introduction',

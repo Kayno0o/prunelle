@@ -13,6 +13,7 @@ import {
   Grid,
   Menu,
   Notice,
+  Progress,
   RadioGroup,
   Select,
   Stack,
@@ -29,7 +30,7 @@ export default function GrammarsPage() {
     <main class="docs-container" style="padding-top:2.5rem;padding-bottom:4rem">
       <Head>
         <title>UI Style Grammars</title>
-        <meta name="description" content="Switch @prunelle/ui between Orbit, Editorial, Workshop, Console, Soft, and Bare in pure CSS with zero JS styling runtime." />
+        <meta name="description" content="Switch @prunelle/ui between Prunelle, Orbit, Editorial, Workshop, Console, Soft, and Bare in pure CSS with zero JS styling runtime." />
       </Head>
 
       <Stack gap="2rem">
@@ -39,7 +40,7 @@ export default function GrammarsPage() {
             @prunelle/ui · Pure CSS @layer kui
           </div>
           <h1 style="margin:0 0 0.65rem;font-family:var(--ui-font-display);font-size:clamp(2rem,3.5vw,2.75rem);line-height:1.12">
-            Same DOM. Five structurally different apps.
+            Same DOM. Six structurally different apps.
           </h1>
           <p class="docs-lead" style="margin-bottom:1.25rem">
             Switch the active CSS Grammar below without touching a single component or shipping a JS recipe engine.
@@ -54,7 +55,7 @@ export default function GrammarsPage() {
             <CardBody>
               <Stack gap="0.9rem">
                 <Field id="project-slug" label="Project slug" hint="Lowercase URL-safe identifier">
-                  <input id="project-slug" type="text" value="orbit-app" />
+                  <input id="project-slug" type="text" value="my-app" />
                 </Field>
                 <Switch name="strict" label="Zero-JS static routes by default" checked />
                 <Checkbox name="compile" label="Compile single Bun executable (--compile)" checked />
@@ -67,6 +68,8 @@ export default function GrammarsPage() {
                     { value: 'static', label: 'Static HTML export', hint: 'CDN-ready' },
                   ]}
                 />
+                <Progress label="Building 48 pages" />
+                <Progress label="Deploying, 62%" value={62} />
               </Stack>
             </CardBody>
             <CardFooter>
@@ -94,7 +97,7 @@ export default function GrammarsPage() {
                   <Menu
                     label="Actions Menu"
                     items={[
-                      { id: 'eject', label: 'prunelle ui-eject orbit' },
+                      { id: 'eject', label: 'prunelle ui-eject prunelle' },
                       { id: 'build', label: 'prunelle build --static' },
                       { id: 'compile', label: 'prunelle build --compile' },
                     ]}
@@ -102,8 +105,9 @@ export default function GrammarsPage() {
                   <Select
                     name="default-grammar"
                     ariaLabel="Default Grammar"
-                    defaultValue="orbit"
+                    defaultValue="prunelle"
                     options={[
+                      { value: 'prunelle', label: 'Prunelle' },
                       { value: 'orbit', label: 'Orbit' },
                       { value: 'editorial', label: 'Editorial' },
                       { value: 'workshop', label: 'Workshop' },
@@ -116,7 +120,7 @@ export default function GrammarsPage() {
                   defaultValue="css"
                   items={[
                     { id: 'css', label: 'Pure CSS', content: 'Every grammar is a single ~3–4 KB brotli CSS file with native light-dark() support.' },
-                    { id: 'eject', label: 'One-File Eject', content: 'Run `prunelle ui-eject orbit` to copy the entire grammar into your repo and customize freely.' },
+                    { id: 'eject', label: 'One-File Eject', content: 'Run `prunelle ui-eject prunelle` to copy the entire grammar into your repo and customize freely.' },
                   ]}
                 />
                 <Accordion>

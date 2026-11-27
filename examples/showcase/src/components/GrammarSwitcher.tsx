@@ -6,6 +6,7 @@ const GRAMMARS = [
   { id: 'console', label: 'Console', note: 'Dense monospace, 1px gridlines, dark-first' },
   { id: 'soft', label: 'Soft', note: 'Borderless tinted surfaces, pill controls' },
   { id: 'orbit', label: 'Orbit', note: 'Starry sky, hairline surfaces, amber accent, cockpit states' },
+  { id: 'prunelle', label: 'Prunelle', note: 'A printed book: rules, plum and gold, an eye for radios, switches and progress' },
   { id: 'bare', label: 'Bare', note: 'Unstyled behavior & layout floor only' },
 ] as const
 

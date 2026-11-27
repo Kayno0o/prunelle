@@ -49,7 +49,7 @@ export const save = action(
 )`
 
 const ECOSYSTEM = [
-  { name: '@prunelle/ui', badge: '5 CSS Grammars', accent: true, href: '/docs/plugins/ui', desc: 'Platform-first headless primitives & pure CSS @layer kui grammars (Orbit, Editorial, Workshop, Console, Soft). Eject in one command.' },
+  { name: '@prunelle/ui', badge: '6 CSS Grammars', accent: true, href: '/docs/plugins/ui', desc: 'Platform-first headless primitives & pure CSS @layer kui grammars (Prunelle, Orbit, Editorial, Workshop, Console, Soft). Eject in one command.' },
   { name: '@prunelle/auth', badge: '0 external deps', accent: false, href: '/docs/plugins/auth', desc: 'Argon2id passwords, hashed sessions, email verification, magic links, OAuth 2.0 + PKCE, route guards, RGPD helpers & bun:sqlite.' },
   { name: '@prunelle/content', badge: 'Bun.markdown', accent: false, href: '/docs/plugins/content', desc: 'Zero-dep Markdown collections, nested Bun.YAML frontmatter, lazy render(), Shiki highlight, MDX-lite TSX & RSS.' },
   { name: '@prunelle/mcp', badge: 'Streamable HTTP', accent: false, href: '/docs/plugins/mcp', desc: 'Expose typed server actions as bearer-authenticated MCP tools with schema compaction, shared schemas, resources & footprint budgets.' },

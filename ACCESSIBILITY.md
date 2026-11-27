@@ -25,7 +25,7 @@ Prunelle is designed to help teams ship fast, accessible web applications by def
   - Interactive widgets (`Tabs`, `Menu`, `Select`, `CommandPalette`, `DataTable`) implement keyboard navigation (`Arrow` keys, `Home`/`End`, `Enter`/`Space`, `Escape`), focus restoration, and WAI-ARIA attributes (`aria-selected`, `aria-expanded`, `aria-controls`, `aria-activedescendant`, `aria-sort`).
   - `Toaster` announces notifications through an `aria-live` status region.
 - **Color, contrast & motion**:
-  - All built-in Style Grammars (`orbit`, `editorial`, `workshop`, `console`, `soft`) support both light and dark color schemes via CSS `light-dark()` with AA contrast across default, hover, active, and focus states.
+  - All built-in Style Grammars (`prunelle`, `orbit`, `editorial`, `workshop`, `console`, `soft`) support both light and dark color schemes via CSS `light-dark()` with AA contrast across default, hover, active, and focus states.
   - Visible `:focus-visible` outlines are never removed without a clear high-contrast replacement.
   - Animations respect `@media (prefers-reduced-motion: reduce)`.
 
