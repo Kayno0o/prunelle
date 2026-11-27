@@ -7,7 +7,9 @@
   --ui-font-mono: ui-monospace, 'Cascadia Code', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
   --gutter: 32px;
   --gap: 28px;
+  --contents: 15rem;
   --num: 3.5rem;
+  --measure: 38rem;
   --notes: 14rem;
 }
 
@@ -168,7 +170,7 @@ a.brand { text-decoration: none; }
 /* A docs page: contents | margin numbers | text | margin notes. */
 .book {
   display: grid;
-  grid-template-columns: 15rem minmax(0, 1fr);
+  grid-template-columns: var(--contents) minmax(0, 1fr);
   column-gap: var(--gap);
   padding: 36px var(--gutter) 28px;
   width: 100%;
@@ -215,13 +217,7 @@ a.ch:hover { color: var(--ui-ink); }
   text-decoration: underline 1px var(--ui-accent);
   text-underline-offset: 4px;
 }
-.contents .sections { margin: 2px 0 6px; }
-.contents .sections .ch {
-  grid-template-columns: 1.9rem 1fr;
-  padding: 3px 0 3px 1.9rem;
-  font-size: 12px;
-}
-.contents .sections .ch i { font-size: 12px; }
+
 
 .chapter {
   position: relative;
@@ -230,7 +226,7 @@ a.ch:hover { color: var(--ui-ink); }
 }
 .chapter-head,
 .prose {
-  max-width: min(38rem, calc(100% - var(--notes) - var(--gap)));
+  max-width: min(var(--measure), calc(100% - var(--notes) - var(--gap)));
 }
 .chapter-head { position: relative; }
 .chapter-num {
@@ -328,6 +324,13 @@ a.ch:hover { color: var(--ui-ink); }
 }
 .note[data-tone="warning"] b { color: var(--ui-warning); }
 .note p { display: inline; margin: 0; }
+
+/* The chapter's sections open the margin, beside the lead; the notes below clear it. */
+.in-chapter { margin-top: 0; }
+.in-chapter b { display: block; margin-bottom: 4px; }
+.in-chapter ol { list-style: none; margin: 0; padding: 0; }
+.in-chapter .ch { grid-template-columns: 2.2rem 1fr; padding: 3px 0; }
+.in-chapter .ch i { font-size: 12px; }
 
 /* Code as numbered listings with a caption. */
 .listing { margin: 6px 0 22px; }
@@ -541,6 +544,37 @@ a.ch:hover { color: var(--ui-ink); }
 .lost .lead,
 .plates .lead { max-width: 40rem; }
 
+/* On a large screen the type grows a step, the columns with it, and the spread sits centred: the gutters take what the columns don't. Percentages resolve against the body, which holds every element using the gutter. */
+@media (min-width: 1600px) {
+  :root {
+    --page: calc(var(--contents) + var(--num) + var(--measure) + var(--notes) + 3 * var(--gap));
+    --gutter: max(40px, (100% - var(--page)) / 2);
+    --gap: 36px;
+    --contents: 16rem;
+    --measure: 42rem;
+    --notes: 17rem;
+  }
+  body { font-size: 16.5px; }
+  .prose :not(pre) > code,
+  .listing pre { font-size: 14px; }
+  .note { font-size: 14px; }
+}
+
+@media (min-width: 2200px) {
+  :root {
+    --gap: 44px;
+    --contents: 18rem;
+    --num: 4rem;
+    --measure: 46rem;
+    --notes: 20rem;
+  }
+  body { font-size: 18px; }
+  .prose :not(pre) > code,
+  .listing pre { font-size: 15px; }
+  .note,
+  .contents { font-size: 15px; }
+}
+
 @media (max-width: 1080px) {
   .book { grid-template-columns: minmax(0, 1fr); }
   .contents { display: none; }
@@ -579,6 +613,7 @@ a.ch:hover { color: var(--ui-ink); }
   .chapter-num { font-size: 30px; margin-bottom: 6px; }
   .sec-num { font-size: 18px; margin-bottom: 4px; }
   .chapter-head h1 { font-size: 40px; }
+  .in-chapter { display: none; }
   .note {
     float: none;
     width: auto;

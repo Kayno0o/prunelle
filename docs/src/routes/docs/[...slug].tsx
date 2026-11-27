@@ -51,40 +51,6 @@ export async function load(ctx: RequestContext): Promise<DocPageData | Response>
   }
 }
 
-function Contents({ groups, chapter, sections }: { groups: NavGroup[], chapter: NavItem, sections: Array<{ id: string, text: string }> }) {
-  return (
-    <>
-      {groups.map(group => (
-        <div key={group.id}>
-          <div class="part">{`${group.part}. ${group.label}`}</div>
-          <ol>
-            {group.items.map(item => (
-              <li key={item.slug}>
-                <a class="ch" href={item.href} aria-current={item.slug === chapter.slug ? 'page' : undefined}>
-                  <i>{item.chapter}</i>
-                  <span>{item.title}</span>
-                </a>
-                {item.slug === chapter.slug && sections.length > 0 && (
-                  <ol class="sections">
-                    {sections.map((h, n) => (
-                      <li key={h.id}>
-                        <a class="ch" href={`#${h.id}`}>
-                          <i>{`${item.chapter}.${n + 1}`}</i>
-                          <span>{h.text}</span>
-                        </a>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-              </li>
-            ))}
-          </ol>
-        </div>
-      ))}
-    </>
-  )
-}
-
 export default function DocPage({ data }: { data: DocPageData }) {
   const { entry, chapter, html, groups, prev, next, ogImage } = data
   const sections = entry.headings.filter(h => h.level === 2)
@@ -100,7 +66,21 @@ export default function DocPage({ data }: { data: DocPageData }) {
 
       <div class="book">
         <nav class="contents" aria-label="Contents">
-          <Contents groups={groups} chapter={chapter} sections={sections} />
+          {groups.map(group => (
+            <div key={group.id}>
+              <div class="part">{`${group.part}. ${group.label}`}</div>
+              <ol>
+                {group.items.map(item => (
+                  <li key={item.slug}>
+                    <a class="ch" href={item.href} aria-current={item.slug === chapter.slug ? 'page' : undefined}>
+                      <i>{item.chapter}</i>
+                      <span>{item.title}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          ))}
         </nav>
 
         <article class="chapter">
@@ -108,6 +88,21 @@ export default function DocPage({ data }: { data: DocPageData }) {
             <span class="chapter-num" aria-hidden="true">{chapter.chapter}</span>
             <h1>{entry.data.title}</h1>
             <p class="lead">{entry.data.description}</p>
+            {sections.length > 0 && (
+              <nav class="note in-chapter" aria-labelledby="in-chapter">
+                <b id="in-chapter">In this chapter</b>
+                <ol>
+                  {sections.map((h, n) => (
+                    <li key={h.id}>
+                      <a class="ch" href={`#${h.id}`}>
+                        <i>{`${chapter.chapter}.${n + 1}`}</i>
+                        <span>{h.text}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+            )}
           </header>
 
           <div class="prose" innerHTML={html} />
