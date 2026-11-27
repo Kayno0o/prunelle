@@ -1,6 +1,6 @@
 {
   "name": "@prunellejs/tailwind",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tailwind CSS v4 integration plugin for Prunelle",
   "license": "MIT",
   "type": "module",
@@ -21,6 +21,6 @@
     "directory": "packages/plugin-tailwind"
   },
   "peerDependencies": {
-    "prunelle": "^0.1.0"
+    "prunelle": "^0.1.1"
   }
 }

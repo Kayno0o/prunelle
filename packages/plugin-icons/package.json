@@ -1,6 +1,6 @@
 {
   "name": "@prunellejs/icons",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Compile-time Iconify SVG icon plugin (~icons/<set>/<name>) for Prunelle",
   "license": "MIT",
   "type": "module",
@@ -24,6 +24,6 @@
     "directory": "packages/plugin-icons"
   },
   "peerDependencies": {
-    "prunelle": "^0.1.0"
+    "prunelle": "^0.1.1"
   }
 }

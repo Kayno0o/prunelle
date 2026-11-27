@@ -1,6 +1,6 @@
 {
   "name": "@prunellejs/mail",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Zero-dependency email delivery (Resend / custom transport) and dev outbox plugin for Prunelle",
   "license": "MIT",
   "type": "module",
@@ -21,6 +21,6 @@
     "directory": "packages/plugin-mail"
   },
   "peerDependencies": {
-    "prunelle": "^0.1.0"
+    "prunelle": "^0.1.1"
   }
 }
