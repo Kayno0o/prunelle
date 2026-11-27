@@ -1,5 +1,5 @@
-/** @jsxImportSource @kayjs/kay */
-import type { JSX } from '@kayjs/kay/jsx-runtime'
+/** @jsxImportSource prunelle */
+import type { JSX } from 'prunelle/jsx-runtime'
 import type { IconData } from './types'
 
 export type IconComponentProps = Omit<JSX.IntrinsicElements['svg'], 'children' | 'innerHTML'> & { icon: IconData }

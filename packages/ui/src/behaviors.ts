@@ -1,8 +1,8 @@
 // Headless signal behavior hooks (zero CSS, zero DOM lock-in — standard TSX `{...spread}`).
 // DataTable and Tabs state live in ./table-state.ts and ./tabs-state.ts so lightweight pages don't download them.
 
-import type { Signal } from '@kayjs/kay'
-import { effect, onCleanup, signal, useId } from '@kayjs/kay'
+import type { Signal } from 'prunelle'
+import { effect, onCleanup, signal, useId } from 'prunelle'
 import { useFieldContext } from './field-context'
 
 export { createDataTable } from './table-state'

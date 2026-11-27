@@ -1,8 +1,8 @@
 import type { PinnedNotice } from '../db'
 import type { BoardMessage } from '../services'
-import { useLive } from '@kayjs/live/client'
-import { toast } from '@kayjs/ui'
-import { signal } from '@kayjs/kay'
+import { useLive } from '@prunelle/live/client'
+import { toast } from '@prunelle/ui'
+import { signal } from 'prunelle'
 
 export interface LiveBoardProps {
   initialNotices: PinnedNotice[]

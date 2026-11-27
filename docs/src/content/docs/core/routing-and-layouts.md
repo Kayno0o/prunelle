@@ -21,18 +21,18 @@ Every file in `src/routes/` maps directly to a URL path on `Bun.serve()`.
 | `src/routes/_404.tsx` | Unmatched routes | 404 page (also `404.html` in `--static`) |
 | `src/routes/_error.tsx` | Uncaught route errors | Error page (receives `{ error }`) |
 
-Params arrive percent-decoded, so `/posts/caf%C3%A9` gives `params.slug === "café"`. A dynamic route never matches a segment holding an encoded `/`, `\` or NUL, or a `.` or `..` segment: the request gets a 404, so you can join a param into a file path without checking it for traversal. The same rule holds for static pages, `public/` files and a `kay start --static` export: `/a%2fb.txt` never serves `a/b.txt`, and a file whose name holds a literal `%2f` is reached through `%252f`.
+Params arrive percent-decoded, so `/posts/caf%C3%A9` gives `params.slug === "café"`. A dynamic route never matches a segment holding an encoded `/`, `\` or NUL, or a `.` or `..` segment: the request gets a 404, so you can join a param into a file path without checking it for traversal. The same rule holds for static pages, `public/` files and a `prunelle start --static` export: `/a%2fb.txt` never serves `a/b.txt`, and a file whose name holds a literal `%2f` is reached through `%252f`.
 
 `_404.tsx` and `_error.tsx` automatically render inside your root `_layout.tsx` with global styles.
 
-Every other file under `src/routes/` must export a page, a method handler or an action, since an action placed there is guarded by its folder's `_middleware.ts`. A helper with none of these fails `kay build` and `kay check`: move it elsewhere, or prefix its name or folder with `_`, as in `_format.ts` or `_components/`. The four special files fail the same way without a default export.
+Every other file under `src/routes/` must export a page, a method handler or an action, since an action placed there is guarded by its folder's `_middleware.ts`. A helper with none of these fails `prunelle build` and `prunelle check`: move it elsewhere, or prefix its name or folder with `_`, as in `_format.ts` or `_components/`. The four special files fail the same way without a default export.
 
 ## Data loading (`load` vs `async` page)
 
 Use either an `async` route component (strictly server-only) or a sync route with `export async function load(ctx)`. `load()` can return data props or a `Response` (such as a `404` or redirect):
 
 ```tsx
-import type { RequestContext } from '@kayjs/kay/server'
+import type { RequestContext } from 'prunelle/server'
 
 export async function load(ctx: RequestContext) {
   const post = await findPost(ctx.params.slug)
@@ -52,7 +52,7 @@ Export HTTP verb handlers from any `.ts` file under `src/routes/`:
 
 ```ts
 // src/routes/api/items.ts
-import type { RequestContext } from '@kayjs/kay/server'
+import type { RequestContext } from 'prunelle/server'
 
 export function GET(ctx: RequestContext) {
   return ctx.json({ items: [], ip: ctx.ip })
@@ -75,9 +75,9 @@ Unsafe HTTP methods (`POST`, `PUT`, `PATCH`, `DELETE`) verify `Origin` / `Sec-Fe
 Layouts receive `{ children, params, locals, url }`:
 
 ```tsx
-import type { KayChild } from '@kayjs/kay'
+import type { PrunelleChild } from 'prunelle'
 
-export default function Layout({ children, locals }: { children: KayChild, locals: Record<string, unknown> }) {
+export default function Layout({ children, locals }: { children: PrunelleChild, locals: Record<string, unknown> }) {
   return (
     <div class="shell">
       <header>{locals.user ? 'Signed in' : 'Guest'}</header>
@@ -90,7 +90,7 @@ export default function Layout({ children, locals }: { children: KayChild, local
 Middleware in `_middleware.ts` runs outer-to-inner before matching routes and actions in that directory:
 
 ```ts
-import type { Middleware } from '@kayjs/kay/server'
+import type { Middleware } from 'prunelle/server'
 
 const middleware: Middleware = async (ctx, next) => {
   ctx.locals.requestId = crypto.randomUUID()
@@ -102,7 +102,7 @@ export default middleware
 
 ## Page changes
 
-A plain link loads the next page, and kay makes that load smoother without shipping any JavaScript. Three things happen on every page, and each can be turned off.
+A plain link loads the next page, and prunelle makes that load smoother without shipping any JavaScript. Three things happen on every page, and each can be turned off.
 
 **Pages fade into each other.** Every page carries `@view-transition { navigation: auto }`, so browsers that support cross-document view transitions fade from one page to the next. A visitor who asks for less motion gets the plain repaint. Other browsers get a normal page load.
 
@@ -113,12 +113,12 @@ header { view-transition-name: site-header; }
 .side { view-transition-name: side; }
 ```
 
-**Links are fetched when the pointer reaches them.** Kay adds Speculation Rules that prefetch a same-origin link on hover, so the page is often there by the time of the click. Browsers without Speculation Rules ignore them. Kay never prefetches:
+**Links are fetched when the pointer reaches them.** Prunelle adds Speculation Rules that prefetch a same-origin link on hover, so the page is often there by the time of the click. Browsers without Speculation Rules ignore them. Prunelle never prefetches:
 
 - a link to another origin,
-- a link with `data-kay-no-prefetch`, or inside an element that has it (use it on sign-out and other links that change something),
+- a link with `data-pru-no-prefetch`, or inside an element that has it (use it on sign-out and other links that change something),
 - a link with `download` or `rel="nofollow"`,
-- a kay route such as an action's URL.
+- a prunelle route such as an action's URL.
 
 **Prerender is opt-in.** It renders the page before the click, so it runs that page's `load()` for pages nobody opens. Turn it on only when that cost is fine.
 
@@ -139,7 +139,7 @@ The style and the rules are inline, and the page's CSP carries their hashes, so 
 The browser restores the window's scroll when you go back, but not the scroll of a panel inside the page. A sidebar list that scrolls would jump to the top on every page change. Mark it with a key:
 
 ```tsx
-<ul class="side" data-kay-keep-scroll="side">...</ul>
+<ul class="side" data-pru-keep-scroll="side">...</ul>
 ```
 
 When the next page has an element with the same key, its scroll offset is set again before the first paint. Back and forward restore the offset that history entry had. A page that has no marked element ships nothing for this. A marked page gets one small inline script, hashed in its CSP. If `sessionStorage` is blocked, the page renders as usual.
@@ -154,10 +154,10 @@ Mark any static or dynamic route with `export const prerender = true`:
 export const prerender = true
 
 export function paths() {
-  return ['/posts/hello', '/posts/kay-v2']
+  return ['/posts/hello', '/posts/prunelle']
 }
 ```
 
-Dynamic routes with `prerender = true` must export `paths()`. Without it, `kay check` and `kay build` both fail at the `prerender` export. Any request for a param not returned by `paths()` receives a `404` instead of falling back to SSR.
+Dynamic routes with `prerender = true` must export `paths()`. Without it, `prunelle check` and `prunelle build` both fail at the `prerender` export. Any request for a param not returned by `paths()` receives a `404` instead of falling back to SSR.
 
-In `kay dev`, prerendering is skipped so routes render on demand. In `kay build` and `kay build --static`, all paths prerender concurrently.
+In `prunelle dev`, prerendering is skipped so routes render on demand. In `prunelle build` and `prunelle build --static`, all paths prerender concurrently.

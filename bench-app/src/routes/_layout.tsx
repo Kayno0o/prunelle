@@ -1,6 +1,6 @@
-import type { KayChild } from '@kayjs/kay'
+import type { PrunelleChild } from 'prunelle'
 
-export default function Layout({ children }: { children?: KayChild }) {
+export default function Layout({ children }: { children?: PrunelleChild }) {
   return (
     <>
       <header class="site">

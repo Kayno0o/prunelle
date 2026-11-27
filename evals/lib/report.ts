@@ -37,8 +37,8 @@ export function formatGradeSummary(grade: TaskGrade): string {
   const budgetStr = grade.maxJs !== undefined ? ` / ${grade.maxJs}` : ''
   const lines: string[] = [
     `[${status}] ${grade.taskId} — ${grade.title} (${grade.durationMs} ms)`,
-    `  kay check : ${grade.check.ok ? 'ok' : 'FAIL'} (${grade.check.errorCount} errors, ${grade.check.warningCount} warnings, ${grade.check.checkedFiles} files)`,
-    `  kay build : ${grade.build.ok ? 'ok' : 'FAIL'} (max eager JS: ${formatBytes(grade.build.maxEagerJsBytes)}${budgetStr}${grade.build.budgetExceeded ? ' [OVER BUDGET]' : ''})`,
+    `  prunelle check : ${grade.check.ok ? 'ok' : 'FAIL'} (${grade.check.errorCount} errors, ${grade.check.warningCount} warnings, ${grade.check.checkedFiles} files)`,
+    `  prunelle build : ${grade.build.ok ? 'ok' : 'FAIL'} (max eager JS: ${formatBytes(grade.build.maxEagerJsBytes)}${budgetStr}${grade.build.budgetExceeded ? ' [OVER BUDGET]' : ''})`,
     `  bun test  : ${grade.tests.ran ? (grade.tests.ok ? 'ok' : `FAIL (exit ${grade.tests.exitCode})`) : 'none'}`,
     `  assertions: ${passedAssertions}/${grade.assertions.length} passed`,
   ]
@@ -76,7 +76,7 @@ export function formatGradeSummary(grade: TaskGrade): string {
 
 export function formatEvalReport(report: EvalReport): string {
   const lines: string[] = [
-    '# Kay v2 Agent Eval Report',
+    '# Prunelle v2 Agent Eval Report',
     '',
     `Summary: **${report.summary.passed}/${report.summary.total} passed** | Max eager JS: **${formatBytes(report.summary.maxEagerJsBytes)}** | Doc-gap \`src/\` reads: **${report.summary.totalSourceReads}** | Repeated diagnostic stalls: **${report.summary.totalRepeatedFailures}**`,
     '',
@@ -116,7 +116,7 @@ export function formatEvalReport(report: EvalReport): string {
       const failedA = r.assertions.filter(a => !a.ok).map(a => a.name)
       const reasons: string[] = []
       if (!r.check.ok)
-        reasons.push(`kay check (${r.check.errorCount} errors)`)
+        reasons.push(`prunelle check (${r.check.errorCount} errors)`)
       if (!r.build.ok)
         reasons.push(r.build.budgetExceeded ? 'over --max-js budget' : 'build failed')
       if (r.tests.ran && !r.tests.ok)

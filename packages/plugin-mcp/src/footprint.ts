@@ -9,9 +9,9 @@ export interface McpBudgetOptions {
   maxToolBytes?: number | undefined
   /** Total `instructions` + `tools/list` byte budget (optional). */
   maxTotalBytes?: number | undefined
-  /** When true, `kay check` fails with `ctx.error()` on budget overruns instead of warning (default: false). */
+  /** When true, `prunelle check` fails with `ctx.error()` on budget overruns instead of warning (default: false). */
   strict?: boolean | undefined
-  /** Custom warning sink for dev startup (and alongside `ctx.warn()` in non-strict `kay check`). */
+  /** Custom warning sink for dev startup (and alongside `ctx.warn()` in non-strict `prunelle check`). */
   onWarn?: ((message: string) => void) | undefined
 }
 
@@ -97,14 +97,14 @@ export function collectBudgetViolations(footprint: McpFootprint, budget: McpBudg
     for (const tool of footprint.tools) {
       if (tool.bytes > maxToolBytes) {
         violations.push(
-          `[@kayjs/mcp] tool "${tool.name}" is ${tool.bytes} B (~${tool.estimatedTokens} tok; desc ${tool.descriptionBytes} B, schema ${tool.schemaBytes} B), exceeding ${maxToolBytes} B budget`,
+          `[@prunelle/mcp] tool "${tool.name}" is ${tool.bytes} B (~${tool.estimatedTokens} tok; desc ${tool.descriptionBytes} B, schema ${tool.schemaBytes} B), exceeding ${maxToolBytes} B budget`,
         )
       }
     }
   }
   if (maxTotalBytes !== undefined && maxTotalBytes > 0 && footprint.totalBytes > maxTotalBytes) {
     violations.push(
-      `[@kayjs/mcp] total MCP surface is ${footprint.totalBytes} B (~${footprint.estimatedTokens} tok), exceeding ${maxTotalBytes} B budget`,
+      `[@prunelle/mcp] total MCP surface is ${footprint.totalBytes} B (~${footprint.estimatedTokens} tok), exceeding ${maxTotalBytes} B budget`,
     )
   }
   return violations
@@ -114,7 +114,7 @@ export function collectBudgetViolations(footprint: McpFootprint, budget: McpBudg
 export function formatMcpFootprint(footprint: McpFootprint, budget?: McpBudgetOptions | false): string {
   const maxToolBytes = budget === false ? undefined : (budget?.maxToolBytes ?? DEFAULT_MAX_TOOL_BYTES)
   const lines = [
-    `@kayjs/mcp footprint: ${footprint.totalBytes} B (~${footprint.estimatedTokens} tok) — instructions: ${footprint.instructionsBytes} B, tools: ${footprint.toolsBytes} B (${footprint.tools.length} tools)`,
+    `@prunelle/mcp footprint: ${footprint.totalBytes} B (~${footprint.estimatedTokens} tok) — instructions: ${footprint.instructionsBytes} B, tools: ${footprint.toolsBytes} B (${footprint.tools.length} tools)`,
   ]
   const nameWidth = footprint.tools.reduce((max, t) => Math.max(max, t.name.length), 0)
   for (const t of footprint.tools) {

@@ -1,16 +1,16 @@
 ---
-title: "@kayjs/images & @kayjs/seo"
+title: "@prunelle/images & @prunelle/seo"
 description: Build-time AVIF/WebP image optimization, OG shareCard() PNG generation, self-hosted fonts, JSON-LD, sitemaps, and redirects.
 section: plugins
 order: 5
 ---
 
-## Responsive images & OG `shareCard()` (`@kayjs/images`)
+## Responsive images & OG `shareCard()` (`@prunelle/images`)
 
-Add `images()` to `kay.config.ts` to optimize imported `.png`/`.jpg`/`.webp` assets into content-hashed AVIF & WebP variants cached in `.kay-cache/images/`:
+Add `images()` to `prunelle.config.ts` to optimize imported `.png`/`.jpg`/`.webp` assets into content-hashed AVIF & WebP variants cached in `.prunelle-cache/images/`:
 
 ```ts
-import { images } from '@kayjs/images'
+import { images } from '@prunelle/images'
 
 export default defineConfig({
   plugins: [
@@ -35,7 +35,7 @@ An image reports the size it is displayed at. A phone photo stored sideways, wit
 Render responsive images with `image()` or `<Picture>`:
 
 ```tsx
-import { image, Picture } from '@kayjs/images'
+import { image, Picture } from '@prunelle/images'
 import hero from '../assets/hero.jpg'
 
 <Picture asset={hero} sizes="(min-width: 48rem) 50vw, 100vw" alt="Hero" priority />
@@ -45,15 +45,15 @@ import hero from '../assets/hero.jpg'
 Generate 1200×630 OG PNG cards at build time:
 
 ```tsx
-import { shareCard } from '@kayjs/images'
+import { shareCard } from '@prunelle/images'
 
 const og = shareCard({ title: post.title, badge: 'Release' })
 ```
 
-## Metadata, Self-Hosted Fonts & Sitemap (`@kayjs/seo`)
+## Metadata, Self-Hosted Fonts & Sitemap (`@prunelle/seo`)
 
 ```ts
-import { seo } from '@kayjs/seo'
+import { seo } from '@prunelle/seo'
 
 seo({
   site: 'https://example.com',
@@ -68,4 +68,4 @@ seo({
 })
 ```
 
-`@kayjs/seo` emits immutable hashed `.woff2` files, injects `<link rel="preload" as="font">` + `@font-face` CSS, applies `titleTemplate`, adds canonical URLs, and generates `/sitemap.xml`.
+`@prunelle/seo` emits immutable hashed `.woff2` files, injects `<link rel="preload" as="font">` + `@font-face` CSS, applies `titleTemplate`, adds canonical URLs, and generates `/sitemap.xml`.

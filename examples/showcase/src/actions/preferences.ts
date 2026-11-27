@@ -1,5 +1,5 @@
-import type { StandardSchemaV1 } from '@kayjs/kay/server'
-import { action } from '@kayjs/kay/server'
+import type { StandardSchemaV1 } from 'prunelle/server'
+import { action } from 'prunelle/server'
 
 export interface Preferences {
   project: string
@@ -14,7 +14,7 @@ const prefsSchema: StandardSchemaV1<unknown, Preferences> = {
     vendor: 'showcase',
     validate(raw) {
       const d = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
-      const project = typeof d.project === 'string' && d.project.trim() ? d.project.trim() : 'my-kay-app'
+      const project = typeof d.project === 'string' && d.project.trim() ? d.project.trim() : 'my-prunelle-app'
       const deploy = d.deploy === 'static' ? 'static' : 'binary'
       return {
         value: {

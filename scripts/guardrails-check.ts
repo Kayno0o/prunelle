@@ -72,8 +72,8 @@ interface OxcParserModule {
   visitorKeys: Record<string, readonly string[]>
 }
 
-const requireFromKay = createRequire(new URL('../packages/kay/package.json', import.meta.url))
-const { parseSync, visitorKeys } = requireFromKay('oxc-parser') as OxcParserModule
+const requireFromPrunelle = createRequire(new URL('../packages/prunelle/package.json', import.meta.url))
+const { parseSync, visitorKeys } = requireFromPrunelle('oxc-parser') as OxcParserModule
 
 const ROOT = resolve(import.meta.dir, '..')
 const DEFAULT_RATCHET = join(import.meta.dir, 'guardrails-ratchet.json')
@@ -164,9 +164,9 @@ function isRelativeSpecifier(specifier: string): boolean {
 
 export function isBrowserPureFile(file: string): boolean {
   return (
-    file.startsWith('packages/kay/src/dom/')
-    || file.startsWith('packages/kay/src/reactivity/')
-    || file === 'packages/kay/src/context.ts'
+    file.startsWith('packages/prunelle/src/dom/')
+    || file.startsWith('packages/prunelle/src/reactivity/')
+    || file === 'packages/prunelle/src/context.ts'
   )
 }
 
@@ -176,7 +176,7 @@ export function pluginPackageDir(file: string): string | undefined {
 }
 
 function defaultPluginPackageName(dir: string): string {
-  return `@kayjs/${dir.slice('plugin-'.length)}`
+  return `@prunelle/${dir.slice('plugin-'.length)}`
 }
 
 function checkBrowserPureImport(
@@ -196,11 +196,11 @@ function checkBrowserPureImport(
   }
 
   if (
-    specifier === '@kayjs/kay/build'
-    || specifier.startsWith('@kayjs/kay/build/')
-    || specifier === '@kayjs/kay/internal/server'
-    || specifier.startsWith('@kayjs/kay/internal/server/')
-    || (!typeOnly && (specifier === '@kayjs/kay/server' || specifier.startsWith('@kayjs/kay/server/')))
+    specifier === 'prunelle/build'
+    || specifier.startsWith('prunelle/build/')
+    || specifier === 'prunelle/internal/server'
+    || specifier.startsWith('prunelle/internal/server/')
+    || (!typeOnly && (specifier === 'prunelle/server' || specifier.startsWith('prunelle/server/')))
   ) {
     return {
       kind: 'browser-pure-import',
@@ -215,10 +215,10 @@ function checkBrowserPureImport(
     return undefined
 
   const resolved = posix.normalize(posix.join(posix.dirname(file), specifier))
-  if (!resolved.startsWith('packages/kay/src/'))
+  if (!resolved.startsWith('packages/prunelle/src/'))
     return undefined
 
-  const topDir = resolved.slice('packages/kay/src/'.length).split('/')[0]
+  const topDir = resolved.slice('packages/prunelle/src/'.length).split('/')[0]
   if (topDir === undefined)
     return undefined
 
@@ -234,13 +234,13 @@ function checkBrowserPureImport(
     }
   }
 
-  // Every client build that imports `@kayjs/kay` parses context.ts: reaching the DOM runtime from it cost bench-app's client build 4 ms (#3683).
-  if (file === 'packages/kay/src/context.ts' && topDir === 'dom' && !typeOnly) {
+  // Every client build that imports `prunelle` parses context.ts: reaching the DOM runtime from it cost bench-app's client build 4 ms (#3683).
+  if (file === 'packages/prunelle/src/context.ts' && topDir === 'dom' && !typeOnly) {
     return {
       kind: 'browser-pure-import',
       file,
       line,
-      detail: `context.ts imports "${specifier}", so every client build importing @kayjs/kay parses the DOM runtime`,
+      detail: `context.ts imports "${specifier}", so every client build importing prunelle parses the DOM runtime`,
       fix: 'have the DOM compiler call the dom/ helper in place of the component, as it does for <Catch> with catchBoundary',
     }
   }
@@ -255,16 +255,16 @@ function checkCrossPluginImport(
   specifier: string,
   line: number,
 ): GuardrailViolation | undefined {
-  if (specifier.startsWith('@kayjs/')) {
+  if (specifier.startsWith('@prunelle/')) {
     const parts = specifier.split('/')
     const targetPkg = `${parts[0]}/${parts[1] ?? ''}`
-    if (targetPkg !== '@kayjs/kay' && targetPkg !== ownPkgName) {
+    if (targetPkg !== 'prunelle' && targetPkg !== ownPkgName) {
       return {
         kind: 'cross-plugin-import',
         file,
         line,
         detail: `plugin "${ownDir}" imports "${specifier}"`,
-        fix: `communicate across plugins via @kayjs/kay/config service keys (packages/kay/src/plugins/services.ts) instead of importing ${targetPkg}`,
+        fix: `communicate across plugins via prunelle/config service keys (packages/prunelle/src/plugins/services.ts) instead of importing ${targetPkg}`,
       }
     }
     return undefined
@@ -284,7 +284,7 @@ function checkCrossPluginImport(
       file,
       line,
       detail: `plugin "${ownDir}" imports "${specifier}" (resolves into packages/${targetDir}/)`,
-      fix: `communicate across plugins via @kayjs/kay/config service keys (packages/kay/src/plugins/services.ts) instead of reaching into packages/${targetDir}`,
+      fix: `communicate across plugins via prunelle/config service keys (packages/prunelle/src/plugins/services.ts) instead of reaching into packages/${targetDir}`,
     }
   }
 

@@ -1,0 +1,618 @@
+// OXC-based static analysis for TSX/TS files: automatic island detection, actions, prerender, Head/Suspense.
+
+import type { CallExpression, ExportNamedDeclaration, Function as OxcFunction, Node, Program, Statement, VariableDeclaration } from 'oxc-parser'
+import { parseSync } from 'oxc-parser'
+import { computeJsxNodes, walk } from './ast'
+import type { BindingFacts, Interactivity } from './interactivity'
+import type { CompilerWarning } from './mistakes'
+import { checkBrowserGlobals } from './browser-globals'
+import { analyzeDefaultDataKeys } from './data-keys'
+import { checkCompliance } from './compliance'
+import { resolveInteractivity } from './interactivity'
+import { findNodeEnvReads } from './node-env'
+import { assertNoKayImport, checkExportHydrate, checkHabits, checkHydrateMode, checkMistakes, guarded, islandRemoved, PrunelleMistake, mistake, serverOnlyTagError, staticStringValue } from './mistakes'
+import { walkScoped } from './scope'
+import { calleeName, decodeHtmlEntities, EVENT_ATTR, formatCodeFrame, formatDiagnostic, formatLoc, isComponentTag, isJsxNode, jsxTagName, resolvePrunelleTag, unwrapTsExpr } from './shared'
+import { checkBareSignals } from './signal-reads'
+
+const REACTIVE_IMPORTS = new Set(['signal', 'computed', 'effect', 'onMount', 'onCleanup', 'selector', 'store', 'useAction'])
+// Primitives whose result is reactive state another module can import and read.
+const STATE_PRIMITIVES = new Set(['signal', 'computed', 'selector', 'store'])
+const PRUNELLE_SOURCES = new Set(['prunelle'])
+const PRUNELLE_SSR_SOURCES = new Set(['prunelle', 'prunelle/internal/ssr'])
+const PRUNELLE_SERVER_SOURCES = new Set(['prunelle/server'])
+const RENDER_CONTEXT_IMPORTS = new Set(['Head', 'Region', 'Suspense', 'ConsentGate', 'createContext', 'provideContext', 'useContext', 'useId'])
+const SERVER_ONLY_TAGS = new Set(['Head', 'Region', 'Suspense', 'ConsentGate'])
+
+export interface ImportInfo {
+  source: string
+  specifiers: { local: string, imported: string }[]
+  start: number
+  end: number
+}
+
+export interface ReexportInfo {
+  exported: string
+  local: string
+  source: string
+  start: number
+}
+
+export interface ModuleAnalysis extends Interactivity {
+  filename: string
+  program: Program
+  hasAsyncDefault: boolean
+  hasLoadExport: boolean
+  hasJsx: boolean
+  /** Precomputed set of AST nodes containing JSX (itself included), for O(1) subtree checks during codegen. */
+  jsxNodes: WeakSet<Node>
+  hasPrerender: boolean
+  hasPaths: boolean
+  usesRenderContext: boolean
+  defaultHydrate: string | undefined
+  deferredIslandTags: Set<string>
+  /** `$hydrate` modes the module writes; `*` stands for one computed at runtime. */
+  hydrateModes: Set<string>
+  /** Component tags the module renders, `NS.Tag` included. */
+  jsxTags: Set<string>
+  /** Top-level names bound to an async function, `default` for an anonymous async default export. */
+  asyncLocals: Set<string>
+  /** Exported names bound to reactive state (`export const count = signal(0)` or `{ count: signal(0) }`). */
+  stateExports: string[]
+  /** Exported names bound directly to a `signal()` or `computed()` (read via `.value`). */
+  signalExports: string[]
+  /** Static top-level keys of `data` read by the default export (when statically bounded; `undefined` if `data` escapes). */
+  defaultDataKeys?: string[] | undefined
+  exportedActions: string[]
+  imports: ImportInfo[]
+  /** Static `import('...')` calls outside `load()` / `clientData()`. */
+  dynamicImports: { source: string, start: number }[]
+  reexports: ReexportInfo[]
+  exportedNames: string[]
+  /** Facts per top-level binding, which `prunelle build` and `prunelle check` re-resolve once imported state is known. */
+  bindings: BindingFacts[]
+  /** Each export by name, with the top-level binding it exports. */
+  exportLocals: Map<string, string>
+  /** Code that compiles but usually means something else, worded for build and `prunelle check` to print. */
+  warnings: CompilerWarning[]
+  /** Offsets of the `process.env.NODE_ENV` reads, warned about once the island plan says which run on the server only. */
+  nodeEnvReads: number[]
+}
+
+function exportedName(node: { type: string, name?: string, value?: string }): string | undefined {
+  return node.type === 'Identifier' ? node.name : node.value
+}
+
+// The server-only code behind a module's `load` / `clientData` exports: a function declaration or declarator initialiser, in any export form.
+export function loadDeclarations(program: Program): Node[] {
+  const SERVER_ROUTE_EXPORTS = new Set(['load', 'clientData'])
+  const localNames = new Set<string>()
+  const found: Node[] = []
+  const collect = (stmt: Statement | ExportNamedDeclaration['declaration'], names: Set<string>): void => {
+    if (stmt === null)
+      return
+    if (stmt.type === 'FunctionDeclaration' && stmt.id !== null && names.has(stmt.id.name)) {
+      found.push(stmt)
+    }
+    else if (stmt.type === 'VariableDeclaration') {
+      for (const d of stmt.declarations) {
+        if (d.id.type === 'Identifier' && names.has(d.id.name) && d.init !== null)
+          found.push(d.init)
+      }
+    }
+  }
+  for (const stmt of program.body) {
+    if (stmt.type !== 'ExportNamedDeclaration' || stmt.source !== null)
+      continue
+    if (stmt.declaration !== null)
+      collect(stmt.declaration, SERVER_ROUTE_EXPORTS)
+    for (const spec of stmt.specifiers) {
+      const exp = exportedName(spec.exported)
+      if (exp !== undefined && SERVER_ROUTE_EXPORTS.has(exp) && spec.local.type === 'Identifier')
+        localNames.add(spec.local.name)
+    }
+  }
+  if (localNames.size > 0) {
+    for (const stmt of program.body)
+      collect(stmt, localNames)
+  }
+  return found
+}
+
+// An entity cannot hide in `&&` or `a & b`: only `&name;`, `&#n;` or `&#xh;` decodes.
+const ENTITY_HINT_RE = /&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]*);/i
+
+// JSX string attributes hold HTML entities as text children do (TypeScript and Babel decode both): decoded once here, every compile target reads the value. `innerHTML` stays as written, since it is markup.
+function decodeAttributeEntities(program: Program): void {
+  walk(program, (node) => {
+    if (node.type !== 'JSXAttribute' || node.value?.type !== 'Literal' || typeof node.value.value !== 'string')
+      return
+    if (node.name.type === 'JSXIdentifier' && node.name.name === 'innerHTML')
+      return
+    node.value.value = decodeHtmlEntities(node.value.value)
+  })
+}
+
+export function parseTsx(filename: string, code: string): Program {
+  const lang = /\.[cm]?ts$/i.test(filename) ? 'ts' : 'tsx'
+  const result = parseSync(filename, code, { lang, sourceType: 'module' })
+  if (result.errors.length > 0) {
+    const first = result.errors[0]!
+    const label = first.labels?.[0]
+    const offset = label?.start ?? 0
+    const loc = formatLoc(filename, code, offset)
+    const frame = formatCodeFrame(code, offset, label?.end)
+    const header = formatDiagnostic(loc, `prunelle compiler: syntax error: ${first.message}`)
+    throw new Error(frame ? `${header}\n${frame}` : header)
+  }
+  if (ENTITY_HINT_RE.test(code))
+    decodeAttributeEntities(result.program)
+  return result.program
+}
+
+export function asyncInteractiveError(filename: string, reason: string | undefined, start?: number): PrunelleMistake {
+  const err = new PrunelleMistake(`prunelle compiler: async route component in ${filename} cannot use browser interactivity (${reason}). Move interactive state/handlers into a non-async component and render it from the async page.`)
+  err.start = start
+  return err
+}
+
+function isAsyncFunction(node: Node | null | undefined): boolean {
+  if (node === null || node === undefined)
+    return false
+  const inner = unwrapTsExpr(node)
+  return (inner.type === 'FunctionDeclaration' || inner.type === 'FunctionExpression' || inner.type === 'ArrowFunctionExpression') && inner.async === true
+}
+
+// The variable an action() call is assigned to (`const save = action(...)`), to name it in an error.
+function actionVariable(program: Program, call: CallExpression): string | undefined {
+  let name: string | undefined
+  walk(program, (node) => {
+    if (node.type === 'VariableDeclarator' && node.init === call && node.id.type === 'Identifier')
+      name = node.id.name
+    return name === undefined ? undefined : false
+  })
+  return name
+}
+
+// The mode a `$hydrate` attribute names: its string, or `*` when an expression picks it at runtime.
+function hydrateMode(value: Node | null | undefined): string {
+  return staticStringValue(value?.type === 'JSXExpressionContainer' ? value.expression : value) ?? '*'
+}
+
+function isActionCall(node: Node, actionLocalName: string | undefined, serverNamespaces: ReadonlySet<string>): node is CallExpression {
+  if (node.type !== 'CallExpression')
+    return false
+  const name = calleeName(node.callee)
+  return (actionLocalName !== undefined && name === actionLocalName)
+    || (name.endsWith('.action') && serverNamespaces.has(name.slice(0, -'.action'.length)))
+}
+
+
+/** What a module's imports declare, read before its body so import order never matters. */
+interface ImportScan {
+  imports: ImportInfo[]
+  /** Prunelle's reactive primitives by local name, with the reason a use of one gives. */
+  reactiveLocals: Map<string, string>
+  stateCallees: Set<string>
+  signalCallees: Set<string>
+  effectCallees: Set<string>
+  serverOnlyLocals: Map<string, string>
+  prunelleNamespaces: Set<string>
+  serverNamespaces: Set<string>
+  actionLocalName: string | undefined
+  usesRenderContext: boolean
+}
+
+function scanImports(program: Program, filename: string): ImportScan {
+  const scan: ImportScan = { imports: [], reactiveLocals: new Map(), stateCallees: new Set(), signalCallees: new Set(), effectCallees: new Set(), serverOnlyLocals: new Map(), prunelleNamespaces: new Set(), serverNamespaces: new Set(), actionLocalName: undefined, usesRenderContext: false }
+  for (const stmt of program.body) {
+    if (stmt.type === 'ExportAllDeclaration' || (stmt.type === 'ExportNamedDeclaration' && stmt.source !== null))
+      guarded(stmt.source!.start, () => assertNoKayImport(stmt.source!.value, filename))
+    if (stmt.type !== 'ImportDeclaration')
+      continue
+    guarded(stmt.source.start, () => assertNoKayImport(stmt.source.value, filename))
+    // Entire `import type { ... } from '...'` declarations have zero runtime effect.
+    if (stmt.importKind === 'type')
+      continue
+    const source = stmt.source.value
+    const specifiers: { local: string, imported: string }[] = []
+    for (const spec of stmt.specifiers) {
+      if (spec.type === 'ImportSpecifier') {
+        const imported = spec.importKind === 'type' ? undefined : exportedName(spec.imported)
+        if (imported === undefined)
+          continue
+        specifiers.push({ local: spec.local.name, imported })
+        scanPrunelleImport(scan, source, imported, spec.local.name, filename, spec.start)
+      }
+      else if (spec.type === 'ImportDefaultSpecifier') {
+        specifiers.push({ local: spec.local.name, imported: 'default' })
+      }
+      else {
+        specifiers.push({ local: spec.local.name, imported: '*' })
+        if (PRUNELLE_SOURCES.has(source))
+          scan.prunelleNamespaces.add(spec.local.name)
+        if (PRUNELLE_SERVER_SOURCES.has(source))
+          scan.serverNamespaces.add(spec.local.name)
+      }
+    }
+    scan.imports.push({ source, specifiers, start: stmt.start, end: stmt.end })
+  }
+  return scan
+}
+
+function scanPrunelleImport(scan: ImportScan, source: string, imported: string, local: string, filename: string, start: number): void {
+  if (PRUNELLE_SOURCES.has(source)) {
+    if (REACTIVE_IMPORTS.has(imported))
+      scan.reactiveLocals.set(local, `uses ${imported}`)
+    if (imported === 'island')
+      guarded(start, () => { throw islandRemoved(filename, start) })
+    if (STATE_PRIMITIVES.has(imported))
+      scan.stateCallees.add(local)
+    if (imported === 'signal' || imported === 'computed')
+      scan.signalCallees.add(local)
+    if (imported === 'effect')
+      scan.effectCallees.add(local)
+    if (SERVER_ONLY_TAGS.has(imported))
+      scan.serverOnlyLocals.set(local, imported)
+  }
+  if (PRUNELLE_SSR_SOURCES.has(source) && RENDER_CONTEXT_IMPORTS.has(imported))
+    scan.usesRenderContext = true
+  if (PRUNELLE_SERVER_SOURCES.has(source) && imported === 'action')
+    scan.actionLocalName = local
+}
+
+/** A module's top-level declarations and exports. */
+interface DeclarationScan {
+  localInits: Map<string, Node>
+  /** Each export by name, with the top-level binding it exports (`default` for an anonymous default export). */
+  exportLocals: Map<string, string>
+  asyncLocals: Set<string>
+  defaultLocal: string | undefined
+  hasAsyncDefault: boolean
+  hasLoadExport: boolean
+  hasPaths: boolean
+  hasPrerender: boolean
+  defaultHydrate: string | undefined
+  exportedActions: string[]
+  /** The action() calls prunelle gives a URL to: the initialisers of top-level `export const`s. */
+  registeredActions: Set<Node>
+  reexports: ReexportInfo[]
+  exportedNames: string[]
+}
+
+function scanDeclarations(program: Program, filename: string, imports: ImportScan): DeclarationScan {
+  const scan: DeclarationScan = { localInits: new Map(), exportLocals: new Map(), asyncLocals: new Set(), defaultLocal: undefined, hasAsyncDefault: false, hasLoadExport: false, hasPaths: false, hasPrerender: false, defaultHydrate: undefined, exportedActions: [], registeredActions: new Set(), reexports: [], exportedNames: [] }
+  const collectInits = (decl: VariableDeclaration): void => {
+    for (const d of decl.declarations) {
+      if (d.id.type === 'Identifier' && d.init !== null)
+        scan.localInits.set(d.id.name, d.init)
+    }
+  }
+  const addExport = (exported: string, local: string | undefined): void => {
+    scan.exportedNames.push(exported)
+    if (local !== undefined)
+      scan.exportLocals.set(exported, local)
+    if (exported === 'load')
+      scan.hasLoadExport = true
+    if (exported === 'paths')
+      scan.hasPaths = true
+  }
+  for (const stmt of program.body) {
+    if (stmt.type === 'VariableDeclaration') {
+      collectInits(stmt)
+    }
+    else if (stmt.type === 'FunctionDeclaration') {
+      if (stmt.async === true && stmt.id !== null)
+        scan.asyncLocals.add(stmt.id.name)
+    }
+    else if (stmt.type === 'ExportAllDeclaration') {
+      if (stmt.exportKind !== 'type')
+        scan.reexports.push({ exported: '*', local: '*', source: stmt.source.value, start: stmt.start })
+    }
+    else if (stmt.type === 'ExportDefaultDeclaration') {
+      const decl = unwrapTsExpr(stmt.declaration)
+      const named = (decl.type === 'FunctionDeclaration' || decl.type === 'ClassDeclaration') ? decl.id?.name : undefined
+      addExport('default', decl.type === 'Identifier' ? decl.name : named ?? 'default')
+      if (isAsyncFunction(decl))
+        scan.hasAsyncDefault = true
+      else if (decl.type === 'Identifier')
+        scan.defaultLocal = decl.name
+      else
+        scan.localInits.set('default', decl)
+    }
+    else if (stmt.type === 'ExportNamedDeclaration' && stmt.exportKind !== 'type') {
+      for (const spec of stmt.specifiers) {
+        const exported = spec.exportKind === 'type' ? undefined : exportedName(spec.exported)
+        const local = exportedName(spec.local)
+        if (exported === undefined || local === undefined)
+          continue
+        addExport(exported, stmt.source === null ? local : undefined)
+        if (stmt.source !== null)
+          scan.reexports.push({ exported, local, source: stmt.source.value, start: stmt.start })
+        else if (exported === 'default')
+          scan.defaultLocal = local
+      }
+      if (stmt.declaration !== null)
+        scanExportedDeclaration(scan, stmt.declaration, filename, imports, collectInits, addExport)
+    }
+  }
+  const hydrateLocal = scan.defaultHydrate === undefined ? scan.exportLocals.get('hydrate') : undefined
+  if (hydrateLocal !== undefined)
+    scan.defaultHydrate = checkExportHydrate(scan.localInits.get(hydrateLocal), filename)
+  return scan
+}
+
+function scanExportedDeclaration(scan: DeclarationScan, decl: NonNullable<ExportNamedDeclaration['declaration']>, filename: string, imports: ImportScan, collectInits: (decl: VariableDeclaration) => void, addExport: (exported: string, local: string) => void): void {
+  if (decl.type === 'FunctionDeclaration' && decl.id !== null) {
+    if (decl.async === true)
+      scan.asyncLocals.add(decl.id.name)
+    addExport(decl.id.name, decl.id.name)
+  }
+  else if (decl.type === 'ClassDeclaration' && decl.id !== null) {
+    addExport(decl.id.name, decl.id.name)
+  }
+  else if (decl.type === 'VariableDeclaration') {
+    collectInits(decl)
+    for (const d of decl.declarations) {
+      if (d.id.type !== 'Identifier')
+        continue
+      const name = d.id.name
+      addExport(name, name)
+      if (name === 'prerender' && d.init?.type === 'Literal' && d.init.value === true)
+        scan.hasPrerender = true
+      if (name === 'hydrate' && d.init !== null)
+        scan.defaultHydrate = checkExportHydrate(d.init, filename)
+      if (d.init !== null && isActionCall(d.init, imports.actionLocalName, imports.serverNamespaces)) {
+        scan.exportedActions.push(name)
+        scan.registeredActions.add(d.init)
+      }
+    }
+  }
+}
+
+// A module's body as top-level bindings, each with the node holding its code; module-level statements go under ''.
+function bindingUnits(program: Program): { name: string, node: Node }[] {
+  const units: { name: string, node: Node }[] = []
+  const add = (node: Node): void => {
+    if (node.type.startsWith('TS'))
+      return
+    if ((node.type === 'FunctionDeclaration' || node.type === 'ClassDeclaration') && node.id !== null) {
+      units.push({ name: node.id.name, node })
+    }
+    else if (node.type === 'VariableDeclaration') {
+      for (const d of node.declarations)
+        units.push({ name: d.id.type === 'Identifier' ? d.id.name : '', node: d })
+    }
+    else {
+      units.push({ name: '', node })
+    }
+  }
+  for (const stmt of program.body) {
+    if (stmt.type === 'ExportNamedDeclaration') {
+      if (stmt.declaration !== null)
+        add(stmt.declaration)
+    }
+    else if (stmt.type === 'ExportDefaultDeclaration') {
+      const decl = unwrapTsExpr(stmt.declaration)
+      if ((decl.type === 'FunctionDeclaration' || decl.type === 'ClassDeclaration') && decl.id !== null)
+        add(decl)
+      else if (decl.type !== 'Identifier')
+        units.push({ name: 'default', node: decl })
+    }
+    else if (stmt.type !== 'ImportDeclaration') {
+      add(stmt)
+    }
+  }
+  return units
+}
+
+/** What the walk over a module's body finds. */
+interface BodyScan {
+  hasJsx: boolean
+  usesRenderContext: boolean
+  deferredIslandTags: Set<string>
+  hydrateModes: Set<string>
+  jsxTags: Set<string>
+  dynamicImports: { source: string, start: number }[]
+  bindings: BindingFacts[]
+}
+
+const TS_EXPR_WRAPPERS = new Set(['TSAsExpression', 'TSNonNullExpression', 'TSSatisfiesExpression', 'TSTypeAssertion', 'TSInstantiationExpression'])
+
+// Walks each top-level binding for JSX, mistakes, action() placement and what makes it run in the browser.
+function scanBody(program: Program, filename: string, code: string, imports: ImportScan, decls: DeclarationScan, warnings: CompilerWarning[], loadCode: ReadonlySet<Node>): BodyScan {
+  const body: BodyScan = { hasJsx: false, usesRenderContext: imports.usesRenderContext, deferredIslandTags: new Set(), hydrateModes: new Set(), jsxTags: new Set(), dynamicImports: [], bindings: [] }
+  const units = bindingUnits(program)
+  const tracked = new Set(units.map(u => u.name))
+  for (const imp of imports.imports) {
+    for (const spec of imp.specifiers)
+      tracked.add(spec.local)
+  }
+  const checkActions = imports.actionLocalName !== undefined || imports.serverNamespaces.size > 0
+  const isEffect = (callee: string): boolean => imports.effectCallees.has(callee) || (callee.endsWith('.effect') && imports.prunelleNamespaces.has(callee.slice(0, -'.effect'.length)))
+  const ref = (binding: BindingFacts, name: string, offset: number): void => {
+    if (tracked.has(name) && !binding.refs.has(name))
+      binding.refs.set(name, offset)
+  }
+  const addMember = (binding: BindingFacts, name: string, member: string): void => {
+    if (!tracked.has(name))
+      return
+    const set = binding.memberRefs.get(name) ?? new Set<string>()
+    set.add(member)
+    binding.memberRefs.set(name, set)
+  }
+  const resolveTag = (tag: string): string | undefined => resolvePrunelleTag(tag, imports.imports)
+  for (const unit of units) {
+    const binding: BindingFacts = { name: unit.name, start: unit.node.start, end: unit.node.end, fact: undefined, refs: new Map(), valueRefs: new Map(), memberRefs: new Map(), tags: new Set(), serverOnlyTag: undefined }
+    body.bindings.push(binding)
+    const freeIds = new Map<number, string>()
+    const memberObjStarts = new Set<number>()
+    walkScoped(unit.node, {
+      onIdentifier(id) {
+        freeIds.set(id.start, id.name)
+        ref(binding, id.name, id.start)
+        if (tracked.has(id.name) && !binding.valueRefs.has(id.name))
+          binding.valueRefs.set(id.name, id.start)
+        const reason = imports.reactiveLocals.get(id.name)
+        if (reason !== undefined)
+          binding.fact ??= { reason, offset: id.start }
+      },
+    })
+    const isLoadUnit = loadCode.has(unit.node) || (unit.node.type === 'VariableDeclarator' && unit.node.init !== null && loadCode.has(unit.node.init))
+    walk(unit.node, (node): boolean | void => {
+      if (node.type.startsWith('TS') && !TS_EXPR_WRAPPERS.has(node.type))
+        return false
+      if (isJsxNode(node))
+        body.hasJsx = true
+      if (node.type === 'JSXElement')
+        checkMistakes(node, filename, code, warnings, resolveTag)
+      checkHabits(node, isEffect, filename)
+      if (checkActions && isActionCall(node, imports.actionLocalName, imports.serverNamespaces) && !decls.registeredActions.has(node))
+        guarded(node.start, () => { throw mistake('action() not declared as export const', filename, `write export const ${actionVariable(program, node) ?? 'name'} = ${imports.actionLocalName ?? 'action'}(...) at the top level, only those get a URL`) })
+      if (node.type === 'ImportExpression' && !isLoadUnit) {
+        const src = staticStringValue(node.source)
+        if (src !== undefined)
+          body.dynamicImports.push({ source: src, start: node.start })
+      }
+      else if (node.type === 'JSXOpeningElement') {
+        scanOpeningElement(node, binding, body, imports, filename)
+        const root = jsxTagName(node.name).split('.')[0]!
+        if (isComponentTag(root))
+          ref(binding, root, node.start)
+      }
+      else if (node.type === 'MemberExpression' && !node.computed && node.object.type === 'Identifier' && freeIds.has(node.object.start) && node.property.type === 'Identifier') {
+        memberObjStarts.add(node.object.start)
+        addMember(binding, node.object.name, node.property.name)
+        scanPrunelleMember(node, binding, body, imports, filename)
+      }
+    })
+    for (const [start, name] of freeIds) {
+      if (!memberObjStarts.has(start))
+        addMember(binding, name, '*')
+    }
+  }
+  return body
+}
+
+function scanOpeningElement(node: Extract<Node, { type: 'JSXOpeningElement' }>, binding: BindingFacts, body: BodyScan, imports: ImportScan, filename: string): void {
+  const tag = jsxTagName(node.name)
+  const isComponent = isComponentTag(tag)
+  if (isComponent) {
+    body.jsxTags.add(tag)
+    binding.tags.add(tag)
+    binding.serverOnlyTag ??= imports.serverOnlyLocals.get(tag)
+    const [ns, member] = tag.split('.')
+    if (member !== undefined && imports.prunelleNamespaces.has(ns!) && RENDER_CONTEXT_IMPORTS.has(member)) {
+      body.usesRenderContext = true
+      if (SERVER_ONLY_TAGS.has(member))
+        binding.serverOnlyTag ??= member
+    }
+  }
+  for (const attr of node.attributes) {
+    if (attr.type !== 'JSXAttribute' || attr.name.type !== 'JSXIdentifier')
+      continue
+    const attrName = attr.name.name
+    if (isComponent && attrName === '$hydrate') {
+      const mode = hydrateMode(attr.value)
+      guarded(attr.start, () => checkHydrateMode(mode, `$hydrate="${mode}"`, filename))
+      body.hydrateModes.add(mode)
+      if (mode !== 'load')
+        body.deferredIslandTags.add(tag)
+    }
+    // A handler or ref on a component tag is a prop for that component; only a DOM element binds it in the browser.
+    if (!isComponent && tag !== '' && (EVENT_ATTR.test(attrName) || attrName === 'ref'))
+      binding.fact ??= { reason: `uses ${attrName}`, offset: attr.start }
+  }
+}
+
+// `prunelle.signal(...)`, `prunelle.Head` and the like, through a namespace import of prunelle.
+function scanPrunelleMember(node: Extract<Node, { type: 'MemberExpression' }>, binding: BindingFacts, body: BodyScan, imports: ImportScan, filename: string): void {
+  if (node.computed || node.object.type !== 'Identifier' || !imports.prunelleNamespaces.has(node.object.name) || node.property.type !== 'Identifier')
+    return
+  const member = node.property.name
+  const callee = `${node.object.name}.${member}`
+  if (member === 'island')
+    guarded(node.start, () => { throw islandRemoved(filename, node.start) })
+  if (REACTIVE_IMPORTS.has(member))
+    binding.fact ??= { reason: `calls ${callee}`, offset: node.start }
+  if (STATE_PRIMITIVES.has(member))
+    imports.stateCallees.add(callee)
+  if (member === 'signal' || member === 'computed')
+    imports.signalCallees.add(callee)
+  if (RENDER_CONTEXT_IMPORTS.has(member))
+    body.usesRenderContext = true
+}
+
+function containsStateInit(init: Node | undefined, callees: ReadonlySet<string>, containers: boolean): boolean {
+  if (init === undefined)
+    return false
+  const inner = unwrapTsExpr(init)
+  if (inner.type === 'CallExpression')
+    return callees.has(calleeName(inner.callee))
+  if (!containers)
+    return false
+  if (inner.type === 'ObjectExpression')
+    return inner.properties.some(p => p.type === 'Property' && containsStateInit(p.value, callees, true))
+  return inner.type === 'ArrayExpression' && inner.elements.some(el => el !== null && el.type !== 'SpreadElement' && containsStateInit(el, callees, true))
+}
+
+function stateExportsOf(decls: DeclarationScan, callees: ReadonlySet<string>, containers: boolean): string[] {
+  return [...decls.exportLocals].filter(([, local]) => containsStateInit(decls.localInits.get(local), callees, containers)).map(([exported]) => exported)
+}
+
+export function analyzeModule(filename: string, code: string, program: Program = parseTsx(filename, code)): ModuleAnalysis {
+  const imports = scanImports(program, filename)
+  const decls = scanDeclarations(program, filename, imports)
+  const warnings: CompilerWarning[] = []
+  const loadNodes = loadDeclarations(program)
+  const body = scanBody(program, filename, code, imports, decls, warnings, new Set(loadNodes))
+  checkBareSignals(program, imports.signalCallees, filename)
+  if (body.hasJsx) {
+    checkCompliance(program, filename, code, warnings, tag => resolvePrunelleTag(tag, imports.imports))
+    checkBrowserGlobals(program, code, filename, warnings)
+  }
+
+  for (const [name, init] of decls.localInits) {
+    if (isAsyncFunction(init))
+      decls.asyncLocals.add(name)
+  }
+  const hasAsyncDefault = decls.hasAsyncDefault || (decls.defaultLocal !== undefined && decls.asyncLocals.has(decls.defaultLocal))
+  const interactivity = resolveInteractivity(body.bindings, decls.exportLocals)
+  const page = interactivity.exports.get('default')
+  if (hasAsyncDefault && page?.interactive === true)
+    guarded(page.offset ?? 0, () => { throw asyncInteractiveError(filename, page.reason, page.offset) })
+  if (interactivity.serverOnly !== undefined)
+    guarded(interactivity.serverOnly.offset, () => { throw serverOnlyTagError(filename, interactivity.serverOnly!) })
+
+  return {
+    filename,
+    program,
+    warnings,
+    ...interactivity,
+    hasAsyncDefault,
+    hasLoadExport: decls.hasLoadExport || loadNodes.length > 0,
+    hasJsx: body.hasJsx,
+    jsxNodes: body.hasJsx ? computeJsxNodes(program) : new WeakSet<Node>(),
+    hasPrerender: decls.hasPrerender,
+    hasPaths: decls.hasPaths,
+    usesRenderContext: body.usesRenderContext,
+    defaultHydrate: decls.defaultHydrate,
+    deferredIslandTags: body.deferredIslandTags,
+    hydrateModes: body.hydrateModes,
+    jsxTags: body.jsxTags,
+    asyncLocals: decls.hasAsyncDefault ? new Set([...decls.asyncLocals, decls.exportLocals.get('default') ?? 'default']) : decls.asyncLocals,
+    stateExports: stateExportsOf(decls, imports.stateCallees, true),
+    signalExports: stateExportsOf(decls, imports.signalCallees, false),
+    defaultDataKeys: page?.interactive === true ? analyzeDefaultDataKeys(program, decls.defaultLocal, decls.localInits) : undefined,
+    exportedActions: decls.exportedActions,
+    imports: imports.imports,
+    dynamicImports: body.dynamicImports,
+    reexports: decls.reexports,
+    exportedNames: decls.exportedNames,
+    bindings: body.bindings,
+    exportLocals: decls.exportLocals,
+    nodeEnvReads: findNodeEnvReads(program, code),
+  }
+}
+
+export type { OxcFunction }

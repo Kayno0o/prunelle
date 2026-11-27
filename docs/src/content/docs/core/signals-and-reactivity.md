@@ -5,12 +5,12 @@ section: core
 order: 1
 ---
 
-Kay's reactivity kernel (`@kayjs/kay`) uses a push-pull doubly-linked-list dependency graph. With `"sideEffects": false`, unused helpers tree-shake to **0 bytes**.
+Prunelle's reactivity kernel (`prunelle`) uses a push-pull doubly-linked-list dependency graph. With `"sideEffects": false`, unused helpers tree-shake to **0 bytes**.
 
 ## Core primitives
 
 ```tsx
-import { batch, computed, effect, onCleanup, onMount, signal } from '@kayjs/kay'
+import { batch, computed, effect, onCleanup, onMount, signal } from 'prunelle'
 
 export function Counter({ step = 1 }: { step?: number }) {
   const count = signal(0)
@@ -45,7 +45,7 @@ export function Counter({ step = 1 }: { step?: number }) {
 
 ## Compiler-safe prop destructuring
 
-Destructuring props in Kay v2 stays reactive. The compiler rewrites reads of destructured props inside client components to live getter reads:
+Destructuring props in Prunelle v2 stays reactive. The compiler rewrites reads of destructured props inside client components to live getter reads:
 
 ```tsx
 export function Badge({ count = 0, label }: { count?: number, label: string }) {
@@ -64,9 +64,9 @@ To let a child mutate parent state, pass the signal itself as a prop (`<Modal op
 
 ## JSX rules
 
-Kay's compiler and runtime reject common React, Solid, and Astro habits that would otherwise fail silently:
+Prunelle's compiler and runtime reject common React, Solid, and Astro habits that would otherwise fail silently:
 
-- **Raw HTML**: Use `innerHTML={html}` with a string (or `raw(html)` from `@kayjs/kay/server`). Never pass `{ __html }`, never use `dangerouslySetInnerHTML`, never combine `innerHTML` with children, and never put it on a void element.
+- **Raw HTML**: Use `innerHTML={html}` with a string (or `raw(html)` from `prunelle/server`). Never pass `{ __html }`, never use `dangerouslySetInnerHTML`, never combine `innerHTML` with children, and never put it on a void element.
 - **Events**: Use camelCase DOM names (`onClick`, `onDblClick`, `onKeyDown`). Lowercase (`onclick`), namespaced (`on:click`), `onDoubleClick`, `*Capture`, string handlers, and render-time assignments (`onClick={count.value++}`) fail compilation. For capture listeners or custom events, call `addEventListener` inside a `ref`.
 - **Refs**: Always pass a callback: `ref={el => ...}`. Ref objects (`{ current }`) are refused.
 - **Attributes & SVG**: Use `class` or `className` (never both), standard `value`/`checked` (never `defaultValue`/`defaultChecked`), kebab-case SVG attributes (`stroke-width`, `fill-opacity`), and boolean `{false}` (never `"false"`). `style` accepts either a CSS string or an object (`style={{ color: 'red' }}`). HTML entities in a string attribute decode as they do in text, so `title="Tom &amp; Jerry"` reads `Tom & Jerry`; only an `innerHTML` string stays as written.

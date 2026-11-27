@@ -22,7 +22,7 @@ const ALLOWED_MD_TAGS = new Set([
   'input',
 ])
 
-// Strict attribute allowlist: blocks event handlers (on*), data-kay-*, data-persist, DOM clobbering (id/name), style, etc.
+// Strict attribute allowlist: blocks event handlers (on*), data-pru-*, data-persist, DOM clobbering (id/name), style, etc.
 const GLOBAL_ALLOWED_ATTRS = new Set([
   'class',
   'title',
@@ -164,7 +164,7 @@ function matchesSlotPrefix(value: string | null, allowed: AllowedSlotPrefixes): 
 }
 
 function isAllowedAttr(tagName: string, name: string, value: string | null, slotPrefixes: AllowedSlotPrefixes): boolean {
-  if (tagName === 'div' && name === 'data-kay-md-slot')
+  if (tagName === 'div' && name === 'data-pru-md-slot')
     return matchesSlotPrefix(value, slotPrefixes)
   return GLOBAL_ALLOWED_ATTRS.has(name) || TAG_ALLOWED_ATTRS[tagName]?.has(name) === true
 }

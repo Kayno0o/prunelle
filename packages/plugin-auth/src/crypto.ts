@@ -1,7 +1,7 @@
-// Zero-dependency Bun-native crypto helpers for @kayjs/auth.
+// Zero-dependency Bun-native crypto helpers for @prunelle/auth.
 // Uses crypto.getRandomValues, Bun.CryptoHasher (SHA-256 / HMAC-SHA256), and Bun.password (Argon2id).
 
-import { safeEqual } from '@kayjs/kay/server'
+import { safeEqual } from 'prunelle/server'
 
 export function toBase64Url(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString('base64url')
@@ -56,7 +56,7 @@ export async function hashPassword(password: string): Promise<string> {
 // Lazily computed dummy Argon2id hash so unknown-email sign-in spends the same CPU time as a real check.
 let dummyHashPromise: Promise<string> | undefined
 function getDummyHash(): Promise<string> {
-  return (dummyHashPromise ??= hashPassword('kay-auth-dummy-timing-shield'))
+  return (dummyHashPromise ??= hashPassword('prunelle-auth-dummy-timing-shield'))
 }
 
 export async function verifyPassword(password: string, storedHash: string | undefined): Promise<boolean> {

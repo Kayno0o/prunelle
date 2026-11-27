@@ -1,6 +1,6 @@
 ---
 title: CLI & Testing
-description: Kay CLI commands, plugin subcommands, bundle analysis, and in-process integration testing with testApp() from @kayjs/kay/test.
+description: Prunelle CLI commands, plugin subcommands, bundle analysis, and in-process integration testing with testApp() from prunelle/test.
 section: production
 order: 4
 ---
@@ -9,52 +9,52 @@ order: 4
 
 | Command | Description |
 | :--- | :--- |
-| `kay new <dir> [--template minimal\|fullstack\|blog\|app] [--force]` | Scaffold a new project |
-| `kay check [dir] [--no-typecheck] [--json] [--strict]` | Run Kay compiler checks, route checks, plugin `check()` hooks, and `bun check`/`tsgo`/`tsc`. Every mistake in a file is reported in one run, each at its `file:line:col`. `--json` prints the findings as data, and `--strict` fails on a warning too. The last line says which tool typechecked, or why none did: no `tsconfig.json`, `--no-typecheck`, or no checker installed. `kay build` refuses the same mistakes and skips only the typecheck |
-| `kay inspect [dir] [--json]` | Statically inspect routes (file and plugin routes, layouts, `_middleware.ts`, `load`, `prerender`), islands (with interactivity `reason` and `hydrate` mode), actions (with URL and guarding `_middleware.ts`), and active plugins (resolved order, `providesLocals`, `readsLocals`, CLI commands) without running a bundle. `--json` prints `{ routes, islands, actions, plugins }` |
-| `kay dev [dir] [--port 3000] [--host [addr]]` | Dev server with live reload (binds `127.0.0.1` by default; pass `--host` for `0.0.0.0`). A `kay.config.ts` that fails to load stops it with the error and its `file:line:column` |
-| `kay build [dir] [--analyze] [--json] [--max-js <size>]` | Single-pass production build into `dist/`. `--analyze` prints per-route JS/CSS weights, the fonts and the first load (everything a first visit downloads besides the HTML, brotli), and each island with the reason it became one; add `--json` to print `BundleReport` as JSON on stdout without summary lines. `--max-js 40kb` (or a byte count) fails the build when a route's gzipped eager JS is over the size, naming the route and its islands |
-| `kay build --static` | Static HTML + asset export into `dist/` |
-| `kay build --compile [out]` | Compile into a single standalone Bun executable |
-| `kay start [dir] [--port 3000] [--host [addr]]` | Serve a built `dist/` app on `Bun.serve()` (binds `127.0.0.1` by default) |
-| `kay upgrade [dir] [--no-install]` | Move an app onto the `@kayjs/kay` spelling: renames the dependency, sets `jsxImportSource`, rewrites every `kay` import, moves `icons` to `@kayjs/icons/plugin` and registers `auth`, `mail` and `rooms` as the handles `createX()` returned, then runs `bun install`. What it cannot move is printed with its file and line |
-| `kay ui-eject <grammar> [dest]` | Eject a `@kayjs/ui` CSS Grammar into your repo |
-| `kay mcp-footprint` | Print `@kayjs/mcp` tool sizes in bytes and estimated tokens |
-| `kay i18n-check` | List missing translation keys across `@kayjs/i18n` locales |
+| `prunelle new <dir> [--template minimal\|fullstack\|blog\|app] [--force]` | Scaffold a new project |
+| `prunelle check [dir] [--no-typecheck] [--json] [--strict]` | Run Prunelle compiler checks, route checks, plugin `check()` hooks, and `bun check`/`tsgo`/`tsc`. Every mistake in a file is reported in one run, each at its `file:line:col`. `--json` prints the findings as data, and `--strict` fails on a warning too. The last line says which tool typechecked, or why none did: no `tsconfig.json`, `--no-typecheck`, or no checker installed. `prunelle build` refuses the same mistakes and skips only the typecheck |
+| `prunelle inspect [dir] [--json]` | Statically inspect routes (file and plugin routes, layouts, `_middleware.ts`, `load`, `prerender`), islands (with interactivity `reason` and `hydrate` mode), actions (with URL and guarding `_middleware.ts`), and active plugins (resolved order, `providesLocals`, `readsLocals`, CLI commands) without running a bundle. `--json` prints `{ routes, islands, actions, plugins }` |
+| `prunelle dev [dir] [--port 3000] [--host [addr]]` | Dev server with live reload (binds `127.0.0.1` by default; pass `--host` for `0.0.0.0`). A `prunelle.config.ts` that fails to load stops it with the error and its `file:line:column` |
+| `prunelle build [dir] [--analyze] [--json] [--max-js <size>]` | Single-pass production build into `dist/`. `--analyze` prints per-route JS/CSS weights, the fonts and the first load (everything a first visit downloads besides the HTML, brotli), and each island with the reason it became one; add `--json` to print `BundleReport` as JSON on stdout without summary lines. `--max-js 40kb` (or a byte count) fails the build when a route's gzipped eager JS is over the size, naming the route and its islands |
+| `prunelle build --static` | Static HTML + asset export into `dist/` |
+| `prunelle build --compile [out]` | Compile into a single standalone Bun executable |
+| `prunelle start [dir] [--port 3000] [--host [addr]]` | Serve a built `dist/` app on `Bun.serve()` (binds `127.0.0.1` by default) |
+| `prunelle upgrade [dir] [--no-install]` | Move an app onto the `prunelle` spelling: renames the dependency, sets `jsxImportSource`, rewrites every `prunelle` import, moves `icons` to `@prunelle/icons/plugin` and registers `auth`, `mail` and `rooms` as the handles `createX()` returned, then runs `bun install`. What it cannot move is printed with its file and line |
+| `prunelle ui-eject <grammar> [dest]` | Eject a `@prunelle/ui` CSS Grammar into your repo |
+| `prunelle mcp-footprint` | Print `@prunelle/mcp` tool sizes in bytes and estimated tokens |
+| `prunelle i18n-check` | List missing translation keys across `@prunelle/i18n` locales |
 
-### How `kay dev` reloads
+### How `prunelle dev` reloads
 
-`kay dev` keeps the port and the browser's reload stream in its own process, and runs the build and the app in a child process behind it. A save rebuilds what changed inside that child, keeping its build cache and the in-memory state of plugins, such as sessions.
+`prunelle dev` keeps the port and the browser's reload stream in its own process, and runs the build and the app in a child process behind it. A save rebuilds what changed inside that child, keeping its build cache and the in-memory state of plugins, such as sessions.
 
-An edit to `kay.config.ts`, or to a local file it imports such as a plugin of your own, starts a new child that loads both fresh. So does a child that passes 2 GB of memory after a rebuild. Requests made during the swap wait for the new child, and open tabs reload once it has built.
+An edit to `prunelle.config.ts`, or to a local file it imports such as a plugin of your own, starts a new child that loads both fresh. So does a child that passes 2 GB of memory after a rebuild. Requests made during the swap wait for the new child, and open tabs reload once it has built.
 
 A child that crashes shows its exit and the end of its error output in the page, as JSON or plain text when the request asks for it. The next save starts it again.
 
 An edit to a file in `public/` reloads the browser without a rebuild. Adding or removing one rebuilds, since the list of served files changes.
 
-Plugins can register additional commands via `KayPlugin.commands`. They are read from `kay.config.ts` only when the first word is not a built-in command, and they take `--root <dir>` to name the app folder and `--help`. A `kay.config.ts` that fails to load leaves `kay --help` and the built-in commands working; a plugin command typed then prints the error and exits 1.
+Plugins can register additional commands via `PrunellePlugin.commands`. They are read from `prunelle.config.ts` only when the first word is not a built-in command, and they take `--root <dir>` to name the app folder and `--help`. A `prunelle.config.ts` that fails to load leaves `prunelle --help` and the built-in commands working; a plugin command typed then prints the error and exits 1.
 
 ## Help, completion and exit codes
 
-Every command answers `--help` with its options and its exit codes. A mistyped command or option names the one you meant (`kay chekc` suggests `check`).
+Every command answers `--help` with its options and its exit codes. A mistyped command or option names the one you meant (`prunelle chekc` suggests `check`).
 
-Print a shell completion script with `kay --completions fish` (also `bash` and `zsh`), for example `kay --completions fish > ~/.config/fish/completions/kay.fish`.
+Print a shell completion script with `prunelle --completions fish` (also `bash` and `zsh`), for example `prunelle --completions fish > ~/.config/fish/completions/prunelle.fish`.
 
 | Code | Meaning |
 | :--- | :--- |
 | `0` | The command did what was asked |
-| `1` | A finding or a failure: `kay check` found an error (or a warning, with `--strict`), `kay upgrade` has steps left to do by hand, a build failed or a route is over `--max-js` |
+| `1` | A finding or a failure: `prunelle check` found an error (or a warning, with `--strict`), `prunelle upgrade` has steps left to do by hand, a build failed or a route is over `--max-js` |
 | `2` | A usage error: an unknown command or option, a bad `--port` or `--max-js`, a missing argument |
 
 The CLI does not write a usage log: it runs on `@kaynooo/cli-kit` with that turned off.
 
-## In-process testing (`@kayjs/kay/test`)
+## In-process testing (`prunelle/test`)
 
 Test routes, middleware, cookies, auth flows, and server actions in-process with `testApp()` — no port binding needed:
 
 ```ts
 import { describe, expect, it } from 'bun:test'
-import { testApp } from '@kayjs/kay/test'
+import { testApp } from 'prunelle/test'
 
 describe('app routes', () => {
   it('renders home and submits a server action', async () => {
@@ -64,7 +64,7 @@ describe('app routes', () => {
     expect(res.status).toBe(200)
     expect(await res.text()).toContain('Latest posts')
 
-    // The app's own bundled copy, the one its routes and kay.config.ts use
+    // The app's own bundled copy, the one its routes and prunelle.config.ts use
     const { savePreferences } = await app.import('src/actions/preferences.ts')
     const submitRes = await app.submit(savePreferences, { project: 'orbit', target: 'binary' })
     expect(submitRes.status).toBe(200)
@@ -76,24 +76,24 @@ describe('app routes', () => {
 
 - `app.get(path, headers?)`: Sends a `GET` request with the current cookie jar.
 - `app.post(path, body?, headers?)`: Sends JSON (or `FormData`) with `Origin: http://localhost`.
-- `app.import(path)`: The app's bundled copy of a route, layout, middleware, action file or `kay.config.ts`, by path from the root. Read module state and actions from it: a module the test file imports itself is a second copy, and its actions have no URL.
+- `app.import(path)`: The app's bundled copy of a route, layout, middleware, action file or `prunelle.config.ts`, by path from the root. Read module state and actions from it: a module the test file imports itself is a second copy, and its actions have no URL.
 - `app.submit(action, fields, headers?)`: Sends `FormData` with `Origin: http://localhost` to an action from `app.import()`, or to an action URL.
 - `app.fetch(pathOrRequest, init?)`: Low-level request helper with cookie jar persistence.
 - `app.cookies` / `app.clearCookies()`: Inspect or reset cookies between test cases.
 - `app.errors`: The route, action and plugin errors the app did not handle, one line each (`route GET /boom: the message`). A request that came back as a 500 left one here, so a test can read what failed instead of an opaque `Internal Server Error`.
-- `testApp()` builds into a folder of its own under `.kay-cache/`, removed when the test process exits, so running the tests never replaces the app's `dist/`. Pass `outDir` to build somewhere else, such as a test that reads the built files.
+- `testApp()` builds into a folder of its own under `.prunelle-cache/`, removed when the test process exits, so running the tests never replaces the app's `dist/`. Pass `outDir` to build somewhere else, such as a test that reads the built files.
 - Pass `prebuilt: true` to reuse a build instead of making one: the latest `testApp()` build of the same app in this test process, or else the app's `dist/`.
-- Pass `dev: true` to see the failure in the response too, as `kay dev` does (see below).
+- Pass `dev: true` to see the failure in the response too, as `prunelle dev` does (see below).
 
 ### Unhandled errors in dev
 
 An error that no `onError` hook and no `_error.tsx` handled answers with a bare `500 Internal Server Error`, so a production visitor never sees a message or a stack.
 
-With `dev: true` in `testApp()`, and always under `kay dev`, the response carries the real error instead. A request that asks for JSON gets `{ ok: false, status: 500, error, stack }`, and any other request gets the stack as plain text. An app with an `_error.tsx` still renders that page. The error is also logged with `console.error`, unless the app has an `onError` hook, which is then the one that hears it.
+With `dev: true` in `testApp()`, and always under `prunelle dev`, the response carries the real error instead. A request that asks for JSON gets `{ ok: false, status: 500, error, stack }`, and any other request gets the stack as plain text. An app with an `_error.tsx` still renders that page. The error is also logged with `console.error`, unless the app has an `onError` hook, which is then the one that hears it.
 
-Each frame of the stack names the file under `src/` and the line it was written on, for a `.tsx` page or component as for a `.ts` route. That also holds for the `error.stack` an `onError` hook gets under `kay start`, since `kay build` writes a source map beside each server file. A `--compile` binary is the exception: its frames point into the binary's own code.
+Each frame of the stack names the file under `src/` and the line it was written on, for a `.tsx` page or component as for a `.ts` route. That also holds for the `error.stack` an `onError` hook gets under `prunelle start`, since `prunelle build` writes a source map beside each server file. A `--compile` binary is the exception: its frames point into the binary's own code.
 
-When a build fails, `kay dev` answers every request with the build error: JSON for `Accept: application/json`, plain text for `Accept: text/plain`, and the error page with live reload for a browser.
+When a build fails, `prunelle dev` answers every request with the build error: JSON for `Accept: application/json`, plain text for `Accept: text/plain`, and the error page with live reload for a browser.
 
 When an island fails to hydrate, the browser console names its component in dev, for instance `<CartButton>`, next to the chunk URL that is a hash.
 
@@ -103,7 +103,7 @@ When an island fails to hydrate, the browser console names its component in dev,
 
 ```ts
 import { expect, it } from 'bun:test'
-import { testBrowser } from '@kayjs/kay/test'
+import { testBrowser } from 'prunelle/test'
 
 it('counts clicks', async () => {
   const browser = await testBrowser({ root: process.cwd() })

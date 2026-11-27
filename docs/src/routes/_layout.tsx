@@ -1,8 +1,8 @@
-import type { KayChild } from '@kayjs/kay'
+import type { PrunelleChild } from 'prunelle'
 import { SearchIsland } from '../components/SearchIsland'
 import { getFlatNav } from '../content'
 
-export default function Layout({ children, url }: { children: KayChild, url: URL }) {
+export default function Layout({ children, url }: { children: PrunelleChild, url: URL }) {
   const pathname = url.pathname
   const searchItems = getFlatNav().map(item => ({
     id: item.slug,
@@ -19,7 +19,7 @@ export default function Layout({ children, url }: { children: KayChild, url: URL
         <div class={isDocs ? 'docs-shell-width docs-nav' : 'docs-container docs-nav'}>
           <a class="docs-brand" href="/">
             <img src="/favicon.svg" width="24" height="24" alt="" />
-            kay
+            prunelle
             <span class="docs-ver">v2.0-beta</span>
           </a>
           <nav class="docs-nav-links" aria-label="Main navigation">
@@ -36,12 +36,12 @@ export default function Layout({ children, url }: { children: KayChild, url: URL
       <footer class="docs-footer">
         <div class={isDocs ? 'docs-shell-width docs-footer-row' : 'docs-container docs-footer-row'}>
           <span>
-            Built with <a href="https://github.com/Kayno0o/kayjs">kay v2</a>, exported as static files.{' '}
+            Built with <a href="https://github.com/Kayno0o/prunelle">prunelle v2</a>, exported as static files.{' '}
             <span class="docs-weight" data-page-weight=""></span>
           </span>
           <span style="font-family:var(--ui-font-mono);display:flex;gap:1rem">
             <a href="/llms.txt" style="text-decoration:none">llms.txt</a>
-            <a href="https://github.com/Kayno0o/kayjs" style="text-decoration:none">GitHub</a>
+            <a href="https://github.com/Kayno0o/prunelle" style="text-decoration:none">GitHub</a>
             <span>MIT</span>
           </span>
         </div>

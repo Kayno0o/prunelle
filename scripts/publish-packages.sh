@@ -2,7 +2,7 @@
 # Publishes every non-private package under packages/* to the given registry:
 #   scripts/publish-packages.sh [--stage] <registry url>
 # Prerelease versions (-alpha, -beta, -rc) are published under their matching
-# dist-tag so the stable `latest` tag (e.g. Kay v1) is never overwritten.
+# dist-tag so the stable `latest` tag (e.g. Prunelle v1) is never overwritten.
 # With --stage, tarballs are packed by bun and submitted via `npm stage publish`
 # for stage-only npm tokens (E_STAGE_REQUIRED).
 # Versions already present on the registry are skipped so reruns are idempotent.
@@ -16,9 +16,9 @@ fi
 
 registry="$1"
 
-wrong=$(cat .npmrc packages/*/.npmrc 2>/dev/null | grep '^@kayjs:registry=' | grep -vxF "@kayjs:registry=$registry" || true)
+wrong=$(cat .npmrc packages/*/.npmrc 2>/dev/null | grep '^@prunelle:registry=' | grep -vxF "@prunelle:registry=$registry" || true)
 if [ -n "$wrong" ]; then
-  echo "A project .npmrc sends @kayjs elsewhere than $registry: $wrong"
+  echo "A project .npmrc sends @prunelle elsewhere than $registry: $wrong"
   exit 1
 fi
 
@@ -44,7 +44,7 @@ publish() {
   if bun pm view "$package" version > /dev/null 2>&1; then
     echo "$package is already published"
   elif [ "$stage" = true ]; then
-    tarball="/tmp/kay-publish-$$.tgz"
+    tarball="/tmp/prunelle-publish-$$.tgz"
     trap 'rm -f "$tarball"' EXIT
     if ! bun pm pack --quiet --filename "$tarball" > /dev/null; then
       rm -f "$tarball"

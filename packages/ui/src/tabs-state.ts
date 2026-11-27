@@ -1,7 +1,7 @@
 // Tabs behavior (roving arrow-key + Home/End navigation).
 
-import type { Signal } from '@kayjs/kay'
-import { selector, signal } from '@kayjs/kay'
+import type { Signal } from 'prunelle'
+import { selector, signal } from 'prunelle'
 
 export interface TabsBehavior {
   readonly active: Signal<string>

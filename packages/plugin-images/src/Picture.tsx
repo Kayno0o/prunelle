@@ -1,4 +1,4 @@
-/** @jsxImportSource @kayjs/kay */
+/** @jsxImportSource prunelle */
 import type { ImageAsset } from './helpers'
 import { image } from './helpers'
 

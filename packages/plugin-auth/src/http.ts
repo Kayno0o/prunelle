@@ -1,7 +1,7 @@
 // Request parsing and client-address helpers shared by the auth routes.
 
-import type { RateLimiter, RequestContext, TrustProxy } from '@kayjs/kay/server'
-import { getClientIp, readStringFields, wantsJson } from '@kayjs/kay/server'
+import type { RateLimiter, RequestContext, TrustProxy } from 'prunelle/server'
+import { getClientIp, readStringFields, wantsJson } from 'prunelle/server'
 import { normalizeEmail } from './store'
 
 export function fail(ctx: RequestContext, status: number, error: string): Response {

@@ -3,19 +3,19 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "kay-docs",
+      "name": "prunelle-docs",
       "dependencies": {
         "@fontsource/chakra-petch": "^5.3.0",
         "@fontsource/ibm-plex-sans": "^5.3.0",
-        "@kayjs/content": "file:../packages/plugin-content",
-        "@kayjs/icons": "file:../packages/plugin-icons",
-        "@kayjs/images": "file:../packages/plugin-images",
-        "@kayjs/kay": "file:../packages/kay",
-        "@kayjs/seo": "file:../packages/plugin-seo",
-        "@kayjs/ui": "file:../packages/ui",
+        "@prunelle/content": "file:../packages/plugin-content",
+        "@prunelle/icons": "file:../packages/plugin-icons",
+        "@prunelle/images": "file:../packages/plugin-images",
+        "@prunelle/seo": "file:../packages/plugin-seo",
+        "@prunelle/ui": "file:../packages/ui",
         "@shikijs/core": "^4.6.0",
         "@shikijs/engine-oniguruma": "^4.6.0",
         "@shikijs/langs": "^4.6.0",
+        "prunelle": "file:../packages/prunelle",
       },
       "devDependencies": {
         "@iconify-json/tabler": "^1.2.41",
@@ -32,18 +32,6 @@
     "@iconify/types": ["@iconify/types@2.0.0", "", {}, "sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg=="],
 
     "@joplin/turndown-plugin-gfm": ["@joplin/turndown-plugin-gfm@1.0.71", "", {}, "sha512-lzquxBhjG9ad6ykVsUYjs+lQc4Xmh3ob0n+oOUL5cvdQ2xUO0tsAAvIJ8Wm/+Pf59/4NNpmRa/zlbKeYP4XBrw=="],
-
-    "@kayjs/content": ["@kayjs/content@file:../packages/plugin-content", { "peerDependencies": { "@kayjs/kay": "^2.0.0-beta.8" } }],
-
-    "@kayjs/icons": ["@kayjs/icons@file:../packages/plugin-icons", { "peerDependencies": { "@kayjs/kay": "^2.0.0-beta.8" } }],
-
-    "@kayjs/images": ["@kayjs/images@file:../packages/plugin-images", { "peerDependencies": { "@kayjs/kay": "^2.0.0-beta.8" } }],
-
-    "@kayjs/kay": ["@kayjs/kay@file:../packages/kay", { "dependencies": { "@kaynooo/cli-kit": "^0.52.0", "oxc-parser": "^0.155.0" }, "peerDependencies": { "playwright-core": "^1.64.0" }, "optionalPeers": ["playwright-core"], "bin": { "kay": "./src/cli/index.ts" } }],
-
-    "@kayjs/seo": ["@kayjs/seo@file:../packages/plugin-seo", { "peerDependencies": { "@kayjs/kay": "^2.0.0-beta.8" } }],
-
-    "@kayjs/ui": ["@kayjs/ui@file:../packages/ui", { "peerDependencies": { "@kayjs/kay": "^2.0.0-beta.8" } }],
 
     "@kaynooo/cli-kit": ["@kaynooo/cli-kit@0.52.0", "https://git.kaynooo.fr/api/packages/kaynooo/npm/%40kaynooo%2Fcli-kit/-/0.52.0/cli-kit-0.52.0.tgz", { "dependencies": { "@kaynooo/utils": "3.1.0" }, "peerDependencies": { "@xterm/headless": ">=6.0.0" } }, "sha512-4/Uhsw6syMpjxNXSVI9hDlnRxrmdUcH+G8JqZqz+7IParJlDwI199Vujyzu+bW/ZjcjKRvRQ1KBCVmNFd8jiwg=="],
 
@@ -90,6 +78,16 @@
     "@oxc-parser/binding-win32-x64-msvc": ["@oxc-parser/binding-win32-x64-msvc@0.155.0", "", { "os": "win32", "cpu": "x64" }, "sha512-8heq6jGq+rfpTDRDjoQiBHw0maQZf3IXkS99pdHQZPoTL5kyF5qyPS0RidUlSdnWDIqxXb5nux7GBD9cT+imUw=="],
 
     "@oxc-project/types": ["@oxc-project/types@0.155.0", "", {}, "sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q=="],
+
+    "@prunelle/content": ["@prunelle/content@file:../packages/plugin-content", { "peerDependencies": { "prunelle": "^2.0.0-beta.8" } }],
+
+    "@prunelle/icons": ["@prunelle/icons@file:../packages/plugin-icons", { "peerDependencies": { "prunelle": "^2.0.0-beta.8" } }],
+
+    "@prunelle/images": ["@prunelle/images@file:../packages/plugin-images", { "peerDependencies": { "prunelle": "^2.0.0-beta.8" } }],
+
+    "@prunelle/seo": ["@prunelle/seo@file:../packages/plugin-seo", { "peerDependencies": { "prunelle": "^2.0.0-beta.8" } }],
+
+    "@prunelle/ui": ["@prunelle/ui@file:../packages/ui", { "peerDependencies": { "prunelle": "^2.0.0-beta.8" } }],
 
     "@shikijs/core": ["@shikijs/core@4.6.0", "", { "dependencies": { "@shikijs/primitive": "4.6.0", "@shikijs/types": "4.6.0", "@shikijs/vscode-textmate": "^10.1.0", "@types/hast": "^3.0.5", "hast-util-to-html": "^9.0.6" } }, "sha512-bfd4OKgvoyXYiYmMRuleA656P4V7M/Du9lcTl38Ngm6KszMj7bq4J1IGZwSYR4c95Tv5UQALtYNWUwaI9UT3xw=="],
 
@@ -146,6 +144,8 @@
     "oxc-parser": ["oxc-parser@0.155.0", "", { "dependencies": { "@oxc-project/types": "^0.155.0" }, "optionalDependencies": { "@oxc-parser/binding-android-arm-eabi": "0.155.0", "@oxc-parser/binding-android-arm64": "0.155.0", "@oxc-parser/binding-darwin-arm64": "0.155.0", "@oxc-parser/binding-darwin-x64": "0.155.0", "@oxc-parser/binding-freebsd-x64": "0.155.0", "@oxc-parser/binding-linux-arm-gnueabihf": "0.155.0", "@oxc-parser/binding-linux-arm-musleabihf": "0.155.0", "@oxc-parser/binding-linux-arm64-gnu": "0.155.0", "@oxc-parser/binding-linux-arm64-musl": "0.155.0", "@oxc-parser/binding-linux-ppc64-gnu": "0.155.0", "@oxc-parser/binding-linux-riscv64-gnu": "0.155.0", "@oxc-parser/binding-linux-riscv64-musl": "0.155.0", "@oxc-parser/binding-linux-s390x-gnu": "0.155.0", "@oxc-parser/binding-linux-x64-gnu": "0.155.0", "@oxc-parser/binding-linux-x64-musl": "0.155.0", "@oxc-parser/binding-openharmony-arm64": "0.155.0", "@oxc-parser/binding-win32-arm64-msvc": "0.155.0", "@oxc-parser/binding-win32-ia32-msvc": "0.155.0", "@oxc-parser/binding-win32-x64-msvc": "0.155.0" } }, "sha512-C/ReSf1JUFukK/zvk6jhcNibSssvas5+ktIzK7fbKVd3CedWe59C3QwHEOrEZj/4Rt9+xg0Jeis/Jv1F/KM1mw=="],
 
     "property-information": ["property-information@7.2.0", "", {}, "sha512-IAtzIB6sUiWaJYrX9smp3V46pBGbBeLFRGdh25kg1334VcBlD8HzhPeNIWQH9zhGmo2itIe25EHt9dQP7G5hmg=="],
+
+    "prunelle": ["prunelle@file:../packages/prunelle", { "dependencies": { "@kaynooo/cli-kit": "^0.52.0", "oxc-parser": "^0.155.0" }, "peerDependencies": { "playwright-core": "^1.64.0" }, "optionalPeers": ["playwright-core"], "bin": { "prunelle": "./src/cli/index.ts" } }],
 
     "space-separated-tokens": ["space-separated-tokens@2.0.2", "", {}, "sha512-PEGlAwrG8yXGXRjW32fGbg66JAlOAwbObuqVoJpv/mRgoWDQfgH1wDPvtzWyUSNAXBGSk8h755YDbbcEy3SH2Q=="],
 

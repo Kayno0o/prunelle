@@ -1,10 +1,10 @@
-import type { KayChild } from '@kayjs/kay'
+import type { PrunelleChild } from 'prunelle'
 
 export function Tab({ group, label, checked, children }: {
   group: string
   label: string
   checked?: boolean | undefined
-  children?: KayChild
+  children?: PrunelleChild
 }) {
   const id = `tab-${group}-${label.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`
   return (

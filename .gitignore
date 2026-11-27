@@ -1,8 +1,8 @@
 node_modules/
 dist/
-.kay/
-.kay-cache/
-.kay-dev/
+.prunelle/
+.prunelle-cache/
+.prunelle-dev/
 bench-sites/
 *.tsbuildinfo
 .DS_Store

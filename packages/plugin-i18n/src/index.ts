@@ -1,13 +1,13 @@
-// @kayjs/i18n — opt-in locale routing, <html lang> & link rewriting, localized prerendering,
+// @prunelle/i18n — opt-in locale routing, <html lang> & link rewriting, localized prerendering,
 // hreflang alternates, Intl formatters, and CLI missing-key check.
-// Implemented 100% through KayPlugin public hooks — zero i18n logic in @kay/core.
+// Implemented 100% through PrunellePlugin public hooks — zero i18n logic in @prunelle/core.
 
-import type { ActiveI18nConfig, KayPlugin } from '@kayjs/kay/config'
-import { definePlugin, I18N_CONFIG_SERVICE } from '@kayjs/kay/config'
-import { escAttr, isTrustedOrigin } from '@kayjs/kay/server'
+import type { ActiveI18nConfig, PrunellePlugin } from 'prunelle/config'
+import { definePlugin, I18N_CONFIG_SERVICE } from 'prunelle/config'
+import { escAttr, isTrustedOrigin } from 'prunelle/server'
 
-declare module '@kayjs/kay/server' {
-  interface KayLocals {
+declare module 'prunelle/server' {
+  interface PrunelleLocals {
     locale?: string | undefined
     t?: ((key: string) => string) | undefined
     localize?: ((path: string, targetLocale?: string) => string) | undefined
@@ -87,10 +87,10 @@ export function formatNumber(
   return new Intl.NumberFormat(locale, options).format(value)
 }
 
-export function i18n(options: I18nOptions): KayPlugin {
+export function i18n(options: I18nOptions): PrunellePlugin {
   const { locales, defaultLocale, messages = {}, prefixDefault = false } = options
   let activeSite = options.site?.replace(/\/$/, '')
-  let activeAssetPrefix = '/_kay'
+  let activeAssetPrefix = '/_pru'
   const localeSet = new Set(locales)
   const sharedConfig: ActiveI18nConfig = { locales, defaultLocale, prefixDefault }
 
@@ -112,7 +112,7 @@ export function i18n(options: I18nOptions): KayPlugin {
   }
 
   return definePlugin({
-    name: '@kayjs/i18n',
+    name: '@prunelle/i18n',
     enforce: 'pre',
     providesLocals: ['locale', 't', 'localize', 'alternates'],
 
@@ -120,7 +120,7 @@ export function i18n(options: I18nOptions): KayPlugin {
       if (options.site === undefined && ctx.site !== undefined)
         activeSite = ctx.site.replace(/\/$/, '')
       if (ctx.assetPrefix)
-        activeAssetPrefix = ctx.assetPrefix.replace(/\/+$/, '') || '/_kay'
+        activeAssetPrefix = ctx.assetPrefix.replace(/\/+$/, '') || '/_pru'
       ctx.provide(I18N_CONFIG_SERVICE, sharedConfig)
     },
 
@@ -128,7 +128,7 @@ export function i18n(options: I18nOptions): KayPlugin {
       if (options.site === undefined && api.site !== undefined)
         activeSite = api.site.replace(/\/$/, '')
       if (api.assetPrefix)
-        activeAssetPrefix = api.assetPrefix.replace(/\/+$/, '') || '/_kay'
+        activeAssetPrefix = api.assetPrefix.replace(/\/+$/, '') || '/_pru'
       const assetPrefixSlash = `${activeAssetPrefix}/`
       const actionPrefix = `${assetPrefixSlash}action/`
       const trustedOrigins = api.trustedOrigins.length > 0 ? new Set(api.trustedOrigins) : undefined

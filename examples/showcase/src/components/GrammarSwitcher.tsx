@@ -1,4 +1,4 @@
-import { signal } from '@kayjs/kay'
+import { signal } from 'prunelle'
 
 const GRAMMARS = [
   { id: 'editorial', label: 'Editorial', note: 'Ink on paper, serif, top-ruled cards' },

@@ -1,19 +1,19 @@
 // What a region swap and a whole-page swap share: the view transition they run in, and the scroll they keep per history entry and across the swap.
-// An element with `data-kay-keep-scroll="<key>"` keeps its offset by key; a `<Region>` that scrolls itself is remembered per entry as `region:<name>`.
+// An element with `data-pru-keep-scroll="<key>"` keeps its offset by key; a `<Region>` that scrolls itself is remembered per entry as `region:<name>`.
 
 import { getDocId } from './prefetch'
 
 export interface EntryScroll { y: number, k: Record<string, number> }
 
-const SCROLLERS = '[data-kay-keep-scroll],[data-kay-region]'
+const SCROLLERS = '[data-pru-keep-scroll],[data-pru-region]'
 
-const keyOf = (el: Element): string => el.getAttribute('data-kay-keep-scroll') ?? `region:${el.getAttribute('data-kay-region')}`
+const keyOf = (el: Element): string => el.getAttribute('data-pru-keep-scroll') ?? `region:${el.getAttribute('data-pru-region')}`
 
 /** The offsets of the elements that keep theirs; `regions` adds the scrolled `<Region>`s, which a swap resets and a history entry restores. */
 export function readScrolls(regions: boolean): Record<string, number> {
   const out: Record<string, number> = {}
   for (const el of document.querySelectorAll(SCROLLERS)) {
-    if (el.hasAttribute('data-kay-keep-scroll') || (regions && el.scrollTop > 0))
+    if (el.hasAttribute('data-pru-keep-scroll') || (regions && el.scrollTop > 0))
       out[keyOf(el)] = el.scrollTop
   }
   return out
@@ -28,7 +28,7 @@ export function writeScrolls(offsets: Record<string, number>): void {
 }
 
 export function entryScroll(state: unknown): EntryScroll | undefined {
-  const saved = typeof state === 'object' && state !== null ? (state as { __kayScroll?: EntryScroll }).__kayScroll : undefined
+  const saved = typeof state === 'object' && state !== null ? (state as { __pruScroll?: EntryScroll }).__pruScroll : undefined
   return typeof saved?.y === 'number' ? saved : undefined
 }
 
@@ -41,7 +41,7 @@ export function restoreScroll(saved: EntryScroll): void {
 export function saveScroll(): void {
   try {
     const prev = typeof history.state === 'object' && history.state !== null ? history.state as Record<string, unknown> : {}
-    history.replaceState({ ...prev, __kayDoc: getDocId(), __kayScroll: { y: window.scrollY, k: readScrolls(true) } satisfies EntryScroll }, '')
+    history.replaceState({ ...prev, __pruDoc: getDocId(), __pruScroll: { y: window.scrollY, k: readScrolls(true) } satisfies EntryScroll }, '')
   }
   catch {
     // Restricted history API environments (e.g. sandboxed iframes) refuse state updates: the entry keeps no scroll.

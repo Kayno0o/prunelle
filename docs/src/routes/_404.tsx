@@ -1,4 +1,4 @@
-import { Head } from '@kayjs/kay'
+import { Head } from 'prunelle'
 
 export default function NotFoundPage() {
   return (

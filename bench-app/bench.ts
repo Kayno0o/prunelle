@@ -1,12 +1,12 @@
-// Milestone 1 Benchmark Suite for Kay v2:
+// Milestone 1 Benchmark Suite for Prunelle v2:
 // Measures clean build time, bundle sizes, in-process SSR throughput, Chromium load metrics, and 9 js-framework-benchmark ops.
 
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { measure } from 'mitata'
 import { chromium } from 'playwright-core'
-import { build } from '@kayjs/kay/build'
-import { createServer } from '@kayjs/kay/server'
+import { build } from 'prunelle/build'
+import { createServer } from 'prunelle/server'
 
 const ROOT = import.meta.dir
 

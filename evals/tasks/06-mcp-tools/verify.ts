@@ -8,7 +8,7 @@ interface JsonRpcResponse {
   error?: { code: number, message: string }
 }
 
-const TEST_TOKEN = 'kay-eval-mcp-bearer-token-2026'
+const TEST_TOKEN = 'prunelle-eval-mcp-bearer-token-2026'
 
 export async function verify({ dir, app }: VerifyContext): Promise<AssertionResult[]> {
   const c = new AssertionCollector()
@@ -95,12 +95,12 @@ export async function verify({ dir, app }: VerifyContext): Promise<AssertionResu
       assert(rejected, `expected tool "${writeTool.name}" to reject invalid empty input, got ${JSON.stringify(badBody)}`)
     })
 
-    await c.run('config wires @kayjs/mcp with token env, action() tools, and budget', async () => {
-      const cfg = await Bun.file(`${dir}/kay.config.ts`).text()
+    await c.run('config wires @prunelle/mcp with token env, action() tools, and budget', async () => {
+      const cfg = await Bun.file(`${dir}/prunelle.config.ts`).text()
       const sources = [...readAppSourceFiles(dir).values()].join('\n')
-      assert(/@kayjs\/mcp/.test(cfg), 'missing @kayjs/mcp import in kay.config.ts')
+      assert(/@prunelle\/mcp/.test(cfg), 'missing @prunelle/mcp import in prunelle.config.ts')
       assert(/\baction\s*\(/.test(sources), 'missing action() export in src/')
-      assert(/\bbudget\b/.test(cfg), 'missing budget configuration in kay.config.ts')
+      assert(/\bbudget\b/.test(cfg), 'missing budget configuration in prunelle.config.ts')
     })
   }
   finally {

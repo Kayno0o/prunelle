@@ -1,5 +1,5 @@
 /// <reference path="./ambient.d.ts" />
-// The browser-safe side of @kayjs/icons: the <Icon> component and the icon data types. The plugin is `@kayjs/icons/plugin`.
+// The browser-safe side of @prunelle/icons: the <Icon> component and the icon data types. The plugin is `@prunelle/icons/plugin`.
 
 export { Icon } from './Icon'
 export type { IconComponentProps } from './Icon'

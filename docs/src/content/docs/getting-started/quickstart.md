@@ -1,6 +1,6 @@
 ---
 title: Quickstart (60s)
-description: Scaffold a Kay v2 app, run the dev server, and ship a static site or single standalone binary on Bun.
+description: Scaffold a Prunelle v2 app, run the dev server, and ship a static site or single standalone binary on Bun.
 section: getting-started
 order: 2
 ---
@@ -14,10 +14,10 @@ order: 2
 Pick one of the four built-in starter templates:
 
 ```bash
-bunx @kayjs/kay@beta new my-app --template minimal    # Static route + 1 auto-island
-bunx @kayjs/kay@beta new my-app --template fullstack  # Layouts, API route, Standard-Schema action
-bunx @kayjs/kay@beta new my-app --template blog       # @kayjs/content + @kayjs/ui + RSS (0 KB JS)
-bunx @kayjs/kay@beta new my-app --template app        # @kayjs/auth + @kayjs/ui + guarded /dashboard
+bunx prunelle@beta new my-app --template minimal    # Static route + 1 auto-island
+bunx prunelle@beta new my-app --template fullstack  # Layouts, API route, Standard-Schema action
+bunx prunelle@beta new my-app --template blog       # @prunelle/content + @prunelle/ui + RSS (0 KB JS)
+bunx prunelle@beta new my-app --template app        # @prunelle/auth + @prunelle/ui + guarded /dashboard
 ```
 
 Install dependencies and start the dev server:
@@ -44,7 +44,7 @@ bun run start
 <Tab group="deploy" label="Single Executable (--compile)">
 
 ```bash
-kay build --compile ./my-app-bin
+prunelle build --compile ./my-app-bin
 ./my-app-bin
 ```
 
@@ -52,19 +52,19 @@ kay build --compile ./my-app-bin
 <Tab group="deploy" label="Static HTML (--static)">
 
 ```bash
-kay build --static
+prunelle build --static
 # Serve dist/ from nginx, Caddy, Cloudflare Pages, or S3
 ```
 
 </Tab>
 </Tabs>
 
-Pass `--analyze` to `kay build` to print each route's eager JS and CSS weight, its fonts, its first load (what a first visit downloads besides the HTML: stylesheets, eager JS and its imports, fonts and images, brotli), the islands behind it with the reason each became one, and the largest bundled modules. Pass `--max-js 40kb` to fail the build when a route's gzipped eager JS is over 40 KB.
+Pass `--analyze` to `prunelle build` to print each route's eager JS and CSS weight, its fonts, its first load (what a first visit downloads besides the HTML: stylesheets, eager JS and its imports, fonts and images, brotli), the islands behind it with the reason each became one, and the largest bundled modules. Pass `--max-js 40kb` to fail the build when a route's gzipped eager JS is over 40 KB.
 
 ## 3. Validate before shipping
 
 ```bash
-kay check
+prunelle check
 ```
 
-`kay check` runs TypeScript checking, Kay compiler guardrails, route conflict checks, and every active plugin's `check` hook. Pass `--no-typecheck` to skip `bun check`/`tsgo`/`tsc` when iterating quickly.
+`prunelle check` runs TypeScript checking, Prunelle compiler guardrails, route conflict checks, and every active plugin's `check` hook. Pass `--no-typecheck` to skip `bun check`/`tsgo`/`tsc` when iterating quickly.

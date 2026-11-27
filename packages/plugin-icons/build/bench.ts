@@ -1,5 +1,5 @@
 // Scores the search on tables that never saw the set they are tested on: learned from one set's tags (plus phosphor's and the other sets' aliases), queried with the other set's.
-// A case is a tag naming at most 5 icons that the icon's name does not hold, so the plain substring search scores about 0; each suite reports the share found in the first 10 (what `kay icons-find` prints) and 50 (a picker's first page), and the mean reciprocal rank.
+// A case is a tag naming at most 5 icons that the icon's name does not hold, so the plain substring search scores about 0; each suite reports the share found in the first 10 (what `prunelle icons-find` prints) and 50 (a picker's first page), and the mean reciprocal rank.
 // The typed queries of queries.ts add multi-word cases and count how often an icon they must not lead with comes first.
 import type { Tagged } from './learn'
 import type { Query } from './queries'

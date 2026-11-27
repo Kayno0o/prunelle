@@ -1,13 +1,13 @@
-// @kayjs/seo — SEO metadata, titleTemplate, JSON-LD, sitemap.xml, redirects, manifest, favicon, and self-hosted fonts.
-// Built strictly on the public KayPlugin API (server, build, transformHtml).
+// @prunelle/seo — SEO metadata, titleTemplate, JSON-LD, sitemap.xml, redirects, manifest, favicon, and self-hosted fonts.
+// Built strictly on the public PrunellePlugin API (server, build, transformHtml).
 
-import type { Html } from '@kayjs/kay'
-import type { ActiveI18nConfig, BuildPluginContext, DocumentHeadContext, FinalizeBuildContext, KayPlugin, ServerPluginAPI } from '@kayjs/kay/config'
-import type { RequestContext } from '@kayjs/kay/server'
+import type { Html } from 'prunelle'
+import type { ActiveI18nConfig, BuildPluginContext, DocumentHeadContext, FinalizeBuildContext, PrunellePlugin, ServerPluginAPI } from 'prunelle/config'
+import type { RequestContext } from 'prunelle/server'
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, extname, join, resolve } from 'node:path'
-import { definePlugin, I18N_CONFIG_SERVICE } from '@kayjs/kay/config'
-import { escAttr, escJson, raw } from '@kayjs/kay/server'
+import { definePlugin, I18N_CONFIG_SERVICE } from 'prunelle/config'
+import { escAttr, escJson, raw } from 'prunelle/server'
 
 export interface FontEntry {
   family: string
@@ -112,7 +112,7 @@ function localizeRedirectTarget(to: string, locale: string, i18n: ActiveI18nConf
 
 function isErrorLikePath(pathname: string, i18n: ActiveI18nConfig | undefined): boolean {
   const base = i18n !== undefined ? stripLocaleFromPath(pathname, i18n).basePath : normalizePathname(pathname)
-  return base === '/404' || base === '/500' || base === '/__kay_404__'
+  return base === '/404' || base === '/500' || base === '/__pru_404__'
 }
 
 function isApiPath(pathname: string): boolean {
@@ -151,7 +151,7 @@ function emitFavicons(ctx: BuildPluginContext, favicon: string | string[]): void
   for (const fav of favicons) {
     const abs = resolveFileOrPkg(ctx.root, fav)
     if (abs === undefined)
-      throw new Error(`@kayjs/seo: favicon "${fav}" is neither a file under the app root nor a package file: fix the path given to \`seo({ favicon })\`.`)
+      throw new Error(`@prunelle/seo: favicon "${fav}" is neither a file under the app root nor a package file: fix the path given to \`seo({ favicon })\`.`)
     const ext = extname(abs).toLowerCase()
     const key = ext === '.svg' ? '.svg' : ext === '.png' ? '.png' : '.ico'
     extCounts.set(key, (extCounts.get(key) ?? 0) + 1)
@@ -213,7 +213,7 @@ function emitFonts(ctx: BuildPluginContext, fonts: FontEntry[]): void {
   for (const font of fonts) {
     const abs = resolveFileOrPkg(ctx.root, font.src)
     if (abs === undefined)
-      throw new Error(`@kayjs/seo: could not resolve font "${font.src}"`)
+      throw new Error(`@prunelle/seo: could not resolve font "${font.src}"`)
     const bytes = new Uint8Array(readFileSync(abs))
     const hash = Bun.hash(bytes).toString(36)
     const ext = extname(abs).toLowerCase() || '.woff2'
@@ -395,7 +395,7 @@ function applySeoHead(
   }
 }
 
-export function seo(options: SeoPluginOptions = {}): KayPlugin {
+export function seo(options: SeoPluginOptions = {}): PrunellePlugin {
   let activeSite = options.site?.replace(/\/$/, '')
   let activeI18n: ActiveI18nConfig | undefined
   const errorRequests = new WeakSet<Request>()
@@ -405,13 +405,13 @@ export function seo(options: SeoPluginOptions = {}): KayPlugin {
     options.site?.replace(/\/$/, '') ?? ctxSite?.replace(/\/$/, '') ?? activeSite
 
   return definePlugin({
-    name: '@kayjs/seo',
-    after: ['@kayjs/i18n'],
+    name: '@prunelle/seo',
+    after: ['@prunelle/i18n'],
     readsLocals: ['locale'],
 
     requires(ctx) {
       return resolveSite(ctx.site) === undefined
-        ? ['no `site`, so pages go out with no canonical link, no absolute `og:image` and no sitemap: set `site` in `kay.config.ts` (or pass it to `seo()`).']
+        ? ['no `site`, so pages go out with no canonical link, no absolute `og:image` and no sitemap: set `site` in `prunelle.config.ts` (or pass it to `seo()`).']
         : []
     },
 

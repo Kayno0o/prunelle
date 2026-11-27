@@ -1,10 +1,10 @@
 {
-  "name": "kay-v2-showcase",
+  "name": "prunelle-showcase",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun ../../packages/kay/src/cli/index.ts dev",
-    "build": "bun ../../packages/kay/src/cli/index.ts build",
-    "start": "bun ../../packages/kay/src/cli/index.ts start"
+    "dev": "bun ../../packages/prunelle/src/cli/index.ts dev",
+    "build": "bun ../../packages/prunelle/src/cli/index.ts build",
+    "start": "bun ../../packages/prunelle/src/cli/index.ts start"
   }
 }

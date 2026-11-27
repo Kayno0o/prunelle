@@ -1,4 +1,4 @@
-import type { PageProps, RequestContext } from '@kayjs/kay/server'
+import type { PageProps, RequestContext } from 'prunelle/server'
 import type { Preferences } from '../actions/preferences'
 import {
   Accordion,
@@ -25,12 +25,12 @@ import {
   Stack,
   Switch,
   Tabs,
-} from '@kayjs/ui'
+} from '@prunelle/ui'
 import { savePreferences } from '../actions/preferences'
 import { ToastTrigger } from '../components/ToastTrigger'
 
 export function load(ctx: RequestContext) {
-  let prefs: Preferences = { project: 'my-kay-app', strict: true, compile: true, deploy: 'binary' }
+  let prefs: Preferences = { project: 'my-prunelle-app', strict: true, compile: true, deploy: 'binary' }
   const raw = ctx.cookies.get('showcase_prefs')
   if (raw) {
     try {
@@ -42,12 +42,12 @@ export function load(ctx: RequestContext) {
 }
 
 const SAMPLE_ROWS = [
-  { id: '1', pkg: 'kay', loc: 6400, role: 'Core compiler, signals, SSR, server' },
-  { id: '2', pkg: '@kayjs/ui', loc: 2200, role: 'Platform-first primitives + CSS Grammars' },
-  { id: '3', pkg: '@kayjs/auth', loc: 1285, role: 'Argon2id, sessions, SQLite, OAuth2+PKCE' },
-  { id: '4', pkg: '@kayjs/images', loc: 210, role: 'AVIF/WebP pipeline + cache' },
-  { id: '5', pkg: '@kayjs/mail', loc: 184, role: 'Resend + dev outbox preview' },
-  { id: '6', pkg: '@kayjs/seo', loc: 230, role: 'Meta, JSON-LD, sitemap, self-hosted fonts' },
+  { id: '1', pkg: 'prunelle', loc: 6400, role: 'Core compiler, signals, SSR, server' },
+  { id: '2', pkg: '@prunelle/ui', loc: 2200, role: 'Platform-first primitives + CSS Grammars' },
+  { id: '3', pkg: '@prunelle/auth', loc: 1285, role: 'Argon2id, sessions, SQLite, OAuth2+PKCE' },
+  { id: '4', pkg: '@prunelle/images', loc: 210, role: 'AVIF/WebP pipeline + cache' },
+  { id: '5', pkg: '@prunelle/mail', loc: 184, role: 'Resend + dev outbox preview' },
+  { id: '6', pkg: '@prunelle/seo', loc: 230, role: 'Meta, JSON-LD, sitemap, self-hosted fonts' },
 ]
 
 export default function ShowcasePage({ data, locals, url }: PageProps<typeof load>) {
@@ -78,7 +78,7 @@ export default function ShowcasePage({ data, locals, url }: PageProps<typeof loa
               items={[
                 { id: 'home', label: 'Go to Showcase', shortcut: 'G H', href: '/' },
                 { id: 'account', label: 'Open Protected Account', shortcut: 'G A', href: '/account' },
-                { id: 'eject', label: 'Eject CSS Grammar (kay ui-eject)', shortcut: '⌘E' },
+                { id: 'eject', label: 'Eject CSS Grammar (prunelle ui-eject)', shortcut: '⌘E' },
               ]}
             />
             <Dialog title="Confirm deployment" description="Zero external JS libraries — native <dialog> top-layer." triggerLabel="Open Dialog">
@@ -109,7 +109,7 @@ export default function ShowcasePage({ data, locals, url }: PageProps<typeof loa
                   </Notice>
                 )}
                 <Field id="project" label="Project Name" hint="Lowercase slug">
-                  <input id="project" name="project" type="text" value={prefs.project} placeholder="my-kay-app" />
+                  <input id="project" name="project" type="text" value={prefs.project} placeholder="my-prunelle-app" />
                 </Field>
                 <Switch name="strict" label="Strict zero-JS static routes" checked={prefs.strict} />
                 <Checkbox name="compile" label="Build single executable (--compile)" checked={prefs.compile} />
@@ -131,7 +131,7 @@ export default function ShowcasePage({ data, locals, url }: PageProps<typeof loa
         </Card>
 
         <Card>
-          <CardHeader>@kayjs/auth — Live Progressive Auth</CardHeader>
+          <CardHeader>@prunelle/auth — Live Progressive Auth</CardHeader>
           <CardBody>
             {locals?.user
               ? (
@@ -197,7 +197,7 @@ export default function ShowcasePage({ data, locals, url }: PageProps<typeof loa
               items={[
                 { id: 'overview', label: 'Overview', content: 'Roving arrow-key navigation powered by createTabs() and O(1) selector().' },
                 { id: 'layers', label: 'CSS Layers', content: 'Every rule lives inside @layer kui so Tailwind utilities or app CSS always win without !important.' },
-                { id: 'eject', label: 'Single-File Eject', content: 'Run `kay ui-eject editorial` to own 1 CSS file while keeping upstream a11y & behavior upgrades.' },
+                { id: 'eject', label: 'Single-File Eject', content: 'Run `prunelle ui-eject editorial` to own 1 CSS file while keeping upstream a11y & behavior upgrades.' },
               ]}
             />
 
@@ -206,7 +206,7 @@ export default function ShowcasePage({ data, locals, url }: PageProps<typeof loa
                 No — it uses native HTML <code>&lt;details name="faq"&gt;</code> for exclusive disclosure with 0 KB JS.
               </AccordionItem>
               <AccordionItem title="Can I mix Tailwind v4 classes on top?" group="faq">
-                Yes — because all @kayjs/ui styles live in <code>@layer kui</code>, Tailwind utilities override cleanly with zero specificity battles.
+                Yes — because all @prunelle/ui styles live in <code>@layer kui</code>, Tailwind utilities override cleanly with zero specificity battles.
               </AccordionItem>
             </Accordion>
           </Stack>

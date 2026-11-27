@@ -1,4 +1,4 @@
-import { CommandPalette } from '@kayjs/ui'
+import { CommandPalette } from '@prunelle/ui'
 
 export interface SearchDocItem {
   id: string

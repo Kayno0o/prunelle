@@ -1,14 +1,14 @@
 ---
 title: Configuration & Security
-description: kay.config.ts options, default strict CSP with automatic SHA-256 hashes, HSTS, reverse-proxy trust, body limits, error hooks, and typed environment variables.
+description: prunelle.config.ts options, default strict CSP with automatic SHA-256 hashes, HSTS, reverse-proxy trust, body limits, error hooks, and typed environment variables.
 section: core
 order: 6
 ---
 
-Configure your app in `kay.config.ts` with `defineConfig()` from `@kayjs/kay/config`:
+Configure your app in `prunelle.config.ts` with `defineConfig()` from `prunelle/config`:
 
 ```ts
-import { defineConfig } from '@kayjs/kay/config'
+import { defineConfig } from 'prunelle/config'
 
 export default defineConfig({
   lang: 'en',
@@ -23,33 +23,33 @@ export default defineConfig({
 })
 ```
 
-## `kay.config.ts` options
+## `prunelle.config.ts` options
 
-A key kay does not read fails the build, `kay check` and `kay dev`, naming the key you most likely meant (`outDirr` points at `outDir`).
+A key prunelle does not read fails the build, `prunelle check` and `prunelle dev`, naming the key you most likely meant (`outDirr` points at `outDir`).
 
 | Option | Default | Purpose |
 | :--- | :--- | :--- |
 | `lang` | `'en'` | Default `<html lang="...">` attribute. |
-| `port` | `3000` | Default port for `kay start` (overridden by `PORT` or `--port`). |
+| `port` | `3000` | Default port for `prunelle start` (overridden by `PORT` or `--port`). |
 | `routesDir` | `'src/routes'` | Directory scanned for file-based routes. |
 | `outDir` | `'dist'` | Build output directory. |
 | `publicDir` | `'public'` | Static files served at `/` with ETag and `304`. |
-| `assetPrefix` | `'/_kay'` | URL prefix for immutable hashed build assets. |
+| `assetPrefix` | `'/_pru'` | URL prefix for immutable hashed build assets. |
 | `security` | Enabled | Security headers options, or `false` to disable all of them. |
 | `trustedOrigins` | `undefined` | Extra origins allowed by CSRF checks (for example, `['https://app.example.com']`). |
-| `trustProxy` | `false` | Reverse proxies in front of Kay: `true` for 1 hop, a number for `N` hops (e.g. `2` for CDN + nginx). |
+| `trustProxy` | `false` | Reverse proxies in front of Prunelle: `true` for 1 hop, a number for `N` hops (e.g. `2` for CDN + nginx). |
 | `maxRequestBodySize` | `1048576` (1 MiB) | Maximum request body size before returning `413 Payload Too Large`. |
 | `navigation` | `{ viewTransitions: true, prefetch: 'moderate', prerender: false }` | How a change from one page to the next feels, with no client JS: see [Page changes](/core/routing-and-layouts#page-changes). |
-| `consent` | `undefined` | One-declaration CNIL/RGPD consent categories, cookie name (`'kay_consent'`), retention (`15552000` s = 180 days), and `POST` endpoint (`'/_kay/consent'`). |
+| `consent` | `undefined` | One-declaration CNIL/RGPD consent categories, cookie name (`'pru_consent'`), retention (`15552000` s = 180 days), and `POST` endpoint (`'/_pru/consent'`). |
 | `compliance` | `undefined` | French web law check overrides: `{ ignore?, publicBody?, legalNotice? }`. |
 | `streamTimeout` | `30000` | Milliseconds a `<Suspense>` boundary may wait before failing. |
-| `compress` | `true` in prod, `false` in dev | Sends the `.br` and `.gz` files `kay build` wrote beside assets, `public/` files and prerendered pages, and compresses the rest on the fly (zstd, gzip), streamed pages included. |
+| `compress` | `true` in prod, `false` in dev | Sends the `.br` and `.gz` files `prunelle build` wrote beside assets, `public/` files and prerendered pages, and compresses the rest on the fly (zstd, gzip), streamed pages included. |
 | `onError` | `undefined` | Hook called on unhandled errors in routes, actions, or plugins (`source: 'route' \| 'action' \| 'plugin'`). A hook that throws is logged with its owner, and the other hooks still run. |
-| `plugins` | `[]` | Array of `KayPlugin` instances. |
+| `plugins` | `[]` | Array of `PrunellePlugin` instances. |
 
 ## Security headers & strict CSP
 
-Kay attaches safe security headers to every response out of the box:
+Prunelle attaches safe security headers to every response out of the box:
 
 - `Content-Security-Policy`: Defaults to `DEFAULT_CSP` (`default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'`). A `style="..."` attribute is allowed, since it cannot run script.
 - **Automatic SHA-256 hashes**: Each page's policy gains the hashes of the inline styles and scripts it renders: islands, `<Suspense>`, and every `<style>` block of the app. A policy you set in `security.csp` gets the same hashes. No `'unsafe-inline'` is needed for them.
@@ -70,7 +70,7 @@ export default defineConfig({
 
 ## Reverse proxies (`trustProxy`)
 
-Forwarded headers (`X-Forwarded-Proto`, `X-Forwarded-Host`, `X-Forwarded-For`) are ignored unless `trustProxy` is set. Kay reads the entry written by the trusted hops from the right of each header so clients cannot spoof their IP or protocol.
+Forwarded headers (`X-Forwarded-Proto`, `X-Forwarded-Host`, `X-Forwarded-For`) are ignored unless `trustProxy` is set. Prunelle reads the entry written by the trusted hops from the right of each header so clients cannot spoof their IP or protocol.
 
 This affects `ctx.ip`, HTTPS cookie `Secure` flags, HSTS headers, and CSRF `Origin` checks.
 
@@ -84,11 +84,11 @@ ctx.cookies.set('theme', 'dark', { httpOnly: true, sameSite: 'lax', path: '/' })
 ctx.cookies.delete('theme')
 ```
 
-Pass `category` for any non-essential cookie (for example, `{ category: 'analytics' }`). Kay refuses to set it unless the visitor has granted consent for that category. Essential cookies (no `category` or `category: 'essential'`) always work.
+Pass `category` for any non-essential cookie (for example, `{ category: 'analytics' }`). Prunelle refuses to set it unless the visitor has granted consent for that category. Essential cookies (no `category` or `category: 'essential'`) always work.
 
 ## French Web Law & Consent (RGPD, CNIL, RGAA, LCEN)
 
-`kay check` and production `kay build` check French web law rules by default and emit actionable warnings (never hard compile errors; pass `kay check --strict` in CI to fail on warnings):
+`prunelle check` and production `prunelle build` check French web law rules by default and emit actionable warnings (never hard compile errors; pass `prunelle check --strict` in CI to fail on warnings):
 
 | Rule | What it checks |
 | :--- | :--- |
@@ -101,10 +101,10 @@ Pass `category` for any non-essential cookie (for example, `{ category: 'analyti
 
 ### Silencing warnings
 
-Silence a specific rule explicitly in `kay.config.ts` or inline with a comment naming the rule:
+Silence a specific rule explicitly in `prunelle.config.ts` or inline with a comment naming the rule:
 
 ```ts
-// kay.config.ts
+// prunelle.config.ts
 export default defineConfig({
   compliance: {
     publicBody: false,
@@ -115,20 +115,20 @@ export default defineConfig({
 ```
 
 ```tsx
-{/* kay-ignore rgaa/img-alt */}
+{/* prunelle-ignore rgaa/img-alt */}
 <img src="/generated.png" />
 
 // Or at the top of a file:
-// kay-ignore-file rgpd/third-party-url
+// prunelle-ignore-file rgpd/third-party-url
 ```
 
 ### One-declaration consent gating (`consent` & `<ConsentGate>`)
 
-Declare your non-essential categories once in `kay.config.ts`. Kay automatically wires a CSRF-protected `POST /_kay/consent` endpoint (supporting both zero-JS HTML forms and JSON), sets an `HttpOnly; SameSite=Lax` cookie (`kay_consent`, 180-day CNIL max-age by default), exposes `ctx.consent` (`decided`, `categories`, `has(cat)`, `all()`), gates `ctx.cookies.set(..., { category })`, and provides server-only `<ConsentGate>` with **0 KB of browser JS**:
+Declare your non-essential categories once in `prunelle.config.ts`. Prunelle automatically wires a CSRF-protected `POST /_pru/consent` endpoint (supporting both zero-JS HTML forms and JSON), sets an `HttpOnly; SameSite=Lax` cookie (`pru_consent`, 180-day CNIL max-age by default), exposes `ctx.consent` (`decided`, `categories`, `has(cat)`, `all()`), gates `ctx.cookies.set(..., { category })`, and provides server-only `<ConsentGate>` with **0 KB of browser JS**:
 
 ```ts
-// kay.config.ts
-import { defineConfig } from '@kayjs/kay/config'
+// prunelle.config.ts
+import { defineConfig } from 'prunelle/config'
 
 export default defineConfig({
   consent: {
@@ -142,8 +142,8 @@ export default defineConfig({
 
 ```tsx
 // src/routes/index.tsx
-import type { PageProps, RouteContext } from '@kayjs/kay'
-import { ConsentGate } from '@kayjs/kay'
+import type { PageProps, RouteContext } from 'prunelle'
+import { ConsentGate } from 'prunelle'
 
 export function load(ctx: RouteContext) {
   // Refused until the visitor grants 'analytics' consent
@@ -159,7 +159,7 @@ export default function Home({ data }: PageProps<typeof load>) {
       </ConsentGate>
 
       {!data.decided && (
-        <form method="post" action="/_kay/consent">
+        <form method="post" action="/_pru/consent">
           <button type="submit" name="action" value="accept-all">Accept all</button>
           <button type="submit" name="action" value="reject-all">Reject all</button>
         </form>
@@ -169,14 +169,14 @@ export default function Home({ data }: PageProps<typeof load>) {
 }
 ```
 
-Granular checkboxes (`<input type="checkbox" name="analytics" />`) work with the same zero-JS form, or send JSON `POST /_kay/consent` with `{ categories: { analytics: true, media: false } }`, `{ acceptAll: true }`, or `{ rejectAll: true }`.
+Granular checkboxes (`<input type="checkbox" name="analytics" />`) work with the same zero-JS form, or send JSON `POST /_pru/consent` with `{ categories: { analytics: true, media: false } }`, `{ acceptAll: true }`, or `{ rejectAll: true }`.
 
 ## Typed environment variables (`defineEnv` & `nodeEnv`)
 
 Validate required server environment variables once at startup with any Standard Schema validator:
 
 ```ts
-import { defineEnv, nodeEnv } from '@kayjs/kay/server'
+import { defineEnv, nodeEnv } from 'prunelle/server'
 import { z } from 'zod'
 
 export const env = defineEnv(z.object({
@@ -187,4 +187,4 @@ export const env = defineEnv(z.object({
 const isProd = nodeEnv() === 'production'
 ```
 
-Read `nodeEnv()` instead of `process.env.NODE_ENV` in server code. `kay build` does not set `NODE_ENV`, so a page it prerenders would read it unset, while `nodeEnv()` returns the mode of the build or of the running server. In `--compile` binaries, `Bun.build` can also inline `process.env.NODE_ENV` at build time. `kay build` and `kay check` warn on a `process.env.NODE_ENV` read the server runs. An island may read it: its bundle inlines the value.
+Read `nodeEnv()` instead of `process.env.NODE_ENV` in server code. `prunelle build` does not set `NODE_ENV`, so a page it prerenders would read it unset, while `nodeEnv()` returns the mode of the build or of the running server. In `--compile` binaries, `Bun.build` can also inline `process.env.NODE_ENV` at build time. `prunelle build` and `prunelle check` warn on a `process.env.NODE_ENV` read the server runs. An island may read it: its bundle inlines the value.

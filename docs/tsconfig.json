@@ -2,8 +2,8 @@
   "extends": "../tsconfig.json",
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "@kayjs/kay",
+    "jsxImportSource": "prunelle",
     "noEmit": true
   },
-  "include": ["src", "kay.config.ts"]
+  "include": ["src", "prunelle.config.ts"]
 }

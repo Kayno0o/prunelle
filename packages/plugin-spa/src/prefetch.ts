@@ -1,12 +1,12 @@
-// The fetch cache `spa()` and `regions()` share: a link inside [data-kay-prefetch] is fetched on hover or focus, and the swap that follows takes the answer from here.
+// The fetch cache `spa()` and `regions()` share: a link inside [data-pru-prefetch] is fetched on hover or focus, and the swap that follows takes the answer from here.
 
 export interface PrefetchEntry {
   html: string
   url: string
   ts: number
-  /** The `x-kay-region` the server answered with: the region's HTML alone, not a whole page. */
+  /** The `x-pru-region` the server answered with: the region's HTML alone, not a whole page. */
   region: string | null
-  /** The percent-encoded `x-kay-title` of a region answer: the title the page has at this URL. */
+  /** The percent-encoded `x-pru-title` of a region answer: the title the page has at this URL. */
   title: string | null
   /** Response Content-Security-Policy header, used by spa() to detect blocked destination <style> tags. */
   csp?: string | null | undefined
@@ -19,8 +19,8 @@ export const inflightPrefetch = new Map<string, Promise<PrefetchEntry | undefine
 
 // Document generation counter shared by spa() and regions() so popstate separates same-doc region swaps from cross-doc page navigations.
 function initialDocId(): number {
-  const st = typeof history === 'undefined' ? undefined : history.state as { __kayDoc?: unknown } | null
-  return typeof st?.__kayDoc === 'number' ? st.__kayDoc : 0
+  const st = typeof history === 'undefined' ? undefined : history.state as { __pruDoc?: unknown } | null
+  return typeof st?.__pruDoc === 'number' ? st.__pruDoc : 0
 }
 
 let currentDocId = initialDocId()
@@ -43,8 +43,8 @@ export function nextDocId(): number {
 export function isSameDocRegionState(state: unknown): boolean {
   if (typeof state !== 'object' || state === null)
     return false
-  const s = state as { __kayIdx?: unknown, __kayDoc?: unknown }
-  return typeof s.__kayIdx === 'number' && (s.__kayDoc === undefined || s.__kayDoc === currentDocId)
+  const s = state as { __pruIdx?: unknown, __pruDoc?: unknown }
+  return typeof s.__pruIdx === 'number' && (s.__pruDoc === undefined || s.__pruDoc === currentDocId)
 }
 
 /** The cache key of a page, or of one region of it, given by its path from the outermost region (`results/sets`). */
@@ -86,10 +86,10 @@ export async function prefetch(url: string, region?: string): Promise<void> {
 
   const task = (async (): Promise<PrefetchEntry | undefined> => {
     try {
-      const res = await fetch(clean.href, { headers: region === undefined ? { 'x-kay-spa': '1' } : { 'x-kay-region': region } })
+      const res = await fetch(clean.href, { headers: region === undefined ? { 'x-pru-spa': '1' } : { 'x-pru-region': region } })
       if (!res.ok || !(res.headers.get('content-type') ?? '').includes('text/html'))
         return undefined
-      const entry: PrefetchEntry = { html: await res.text(), url: res.url || clean.href, ts: Date.now(), region: res.headers.get('x-kay-region'), title: res.headers.get('x-kay-title'), csp: res.headers.get('content-security-policy') }
+      const entry: PrefetchEntry = { html: await res.text(), url: res.url || clean.href, ts: Date.now(), region: res.headers.get('x-pru-region'), title: res.headers.get('x-pru-title'), csp: res.headers.get('content-security-policy') }
       putCachedHtml(key, entry)
       return entry
     }

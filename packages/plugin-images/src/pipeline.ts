@@ -1,4 +1,4 @@
-// Variant encoding pipeline helpers shared by @kayjs/images build loader and Markdown image optimizer.
+// Variant encoding pipeline helpers shared by @prunelle/images build loader and Markdown image optimizer.
 
 import type { ImageAsset } from './helpers'
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
@@ -114,7 +114,7 @@ function parseMagickDimensions(stdout: string): { width: number, height: number 
   return QUARTER_TURNS.has(parts[2] ?? '') ? { width: h, height: w } : { width: w, height: h }
 }
 
-/** The size the variants will have, after `-auto-orient`, for a file whose header kay cannot read. */
+/** The size the variants will have, after `-auto-orient`, for a file whose header prunelle cannot read. */
 export async function identifyImageAsync(filePath: string): Promise<{ width: number, height: number } | undefined> {
   const result = await runMagick(['identify', '-ping', '-format', '%w %h %[orientation]', `${filePath}[0]`])
   if (!result.ok)
@@ -177,7 +177,7 @@ async function encodeFormatAsync(srcPath: string, jobs: readonly VariantEncodeJo
       missing.push(job.width)
   }
   if (missing.length > 0)
-    console.warn(`@kayjs/images: magick could not encode ${srcPath} at ${missing.map(w => `${w}w`).join(', ')} (${jobs[0]!.format}), so those variants are left out: ${result.error || 'no output'}`)
+    console.warn(`@prunelle/images: magick could not encode ${srcPath} at ${missing.map(w => `${w}w`).join(', ')} (${jobs[0]!.format}), so those variants are left out: ${result.error || 'no output'}`)
 }
 
 /** Encodes the jobs not in the cache yet, one `magick` run per format, and returns every job whose file is now in the cache, in plan order. */

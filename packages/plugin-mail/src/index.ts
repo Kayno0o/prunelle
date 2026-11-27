@@ -1,9 +1,9 @@
-// @kayjs/mail — Lightweight email delivery (Resend / custom transport / dev outbox) + `/_kay/mail` preview plugin.
-// Built strictly on the public KayPlugin API (server(api).route).
+// @prunelle/mail — Lightweight email delivery (Resend / custom transport / dev outbox) + `/_pru/mail` preview plugin.
+// Built strictly on the public PrunellePlugin API (server(api).route).
 
-import type { KayPlugin } from '@kayjs/kay/config'
-import { definePlugin } from '@kayjs/kay/config'
-import { esc, escAttr, nodeEnv } from '@kayjs/kay/server'
+import type { PrunellePlugin } from 'prunelle/config'
+import { definePlugin } from 'prunelle/config'
+import { esc, escAttr, nodeEnv } from 'prunelle/server'
 
 export type MailAddress = string | { name: string, address: string }
 
@@ -32,7 +32,7 @@ export interface MailTransport {
 }
 
 export class MailNotConfiguredError extends Error {
-  constructor(message = '@kayjs/mail: no transport configured (set RESEND_API_KEY or pass transport)') {
+  constructor(message = '@prunelle/mail: no transport configured (set RESEND_API_KEY or pass transport)') {
     super(message)
     this.name = 'MailNotConfiguredError'
   }
@@ -45,7 +45,7 @@ const DEFAULT_RESEND_TIMEOUT_MS = 10_000
 
 function assertNoHeaderInjection(value: string, label: string): void {
   if (CR_LF_OR_NUL_RE.test(value))
-    throw new RangeError(`@kayjs/mail: ${label} must not contain CR, LF, or NUL characters`)
+    throw new RangeError(`@prunelle/mail: ${label} must not contain CR, LF, or NUL characters`)
 }
 
 function escapeDisplayName(name: string): string {
@@ -66,7 +66,7 @@ function formatAddress(addr: MailAddress, label: string): string {
   assertNoHeaderInjection(addr.address, `${label} address`)
   const address = addr.address.trim()
   if (ANGLE_BRACKET_RE.test(address))
-    throw new RangeError(`@kayjs/mail: ${label} address must not contain angle brackets`)
+    throw new RangeError(`@prunelle/mail: ${label} address must not contain angle brackets`)
   const displayName = escapeDisplayName(addr.name)
   return displayName.length > 0 ? `${displayName} <${address}>` : address
 }
@@ -123,7 +123,7 @@ export function resend(options: { apiKey?: string | undefined, endpoint?: string
           return
         const text = await res.text()
         if ((res.status !== 429 && res.status < 500) || attempt >= retries)
-          throw new Error(`@kayjs/mail (resend): HTTP ${res.status}: ${text}`)
+          throw new Error(`@prunelle/mail (resend): HTTP ${res.status}: ${text}`)
         await Bun.sleep(resendRetryDelay(res, attempt))
       }
     },
@@ -138,8 +138,8 @@ export interface MailerOptions extends MailPreviewOptions {
   optional?: boolean | undefined
 }
 
-/** The plugin `kay.config.ts` registers for the dev outbox preview, and the handle routes and actions send with. */
-export interface Mailer extends KayPlugin {
+/** The plugin `prunelle.config.ts` registers for the dev outbox preview, and the handle routes and actions send with. */
+export interface Mailer extends PrunellePlugin {
   readonly outbox: SentMail[]
   isConfigured(): boolean
   clearOutbox(): void
@@ -182,7 +182,7 @@ export function createMailer(options: MailerOptions = {}): Mailer {
       const from = message.from ?? options.from ?? process.env.MAIL_FROM ?? 'noreply@localhost'
       const toList = normalizeList(message.to ?? options.to ?? process.env.MAIL_TO, 'to')
       if (toList.length === 0)
-        throw new Error(`@kayjs/mail: send({ subject: ${JSON.stringify(message.subject)} }) has no recipient: give it \`to\`, pass \`to\` to \`createMailer()\`, or set \`MAIL_TO\`.`)
+        throw new Error(`@prunelle/mail: send({ subject: ${JSON.stringify(message.subject)} }) has no recipient: give it \`to\`, pass \`to\` to \`createMailer()\`, or set \`MAIL_TO\`.`)
       const record: SentMail = {
         id: crypto.randomUUID(),
         from: formatAddress(from, 'from'),
@@ -194,7 +194,7 @@ export function createMailer(options: MailerOptions = {}): Mailer {
         sentAt: new Date().toISOString(),
       }
 
-      const devOrTest = isDevOrTest(serverDev ?? (process.env.KAY_DEV === '1'))
+      const devOrTest = isDevOrTest(serverDev ?? (process.env.PRUNELLE_DEV === '1'))
       const transport = getTransport()
       if (transport !== undefined) {
         await transport.send(record)
@@ -216,9 +216,9 @@ export function createMailer(options: MailerOptions = {}): Mailer {
 }
 
 export interface MailPreviewOptions {
-  /** Dev outbox preview route (default: '/_kay/mail'). */
+  /** Dev outbox preview route (default: '/_pru/mail'). */
   previewRoute?: string | undefined
-  /** Turns the outbox preview off; it is only ever mounted under `kay dev` or NODE_ENV development or test, never in production. */
+  /** Turns the outbox preview off; it is only ever mounted under `prunelle dev` or NODE_ENV development or test, never in production. */
   preview?: false | undefined
 }
 
@@ -228,11 +228,11 @@ function previewPlugin(
   outbox: readonly SentMail[],
   options: MailPreviewOptions,
   onServerInit?: (dev: boolean) => void,
-): KayPlugin {
-  const route = options.previewRoute ?? '/_kay/mail'
+): PrunellePlugin {
+  const route = options.previewRoute ?? '/_pru/mail'
 
   return definePlugin({
-    name: '@kayjs/mail',
+    name: '@prunelle/mail',
     server(api) {
       onServerInit?.(api.dev)
       const enablePreview = options.preview !== false && isDevOrTest(api.dev)
@@ -250,8 +250,8 @@ function previewPlugin(
           + `</article>`,
         ).join('')
 
-        const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Kay Mail Outbox (${outbox.length})</title><style>${MAIL_OUTBOX_CSS}</style></head><body><h1>Mail Outbox (${outbox.length})</h1>${rows || '<p class="empty">No messages sent yet.</p>'}</body></html>`
-        // kay adds the app's CSP with this page's <style> hash.
+        const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Prunelle Mail Outbox (${outbox.length})</title><style>${MAIL_OUTBOX_CSS}</style></head><body><h1>Mail Outbox (${outbox.length})</h1>${rows || '<p class="empty">No messages sent yet.</p>'}</body></html>`
+        // prunelle adds the app's CSP with this page's <style> hash.
         return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8' } })
       })
     },

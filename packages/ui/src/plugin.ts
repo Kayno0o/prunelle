@@ -1,13 +1,13 @@
-// @kayjs/ui KayPlugin — wires a pure CSS Grammar (`editorial | workshop | console | soft | orbit | bare`)
-// and adds `kay ui-eject <grammar> [dest]` so apps can copy & own the entire look in ONE ~200-line CSS file.
+// @prunelle/ui PrunellePlugin — wires a pure CSS Grammar (`editorial | workshop | console | soft | orbit | bare`)
+// and adds `prunelle ui-eject <grammar> [dest]` so apps can copy & own the entire look in ONE ~200-line CSS file.
 
-import type { KayPlugin } from '@kayjs/kay/config'
+import type { PrunellePlugin } from 'prunelle/config'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
-import { definePlugin, serviceKey } from '@kayjs/kay/config'
+import { definePlugin, serviceKey } from 'prunelle/config'
 import { FALLBACK_FILE, FALLBACK_GUARD, FALLBACK_JS, withPlatformFallback } from './platform-fallback'
 
-const UI_KUI_LAYER_SERVICE = serviceKey<boolean>('kay.ui.kuiLayer')
+const UI_KUI_LAYER_SERVICE = serviceKey<boolean>('prunelle.ui.kuiLayer')
 
 export type GrammarName = 'bare' | 'editorial' | 'workshop' | 'console' | 'soft' | 'orbit'
 
@@ -66,12 +66,12 @@ function resolveEmitGrammars(opt: UiPluginOptions['emitGrammars']): { dir: strin
   return { dir, grammars: opts.grammars ?? GRAMMAR_NAMES }
 }
 
-export function ui(options: UiPluginOptions = {}): KayPlugin {
+export function ui(options: UiPluginOptions = {}): PrunellePlugin {
   const grammar = options.grammar === undefined ? 'editorial' : options.grammar
   const emit = resolveEmitGrammars(options.emitGrammars)
-  let assetPrefix = '/_kay'
+  let assetPrefix = '/_pru'
   return definePlugin({
-    name: '@kayjs/ui',
+    name: '@prunelle/ui',
     css: grammar === false ? undefined : [grammarCssPath(grammar)],
     inlineScripts: [FALLBACK_GUARD],
     build(ctx) {
@@ -98,7 +98,7 @@ export function ui(options: UiPluginOptions = {}): KayPlugin {
         }
         const dest = args[1] ?? 'src/styles/ui.css'
         const outPath = ejectGrammar(root, name, dest)
-        console.log(`Ejected @kayjs/ui "${name}" grammar to ${outPath}`)
+        console.log(`Ejected @prunelle/ui "${name}" grammar to ${outPath}`)
       },
     },
   })

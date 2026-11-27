@@ -1,0 +1,271 @@
+// What every rendered document shares: its HTML headers, the plugins' `head` hooks and `transformHtml` passes, and the islands it rendered.
+
+import type { DocumentHeadContext, PrunellePlugin, ServerErrorInfo } from '../plugins/index'
+import type { RenderContext } from '../ssr/context'
+import type { Navigation } from '../ssr/navigation'
+import type { RequestContext } from './http'
+import type { SecurityHeadersOptions, TrustProxy } from './security'
+import { cspSha256 } from '../ssr/navigation'
+import { readBufferedOrPassThrough } from './compress'
+import { extractRenderedIslands, makeRequestContext } from './http'
+import { inlineStyleHashes, PRUNELLE_ISLAND_STYLE_HASH, PRUNELLE_STREAM_SCRIPT_HASH, PRUNELLE_SUSPENSE_STYLE_HASH, resolveCspPolicy, withCspHashes } from './security'
+
+const TITLE_INNER_RE = /^<title\b[^>]*>([\s\S]*?)<\/title>$/i
+
+/** `styleHashes` are the page's own `<style>` blocks (`inlineStyleHashes`), added to its CSP. */
+export type HtmlHeaders = (hasIslands: boolean, hasSuspense: boolean, isDynamic: boolean, styleHashes?: readonly string[]) => Record<string, string>
+
+const STYLED_HEADER_CACHE_SIZE = 256
+
+// HTML headers, one set per (dynamic, islands, suspense) combination: the CSP only gains the hashes a page needs.
+export function createHtmlHeaders(security: SecurityHeadersOptions | false | undefined, securityRecord: Record<string, string>, navigation?: Navigation, plugins: readonly PrunellePlugin[] = []): HtmlHeaders {
+  const baseCsp = resolveCspPolicy(security)
+  const navStyles = navigation?.styleHashes ?? []
+  const navScripts = [...navigation?.scriptHashes ?? [], ...plugins.flatMap(plugin => plugin.inlineScripts ?? []).map(cspSha256)]
+  const htmlHeaderSets: Record<string, string>[] = []
+  const prunelleStyleHashes: string[][] = []
+  const prunelleScriptHashes: string[][] = []
+  for (let i = 0; i < 8; i++) {
+    const isDynamic = (i & 4) !== 0
+    const hasIslands = (i & 2) !== 0
+    const hasSuspense = (i & 1) !== 0
+    const headers: Record<string, string> = { 'content-type': 'text/html; charset=utf-8', ...securityRecord }
+    if (isDynamic)
+      headers['cache-control'] = 'private'
+    const styleHashes = [...navStyles, ...(hasIslands ? [PRUNELLE_ISLAND_STYLE_HASH] : []), ...(hasSuspense ? [PRUNELLE_SUSPENSE_STYLE_HASH] : [])]
+    const scriptHashes = [...navScripts, ...(hasSuspense ? [PRUNELLE_STREAM_SCRIPT_HASH] : [])]
+    prunelleStyleHashes.push(styleHashes)
+    prunelleScriptHashes.push(scriptHashes)
+    if (baseCsp !== undefined)
+      headers['content-security-policy'] = withCspHashes(baseCsp, { styleHashes, scriptHashes })
+    htmlHeaderSets.push(headers)
+  }
+
+  // Pages sharing a layout share its blocks, so their header sets are kept with LRU eviction.
+  const styledSets = new Map<string, Record<string, string>>()
+  return (hasIslands, hasSuspense, isDynamic, styleHashes) => {
+    const index = (isDynamic ? 4 : 0) | (hasIslands ? 2 : 0) | (hasSuspense ? 1 : 0)
+    const base = htmlHeaderSets[index]!
+    if (baseCsp === undefined || styleHashes === undefined || styleHashes.length === 0)
+      return base
+    const key = `${index} ${styleHashes.join(' ')}`
+    let headers = styledSets.get(key)
+    if (headers !== undefined) {
+      styledSets.delete(key)
+      styledSets.set(key, headers)
+      return headers
+    }
+    headers = {
+      ...base,
+      'content-security-policy': withCspHashes(baseCsp, {
+        styleHashes: [...prunelleStyleHashes[index]!, ...styleHashes],
+        scriptHashes: prunelleScriptHashes[index]!,
+      }),
+    }
+    if (styledSets.size >= STYLED_HEADER_CACHE_SIZE)
+      styledSets.delete(styledSets.keys().next().value!)
+    styledSets.set(key, headers)
+    return headers
+  }
+}
+
+/** Merges multiple style-hash arrays into a deduplicated list, preserving order. */
+export function mergeStyleHashes(...groups: readonly (readonly string[] | undefined)[]): string[] {
+  let out: string[] | undefined
+  for (const group of groups) {
+    if (group === undefined || group.length === 0)
+      continue
+    out ??= []
+    for (const h of group) {
+      if (!out.includes(h))
+        out.push(h)
+    }
+  }
+  return out ?? []
+}
+
+/** Extracts CSP style hashes from framework/plugin-configured `headTags` once at startup. */
+export function headTagStyleHashes(headTags: Iterable<string> | undefined): string[] {
+  if (headTags === undefined)
+    return []
+  let combined = ''
+  for (const tag of headTags)
+    combined += tag
+  return combined === '' ? [] : inlineStyleHashes(combined)
+}
+
+/** Returns only `<style>` hashes newly introduced by plugin `transformHtml` hooks (never preexisting HTML). */
+export function addedInlineStyleHashes(before: string, after: string): string[] {
+  if (before === after)
+    return []
+  const afterHashes = inlineStyleHashes(after)
+  if (afterHashes.length === 0)
+    return []
+  const beforeSet = new Set(inlineStyleHashes(before))
+  return afterHashes.filter(h => !beforeSet.has(h))
+}
+
+function withBaseCsp(res: Response, htmlHeaders: HtmlHeaders): Response {
+  const csp = htmlHeaders(false, false, true)['content-security-policy']
+  if (csp === undefined)
+    return res
+  const headers = new Headers(res.headers)
+  headers.set('content-security-policy', csp)
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers })
+}
+
+/** A plugin's HTML page without a CSP of its own gets the app's, its `<style>` blocks hashed like a rendered page's. */
+export async function withPluginHtmlCsp(res: Response, htmlHeaders: HtmlHeaders): Promise<Response> {
+  if (res.body === null || res.headers.has('content-security-policy') || !(res.headers.get('content-type') ?? '').trim().toLowerCase().startsWith('text/html'))
+    return res
+  // Never decode pre-compressed bytes as UTF-8; attach base CSP without touching the body.
+  if (res.headers.has('content-encoding'))
+    return withBaseCsp(res, htmlHeaders)
+  const probed = await readBufferedOrPassThrough(res)
+  if ('passthrough' in probed)
+    return withBaseCsp(probed.passthrough, htmlHeaders)
+  const html = new TextDecoder().decode(probed.buffered)
+  const headers = new Headers(res.headers)
+  const csp = htmlHeaders(false, false, true, inlineStyleHashes(html))['content-security-policy']
+  if (csp !== undefined)
+    headers.set('content-security-policy', csp)
+  return new Response(html, { status: res.status, statusText: res.statusText, headers })
+}
+
+/** The revivers, for a page whose island props need them; nothing otherwise. */
+export function revivePreload(rctx: RenderContext, reviveScript: string | undefined): string[] {
+  return rctx.revives && reviveScript !== undefined ? [reviveScript] : []
+}
+
+export function resolveRenderedIslands(rctx: RenderContext, body: string): { hasIslands: boolean, eagerChunks: string[] } {
+  if (rctx.hasIslands) {
+    const eagerChunks: string[] = []
+    for (const [chunk, eager] of rctx.renderedIslands) {
+      if (eager)
+        eagerChunks.push(chunk)
+    }
+    return { hasIslands: true, eagerChunks }
+  }
+  // Fallback only if raw HTML injected a <pru-island> without going through ssrIsland/ssrIslandStatic.
+  if (body.includes('<pru-island'))
+    return extractRenderedIslands(body)
+  return { hasIslands: false, eagerChunks: [] }
+}
+
+export interface DocumentHooksOptions {
+  plugins: readonly PrunellePlugin[]
+  lang: string
+  trustProxy: TrustProxy
+  notifyError: (error: unknown, request: Request, source: ServerErrorInfo['source']) => void
+}
+
+export function createDocumentHooks(options: DocumentHooksOptions) {
+  const { lang, trustProxy, notifyError } = options
+  const headHooks = options.plugins
+    .map(p => p.head)
+    .filter((fn): fn is NonNullable<PrunellePlugin['head']> => typeof fn === 'function')
+  const htmlTransformers = options.plugins
+    .map(p => p.transformHtml)
+    .filter((fn): fn is NonNullable<PrunellePlugin['transformHtml']> => typeof fn === 'function')
+  const hasHeadHooks = headHooks.length > 0
+  const hasHtmlTransformers = htmlTransformers.length > 0
+
+  async function resolveDocumentHead(
+    rctx: RenderContext,
+    baseHeadTags: readonly string[] | undefined,
+    url: URL,
+    req?: Request,
+    ctx?: RequestContext,
+  ): Promise<{ head: string, lang: string, htmlAttrs: Record<string, string>, styleHashes: string[] }> {
+    const collectedParts = rctx.headParts.join('')
+    if (!hasHeadHooks) {
+      return {
+        head: (rctx.title ?? '') + collectedParts,
+        lang,
+        htmlAttrs: rctx.htmlAttrs,
+        styleHashes: [],
+      }
+    }
+
+    const headCtx = ctx ?? makeRequestContext(req ?? new Request(url.toString()), {}, { trustProxy, url }).ctx
+    const htmlAttrs: Record<string, string> = { ...rctx.htmlAttrs }
+    const initialTitleTag = rctx.title
+    const initialTitleInner = initialTitleTag !== undefined ? TITLE_INNER_RE.exec(initialTitleTag)?.[1] : undefined
+    let currentTitle = initialTitleInner
+    let titleDirty = false
+    let currentLang = htmlAttrs.lang ?? lang
+    let headBuf = (initialTitleTag ?? '') + collectedParts
+    if (baseHeadTags !== undefined) {
+      for (let i = 0; i < baseHeadTags.length; i++)
+        headBuf += baseHeadTags[i]
+    }
+    const added: string[] = []
+
+    const docHead: DocumentHeadContext = {
+      get lang() {
+        return currentLang
+      },
+      set lang(v: string) {
+        currentLang = v
+        htmlAttrs.lang = v
+      },
+      htmlAttrs,
+      get title() {
+        return currentTitle
+      },
+      set title(v: string | undefined) {
+        currentTitle = v
+        titleDirty = true
+      },
+      get headHtml() {
+        return headBuf
+      },
+      add(html: string) {
+        if (html !== '') {
+          added.push(html)
+          headBuf += html
+        }
+      },
+    }
+
+    for (const hook of headHooks) {
+      try {
+        await hook(docHead, headCtx)
+      }
+      catch (err) {
+        notifyError(err, req ?? headCtx.request, 'plugin')
+      }
+    }
+
+    const titleHtml = titleDirty
+      ? (currentTitle !== undefined ? `<title>${currentTitle}</title>` : '')
+      : (initialTitleTag ?? '')
+    const addedHtml = added.length > 0 ? added.join('') : ''
+    return {
+      head: titleHtml + collectedParts + addedHtml,
+      lang: currentLang,
+      htmlAttrs,
+      styleHashes: addedHtml !== '' ? inlineStyleHashes(addedHtml) : [],
+    }
+  }
+
+  async function applyHtmlTransforms(html: string, url: URL, req?: Request, ctx?: RequestContext): Promise<string> {
+    if (!hasHtmlTransformers)
+      return html
+    const transformCtx = ctx ?? makeRequestContext(req ?? new Request(url.toString()), {}, { trustProxy, url }).ctx
+    let out = html
+    for (const transform of htmlTransformers) {
+      try {
+        out = await transform(out, transformCtx)
+      }
+      catch (err) {
+        notifyError(err, req ?? transformCtx.request, 'plugin')
+      }
+    }
+    return out
+  }
+
+  return { hasHeadHooks, hasHtmlTransformers, htmlTransformers, resolveDocumentHead, applyHtmlTransforms }
+}
+
+export type DocumentHooks = ReturnType<typeof createDocumentHooks>

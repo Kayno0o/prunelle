@@ -1,7 +1,7 @@
-import type { StandardSchemaV1 } from '@kayjs/kay/server'
+import type { StandardSchemaV1 } from 'prunelle/server'
 import { existsSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { defineCollection } from '@kayjs/content'
+import { defineCollection } from '@prunelle/content'
 
 export type DocSectionId = 'getting-started' | 'core' | 'plugins' | 'production'
 
@@ -37,7 +37,7 @@ export const DOCS_ROOT = findRoot()
 export const docSchema: StandardSchemaV1<unknown, DocFrontmatter> = {
   '~standard': {
     version: 1,
-    vendor: 'kay-docs',
+    vendor: 'prunelle-docs',
     validate(raw) {
       if (!raw || typeof raw !== 'object')
         return { issues: [{ message: 'frontmatter must be an object' }] }

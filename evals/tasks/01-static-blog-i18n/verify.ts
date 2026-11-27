@@ -12,7 +12,7 @@ export async function verify({ dir, app, bundleReport }: VerifyContext): Promise
     assert(res.status === 200, `expected 200, got ${res.status}`)
     enHomeHtml = await res.text()
     assert(/<html\b[^>]*\blang=["']en["']/i.test(enHomeHtml), 'missing <html lang="en">')
-    assert(!/<script\b[^>]*src=["']\/_kay\/[^"']+\.js["']/i.test(enHomeHtml), 'unexpected client JS script tag on 0 KB page')
+    assert(!/<script\b[^>]*src=["']\/_pru\/[^"']+\.js["']/i.test(enHomeHtml), 'unexpected client JS script tag on 0 KB page')
     const blogLinks = extractLinks(enHomeHtml).filter(href => href.startsWith('/blog/'))
     assert(blogLinks.length >= 1, 'home page must link to at least one /blog/<slug> post')
     return `${blogLinks.length} blog links`

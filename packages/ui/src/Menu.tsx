@@ -1,4 +1,4 @@
-/** @jsxImportSource @kayjs/kay */
+/** @jsxImportSource prunelle */
 // Accessible dropdown Menu primitive with roving menuitem focus, link items, ArrowDown/Up trigger open, Escape/Tab close & click-outside dismiss.
 
 import type { ButtonVariant } from './static'

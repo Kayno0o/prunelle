@@ -1,19 +1,19 @@
 ---
-title: "@kayjs/content"
+title: "@prunelle/content"
 description: Zero-dependency Markdown collections powered by Bun.markdown and Bun.YAML with Standard Schema frontmatter, Shiki highlighting, MDX-lite TSX components, and RSS.
 section: plugins
 order: 3
 ---
 
-`@kayjs/content` turns folders of Markdown files into typed, lazy-rendered collections using Bun's native Zig `Bun.markdown.html()` and `Bun.YAML.parse()` — **zero npm Markdown parser dependencies** and **0 KB** client JS.
+`@prunelle/content` turns folders of Markdown files into typed, lazy-rendered collections using Bun's native Zig `Bun.markdown.html()` and `Bun.YAML.parse()` — **zero npm Markdown parser dependencies** and **0 KB** client JS.
 
 ## Defining a collection
 
-Define one collection and import it from `kay.config.ts`, index pages, and post pages alike. Use `render` to lazy-load heavy Shiki highlighters and embedded TSX components only when a page renders Markdown:
+Define one collection and import it from `prunelle.config.ts`, index pages, and post pages alike. Use `render` to lazy-load heavy Shiki highlighters and embedded TSX components only when a page renders Markdown:
 
 ```ts
 // src/content.ts
-import { defineCollection } from '@kayjs/content'
+import { defineCollection } from '@prunelle/content'
 
 export const posts = defineCollection({
   dir: 'src/content/posts',
@@ -33,9 +33,9 @@ export const posts = defineCollection({
 
 In your detail route's `load()`, call `await entry.render()` once — `entry.html` and `entry.headings` are then cached synchronously. Routes and config hooks that only read frontmatter (`.all()`, `.paths()`, RSS, sitemaps) never load Shiki or TSX components.
 
-## Automatic `@kayjs/images` optimization
+## Automatic `@prunelle/images` optimization
 
-When `@kayjs/images` is enabled in `kay.config.ts`, relative Markdown images (`![Diagram](./img/arch.png)`) are automatically optimized using your `images()` plugin widths, formats, quality, and disk cache — no manual `resolveImage` wiring needed. Pass `resolveImage: false` to opt out, or pass a custom `resolveImage` function to override.
+When `@prunelle/images` is enabled in `prunelle.config.ts`, relative Markdown images (`![Diagram](./img/arch.png)`) are automatically optimized using your `images()` plugin widths, formats, quality, and disk cache — no manual `resolveImage` wiring needed. Pass `resolveImage: false` to opt out, or pass a custom `resolveImage` function to override.
 
 ## Fast lazy rendering & O(1) lookup
 
@@ -56,7 +56,7 @@ Supports **bold**, lists, and fenced code blocks inside components.
 ## RSS feeds (`content`)
 
 ```ts
-import { content } from '@kayjs/content'
+import { content } from '@prunelle/content'
 
 export default defineConfig({
   plugins: [

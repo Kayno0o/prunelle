@@ -1,4 +1,4 @@
-import { Head } from '@kayjs/kay'
+import { Head } from 'prunelle'
 import { CopyCommand } from '../components/CopyCommand'
 import { highlight } from '../highlight'
 
@@ -23,7 +23,7 @@ export default async function Home() {
 }`
 
 const ISLAND_CODE = `// Auto-detected island: no 'use client', no client:load
-import { computed, signal } from '@kayjs/kay'
+import { computed, signal } from 'prunelle'
 
 export function Counter({ initial = 0 }: { initial?: number }) {
   const count = signal(initial)
@@ -37,7 +37,7 @@ export function Counter({ initial = 0 }: { initial?: number }) {
 }`
 
 const ACTION_CODE = `// Progressive <form action={save}> AND typed island RPC
-import { action } from '@kayjs/kay/server'
+import { action } from 'prunelle/server'
 import { z } from 'zod'
 
 export const save = action(
@@ -49,15 +49,15 @@ export const save = action(
 )`
 
 const ECOSYSTEM = [
-  { name: '@kayjs/ui', badge: '5 CSS Grammars', accent: true, href: '/docs/plugins/ui', desc: 'Platform-first headless primitives & pure CSS @layer kui grammars (Orbit, Editorial, Workshop, Console, Soft). Eject in one command.' },
-  { name: '@kayjs/auth', badge: '0 external deps', accent: false, href: '/docs/plugins/auth', desc: 'Argon2id passwords, hashed sessions, email verification, magic links, OAuth 2.0 + PKCE, route guards, RGPD helpers & bun:sqlite.' },
-  { name: '@kayjs/content', badge: 'Bun.markdown', accent: false, href: '/docs/plugins/content', desc: 'Zero-dep Markdown collections, nested Bun.YAML frontmatter, lazy render(), Shiki highlight, MDX-lite TSX & RSS.' },
-  { name: '@kayjs/mcp', badge: 'Streamable HTTP', accent: false, href: '/docs/plugins/mcp', desc: 'Expose typed server actions as bearer-authenticated MCP tools with schema compaction, shared schemas, resources & footprint budgets.' },
-  { name: '@kayjs/live', badge: '0 external deps', accent: false, href: '/docs/plugins/live', desc: 'Typed SSE rooms, microtask-coalesced presence broadcasts, and reactive useLive() browser signal hooks.' },
-  { name: '@kayjs/images & seo', badge: 'AVIF / WebP', accent: false, href: '/docs/plugins/images-and-seo', desc: 'Build-time responsive images with disk cache, 1200×630 OG shareCard() PNGs, self-hosted fonts, JSON-LD & sitemaps.' },
-  { name: '@kayjs/i18n · mail', badge: '0 external deps', accent: false, href: '/docs/plugins/ecosystem', desc: 'Localized URL rewriting, hreflang & kay i18n-check; Resend HTTP transport with a dev-only /_kay/mail outbox.' },
-  { name: '@kayjs/spa · tailwind · icons', badge: 'Opt-in', accent: false, href: '/docs/plugins/ecosystem', desc: 'In-place SPA swaps with [data-persist] islands, Tailwind v4 integration, and zero-runtime inline ~icons/* SVGs.' },
-  { name: 'KayPlugin API', badge: 'Extensible', accent: false, href: '/docs/production/plugin-api', desc: 'Server routes, middleware, build & post-prerender hooks, kay check checks, Bun.build plugins, and custom CLI commands.' },
+  { name: '@prunelle/ui', badge: '5 CSS Grammars', accent: true, href: '/docs/plugins/ui', desc: 'Platform-first headless primitives & pure CSS @layer kui grammars (Orbit, Editorial, Workshop, Console, Soft). Eject in one command.' },
+  { name: '@prunelle/auth', badge: '0 external deps', accent: false, href: '/docs/plugins/auth', desc: 'Argon2id passwords, hashed sessions, email verification, magic links, OAuth 2.0 + PKCE, route guards, RGPD helpers & bun:sqlite.' },
+  { name: '@prunelle/content', badge: 'Bun.markdown', accent: false, href: '/docs/plugins/content', desc: 'Zero-dep Markdown collections, nested Bun.YAML frontmatter, lazy render(), Shiki highlight, MDX-lite TSX & RSS.' },
+  { name: '@prunelle/mcp', badge: 'Streamable HTTP', accent: false, href: '/docs/plugins/mcp', desc: 'Expose typed server actions as bearer-authenticated MCP tools with schema compaction, shared schemas, resources & footprint budgets.' },
+  { name: '@prunelle/live', badge: '0 external deps', accent: false, href: '/docs/plugins/live', desc: 'Typed SSE rooms, microtask-coalesced presence broadcasts, and reactive useLive() browser signal hooks.' },
+  { name: '@prunelle/images & seo', badge: 'AVIF / WebP', accent: false, href: '/docs/plugins/images-and-seo', desc: 'Build-time responsive images with disk cache, 1200×630 OG shareCard() PNGs, self-hosted fonts, JSON-LD & sitemaps.' },
+  { name: '@prunelle/i18n · mail', badge: '0 external deps', accent: false, href: '/docs/plugins/ecosystem', desc: 'Localized URL rewriting, hreflang & prunelle i18n-check; Resend HTTP transport with a dev-only /_pru/mail outbox.' },
+  { name: '@prunelle/spa · tailwind · icons', badge: 'Opt-in', accent: false, href: '/docs/plugins/ecosystem', desc: 'In-place SPA swaps with [data-persist] islands, Tailwind v4 integration, and zero-runtime inline ~icons/* SVGs.' },
+  { name: 'PrunellePlugin API', badge: 'Extensible', accent: false, href: '/docs/production/plugin-api', desc: 'Server routes, middleware, build & post-prerender hooks, prunelle check checks, Bun.build plugins, and custom CLI commands.' },
 ]
 
 export default function HomePage() {
@@ -68,7 +68,7 @@ export default function HomePage() {
   return (
     <main class="docs-container">
       <Head>
-        <title>kay — Standard TSX. Automatic islands. Built for Bun.</title>
+        <title>prunelle — Standard TSX. Automatic islands. Built for Bun.</title>
       </Head>
 
       <section class="docs-hero">
@@ -91,10 +91,10 @@ export default function HomePage() {
             <a data-ui="button" data-variant="outline" href="/grammars">Live UI Grammars</a>
             <a data-ui="button" data-variant="ghost" href="/docs/production/migrating-from-v1">v1 → v2 Migration</a>
           </div>
-          <CopyCommand command="bunx @kayjs/kay@beta new my-app --template app" $hydrate="idle" />
+          <CopyCommand command="bunx prunelle@beta new my-app --template app" $hydrate="idle" />
         </div>
 
-        <div class="hero-code-card" role="group" aria-label="Kay v2 code examples">
+        <div class="hero-code-card" role="group" aria-label="Prunelle v2 code examples">
           <input class="hero-code-input" type="radio" name="hero-code" id="hc-route" checked />
           <label class="hero-code-tab" for="hc-route">routes/index.tsx</label>
           <div class="hero-code-panel" innerHTML={routeHtml} />
@@ -112,7 +112,7 @@ export default function HomePage() {
           </div>
 
           <div class="hero-code-foot">
-            <span>oxc-parser → flat SSR string + &lt;kay-island&gt;</span>
+            <span>oxc-parser → flat SSR string + &lt;pru-island&gt;</span>
             <span style="color:var(--ui-accent)">18.8 ms clean build</span>
           </div>
         </div>
@@ -137,14 +137,14 @@ export default function HomePage() {
         <div class="docs-kpi">
           <div class="docs-kpi-val">35.4<span> ms</span></div>
           <div class="docs-kpi-lbl">Single-binary cold start</div>
-          <div class="docs-kpi-sub">kay build --compile</div>
+          <div class="docs-kpi-sub">prunelle build --compile</div>
         </div>
       </section>
 
       <section id="ecosystem" class="docs-section">
         <div class="docs-sec-head">
           <div>
-            <div class="docs-sec-kicker">Modular KayPlugin Ecosystem</div>
+            <div class="docs-sec-kicker">Modular PrunellePlugin Ecosystem</div>
             <h2 class="docs-sec-title">Tiny 6.9k LOC core. Opt-in everything else.</h2>
           </div>
           <span style="font-family:var(--ui-font-mono);font-size:0.78rem;color:var(--ui-muted)">13 packages · zero core leaks</span>
@@ -166,7 +166,7 @@ export default function HomePage() {
         <div class="docs-sec-head">
           <div>
             <div class="docs-sec-kicker">Measured Benchmarks</div>
-            <h2 class="docs-sec-title">How Kay v2 compares</h2>
+            <h2 class="docs-sec-title">How Prunelle v2 compares</h2>
           </div>
           <span style="font-family:var(--ui-font-mono);font-size:0.78rem;color:var(--ui-muted)">Bun 1.4.5 · mitata · lower JS/build is better</span>
         </div>
@@ -183,8 +183,8 @@ export default function HomePage() {
               </tr>
             </thead>
             <tbody>
-              <tr class="bench-row-kay">
-                <td>Kay v2</td>
+              <tr class="bench-row-prunelle">
+                <td>Prunelle v2</td>
                 <td>2.62 KB</td>
                 <td>4.93 KB</td>
                 <td>7,017/s</td>
@@ -192,7 +192,7 @@ export default function HomePage() {
                 <td>18.8 ms</td>
               </tr>
               <tr>
-                <td>Kay v1</td>
+                <td>Prunelle v1</td>
                 <td>11.40 KB</td>
                 <td>13.80 KB</td>
                 <td>3,983/s</td>

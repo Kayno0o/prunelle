@@ -1,13 +1,13 @@
-import type { BundleReport } from '../../packages/kay/src/build/report'
-import type { CheckDiagnostic } from '../../packages/kay/src/cli/check'
+import type { BundleReport } from '../../packages/prunelle/src/build/report'
+import type { CheckDiagnostic } from '../../packages/prunelle/src/cli/check'
 import type { BuildSummary, CheckSummary, TaskDefinition, TaskGrade, TestRunSummary } from './types'
 import { existsSync, readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { testApp } from '../../packages/kay/src/test/index'
+import { testApp } from '../../packages/prunelle/src/test/index'
 import { parseTranscriptFile } from './metrics'
-import { KAY_CLI_ENTRY, parseSizeBytes } from './workspace'
+import { PRUNELLE_CLI_ENTRY, parseSizeBytes } from './workspace'
 
-interface KayCheckJson {
+interface PrunelleCheckJson {
   ok: boolean
   checkedFiles: number
   errors: CheckDiagnostic[]
@@ -20,7 +20,7 @@ export interface GradeOptions {
 }
 
 function hasTestFiles(dir: string): boolean {
-  const skip = new Set(['node_modules', 'dist', '.git', '.kay-cache'])
+  const skip = new Set(['node_modules', 'dist', '.git', '.prunelle-cache'])
   const walk = (cur: string): boolean => {
     if (!existsSync(cur))
       return false
@@ -41,8 +41,8 @@ function hasTestFiles(dir: string): boolean {
   return walk(dir)
 }
 
-function runKayCheck(dir: string): CheckSummary {
-  const proc = Bun.spawnSync([process.execPath, KAY_CLI_ENTRY, 'check', '--json', dir], {
+function runPrunelleCheck(dir: string): CheckSummary {
+  const proc = Bun.spawnSync([process.execPath, PRUNELLE_CLI_ENTRY, 'check', '--json', dir], {
     cwd: dir,
     stdout: 'pipe',
     stderr: 'pipe',
@@ -52,7 +52,7 @@ function runKayCheck(dir: string): CheckSummary {
 
   if (stdout.startsWith('{')) {
     try {
-      const parsed = JSON.parse(stdout) as Partial<KayCheckJson>
+      const parsed = JSON.parse(stdout) as Partial<PrunelleCheckJson>
       const errors = Array.isArray(parsed.errors) ? parsed.errors : []
       const warnings = Array.isArray(parsed.warnings) ? parsed.warnings : []
       const ok = proc.exitCode === 0 && parsed.ok === true && errors.length === 0
@@ -71,14 +71,14 @@ function runKayCheck(dir: string): CheckSummary {
         checkedFiles: 0,
         errorCount: 1,
         warningCount: 0,
-        errors: [{ severity: 'error', message: `Failed to parse kay check JSON: ${err instanceof Error ? err.message : String(err)}` }],
+        errors: [{ severity: 'error', message: `Failed to parse prunelle check JSON: ${err instanceof Error ? err.message : String(err)}` }],
         warnings: [],
         rawOutput: `${stdout}\n${stderr}`.trim(),
       }
     }
   }
 
-  const msg = stderr || stdout || `kay check exited with code ${proc.exitCode}`
+  const msg = stderr || stdout || `prunelle check exited with code ${proc.exitCode}`
   return {
     ok: false,
     checkedFiles: 0,
@@ -106,8 +106,8 @@ function parseBundleReport(stdout: string): BundleReport | undefined {
   }
 }
 
-function runKayBuild(dir: string, maxJs?: string): { summary: BuildSummary, report?: BundleReport } {
-  const args = [process.execPath, KAY_CLI_ENTRY, 'build', '--analyze', '--json']
+function runPrunelleBuild(dir: string, maxJs?: string): { summary: BuildSummary, report?: BundleReport } {
+  const args = [process.execPath, PRUNELLE_CLI_ENTRY, 'build', '--analyze', '--json']
   if (maxJs !== undefined)
     args.push('--max-js', maxJs)
   args.push(dir)
@@ -134,7 +134,7 @@ function runKayBuild(dir: string, maxJs?: string): { summary: BuildSummary, repo
     || (maxJsBytes !== undefined && report !== undefined && maxEagerJsBytes > maxJsBytes)
 
   const ok = proc.exitCode === 0 && !budgetExceeded
-  const errorText = ok ? undefined : (stderr || stdout || `kay build exited with code ${proc.exitCode}`)
+  const errorText = ok ? undefined : (stderr || stdout || `prunelle build exited with code ${proc.exitCode}`)
 
   const summary: BuildSummary = {
     ok,
@@ -204,8 +204,8 @@ export async function gradeTask(
     }
   }
 
-  const check = runKayCheck(dir)
-  const { summary: build, report: bundleReport } = runKayBuild(dir, task.spec.maxJs)
+  const check = runPrunelleCheck(dir)
+  const { summary: build, report: bundleReport } = runPrunelleBuild(dir, task.spec.maxJs)
   const tests = options.skipTests === true
     ? { ran: false, ok: true, exitCode: 0, output: '' }
     : runWorkspaceTests(dir)
@@ -235,7 +235,7 @@ export async function gradeTask(
     assertions = [{
       name: 'built app manifest exists',
       ok: false,
-      detail: build.error ?? 'dist/manifest.json was not produced by kay build',
+      detail: build.error ?? 'dist/manifest.json was not produced by prunelle build',
     }]
   }
 

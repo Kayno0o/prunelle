@@ -1,8 +1,8 @@
-// Unified Standard-Schema server action: pins a notice to SQLite, emails members via @kayjs/mail,
-// and broadcasts live to every connected browser tab via @kayjs/live.
+// Unified Standard-Schema server action: pins a notice to SQLite, emails members via @prunelle/mail,
+// and broadcasts live to every connected browser tab via @prunelle/live.
 
-import type { StandardSchemaV1 } from '@kayjs/kay/server'
-import { action } from '@kayjs/kay/server'
+import type { StandardSchemaV1 } from 'prunelle/server'
+import { action } from 'prunelle/server'
 import { insertNotice, listMemberEmails } from '../db'
 import { auth, BOARD_ROOM, board, mail } from '../services'
 
@@ -43,7 +43,7 @@ export const pinNotice = action(pinSchema, async ({ title, body }, ctx) => {
   const author = user.name || user.email
   const notice = insertNotice({ authorId: user.id, author, title, body })
 
-  // Notify other members via @kayjs/mail
+  // Notify other members via @prunelle/mail
   const recipients = listMemberEmails(user.id)
   if (recipients.length > 0) {
     await mail.send({

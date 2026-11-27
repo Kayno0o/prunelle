@@ -1,4 +1,4 @@
-# Kay v2 task runner recipes (`just` or `j`).
+# Prunelle v2 task runner recipes (`just` or `j`).
 
 # List all available recipes
 default:
@@ -14,7 +14,7 @@ check:
 
 # Run tests (pass a filename or pattern to filter)
 test *args:
-	bun test packages/kay/tests {{args}}
+	bun test packages/prunelle/tests {{args}}
 
 # Run the benchmark suite
 bench:
@@ -44,7 +44,7 @@ docs-up:
 docs-down:
 	docker compose -f docs/compose.yaml down
 
-# Start the @kayjs/ui Grammar Switcher showcase example
+# Start the @prunelle/ui Grammar Switcher showcase example
 showcase:
 	cd examples/showcase && bun run dev
 

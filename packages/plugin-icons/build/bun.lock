@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "kayjs-icons-build",
+      "name": "prunelle-icons-build",
       "devDependencies": {
         "@huggingface/transformers": "4.3.2",
         "@iconify-json/carbon": "1.2.30",

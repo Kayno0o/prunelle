@@ -1,15 +1,15 @@
-# @kayjs/live Reference
+# @prunelle/live Reference
 
 > Zero-dependency typed Server-Sent Events (SSE) rooms, microtask-coalesced broadcasts, connection caps, backpressure handling, and a reactive `useLive()` browser hook.
 
 ## Imports
 
-- `@kayjs/live`: `createRooms`; types `Rooms`, `RoomsOptions`, `RoomsEndpointOptions`, `StreamOptions`, `Subscriber`, `ConnectionLimits`, `LiveAuthorizeHook`.
-- `@kayjs/live/client`: `useLive`; types `LiveConnection`, `LiveStatus`, `UseLiveOptions`.
+- `@prunelle/live`: `createRooms`; types `Rooms`, `RoomsOptions`, `RoomsEndpointOptions`, `StreamOptions`, `Subscriber`, `ConnectionLimits`, `LiveAuthorizeHook`.
+- `@prunelle/live/client`: `useLive`; types `LiveConnection`, `LiveStatus`, `UseLiveOptions`.
 
 ## Server Setup (`createRooms<TMessage, TMember>(options?)`)
 
-`createRooms()` returns a single object that is both the `KayPlugin` (register in `kay.config.ts` so streams close on `api.onShutdown()`) and the handle routes/actions publish with:
+`createRooms()` returns a single object that is both the `PrunellePlugin` (register in `prunelle.config.ts` so streams close on `api.onShutdown()`) and the handle routes/actions publish with:
 
 - Mounted endpoint mode (`path` set): mounts `GET <path>` as `text/event-stream`.
   - `path`: route path (e.g. `'/api/events'`).
@@ -26,13 +26,13 @@
 - `rooms.publish(room, message, event?, id?)`: broadcasts JSON-serialized SSE frames to all room subscribers.
 - `rooms.coalesce(build, event?)`: returns `(room) => void` that batches burst updates into one microtask broadcast per room.
 - `rooms.members(room)`, `rooms.size(room)`, `rooms.stream(ctx, opts)`, `rooms.join(room, sub)`, `rooms.leave(room, sub)`.
-- `useLive<TMessage>(url, onMessage?, options?)` (`@kayjs/live/client`): returns `{ status: Signal<'connecting' | 'open' | 'closed'>, last: Signal<TMessage | undefined>, close() }` with exponential-backoff reconnect (`baseDelayMs`, `maxDelayMs`, `jitterMs`, `events`, `withCredentials`) and automatic `onMount` cleanup.
+- `useLive<TMessage>(url, onMessage?, options?)` (`@prunelle/live/client`): returns `{ status: Signal<'connecting' | 'open' | 'closed'>, last: Signal<TMessage | undefined>, close() }` with exponential-backoff reconnect (`baseDelayMs`, `maxDelayMs`, `jitterMs`, `events`, `withCredentials`) and automatic `onMount` cleanup.
 
 ## Snippets
 
 ```ts
-// src/rooms.ts (and register `plugins: [chat]` in kay.config.ts)
-import { createRooms } from '@kayjs/live'
+// src/rooms.ts (and register `plugins: [chat]` in prunelle.config.ts)
+import { createRooms } from '@prunelle/live'
 
 export type ChatMsg = { from: string, text: string }
 export const chat = createRooms<ChatMsg, { name: string }>({
@@ -44,8 +44,8 @@ export const chat = createRooms<ChatMsg, { name: string }>({
 
 ```tsx
 // src/components/ChatFeed.tsx (auto-island)
-import { signal } from '@kayjs/kay'
-import { useLive } from '@kayjs/live/client'
+import { signal } from 'prunelle'
+import { useLive } from '@prunelle/live/client'
 import type { ChatMsg } from '../rooms'
 
 export function ChatFeed({ room }: { room: string }) {

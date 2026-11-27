@@ -1,27 +1,28 @@
 import type { TaskDefinition, TaskSpec } from './types'
 import { copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import kayPkg from '../../packages/kay/package.json' with { type: 'json' }
-import { scaffoldProject } from '../../packages/kay/src/cli/new'
+import prunellePkg from '../../packages/prunelle/package.json' with { type: 'json' }
+import { scaffoldProject } from '../../packages/prunelle/src/cli/new'
 
 export const REPO_ROOT = resolve(import.meta.dir, '../..')
 export const PACKAGES_DIR = join(REPO_ROOT, 'packages')
-export const KAY_CLI_ENTRY = join(PACKAGES_DIR, 'kay/src/cli/index.ts')
+export const PRUNELLE_CLI_ENTRY = join(PACKAGES_DIR, 'prunelle/src/cli/index.ts')
 
+// Each package name and its folder under packages/.
 export const WORKSPACE_PACKAGES: Record<string, string> = {
-  kay: 'kay',
-  auth: 'plugin-auth',
-  content: 'plugin-content',
-  i18n: 'plugin-i18n',
-  icons: 'plugin-icons',
-  images: 'plugin-images',
-  live: 'plugin-live',
-  mail: 'plugin-mail',
-  mcp: 'plugin-mcp',
-  seo: 'plugin-seo',
-  spa: 'plugin-spa',
-  tailwind: 'plugin-tailwind',
-  ui: 'ui',
+  'prunelle': 'prunelle',
+  '@prunelle/auth': 'plugin-auth',
+  '@prunelle/content': 'plugin-content',
+  '@prunelle/i18n': 'plugin-i18n',
+  '@prunelle/icons': 'plugin-icons',
+  '@prunelle/images': 'plugin-images',
+  '@prunelle/live': 'plugin-live',
+  '@prunelle/mail': 'plugin-mail',
+  '@prunelle/mcp': 'plugin-mcp',
+  '@prunelle/seo': 'plugin-seo',
+  '@prunelle/spa': 'plugin-spa',
+  '@prunelle/tailwind': 'plugin-tailwind',
+  '@prunelle/ui': 'ui',
 }
 
 const SIZE_RE = /^(\d+(?:\.\d+)?)\s*(kb|b)?$/i
@@ -52,21 +53,20 @@ function isDanglingSymlink(path: string): boolean {
 }
 
 /**
- * Links all local `@kayjs/*` workspace packages and monorepo dev tooling (`@types`,
- * `typescript`, `@kaynooo`, `oxc-parser`, `.bin/kay`, `.bin/tsc`) into `destDir/node_modules`.
+ * Links `prunelle`, the local `@prunelle/*` workspace packages and monorepo dev tooling (`@types`,
+ * `typescript`, `@kaynooo`, `oxc-parser`, `.bin/prunelle`, `.bin/tsc`) into `destDir/node_modules`.
  */
 export function linkWorkspacePackages(destDir: string): void {
   const root = resolve(destDir)
   const nm = join(root, 'node_modules')
-  const kayScope = join(nm, '@kayjs')
   const binDir = join(nm, '.bin')
-  mkdirSync(kayScope, { recursive: true })
+  mkdirSync(join(nm, '@prunelle'), { recursive: true })
   mkdirSync(binDir, { recursive: true })
 
   for (const [pkgName, folder] of Object.entries(WORKSPACE_PACKAGES)) {
     const src = join(PACKAGES_DIR, folder)
     if (existsSync(src))
-      replaceSymlink(src, join(kayScope, pkgName), 'dir')
+      replaceSymlink(src, join(nm, pkgName), 'dir')
   }
 
   const rootNm = join(REPO_ROOT, 'node_modules')
@@ -76,7 +76,7 @@ export function linkWorkspacePackages(destDir: string): void {
       replaceSymlink(src, join(nm, dep), 'dir')
   }
 
-  replaceSymlink(KAY_CLI_ENTRY, join(binDir, 'kay'), 'file')
+  replaceSymlink(PRUNELLE_CLI_ENTRY, join(binDir, 'prunelle'), 'file')
   const rootTsc = join(rootNm, '.bin/tsc')
   if (existsSync(rootTsc))
     replaceSymlink(rootTsc, join(binDir, 'tsc'), 'file')
@@ -91,7 +91,7 @@ function syncPackageDependencies(destDir: string, spec: TaskSpec): void {
     [k: string]: unknown
   }
   const deps: Record<string, string> = { ...(pkg.dependencies ?? {}) }
-  const version = `^${kayPkg.version}`
+  const version = `^${prunellePkg.version}`
   for (const name of spec.packages)
     deps[name] = deps[name] ?? version
   pkg.dependencies = Object.fromEntries(Object.entries(deps).sort(([a], [b]) => a.localeCompare(b)))
@@ -114,7 +114,7 @@ export function initTaskWorkspace(
   const scaffolded = scaffoldProject(root, {
     template: task.spec.template,
     force: options.force,
-    kayVersion: `^${kayPkg.version}`,
+    prunelleVersion: `^${prunellePkg.version}`,
   })
   syncPackageDependencies(root, task.spec)
   linkWorkspacePackages(root)

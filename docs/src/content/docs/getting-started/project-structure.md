@@ -1,16 +1,16 @@
 ---
 title: Project Structure
-description: File-based routing, layouts, middleware, actions, static assets, and kay.config.ts conventions.
+description: File-based routing, layouts, middleware, actions, static assets, and prunelle.config.ts conventions.
 section: getting-started
 order: 3
 ---
 
-A typical Kay v2 project stays flat and predictable:
+A typical Prunelle v2 project stays flat and predictable:
 
 ```text
 my-app/
-├── .gitignore              # node_modules/, dist/ and .kay-cache/, written by kay new
-├── kay.config.ts           # Plugins, security headers, lang, trustedOrigins
+├── .gitignore              # node_modules/, dist/ and .prunelle-cache/, written by prunelle new
+├── prunelle.config.ts           # Plugins, security headers, lang, trustedOrigins
 ├── public/                 # Served at / (ETag/304 in prod, zero-copy in dev)
 ├── src/
 │   ├── app.css             # Optional global stylesheet (CSS or Tailwind v4)
@@ -34,24 +34,24 @@ my-app/
 
 ## TypeScript configuration
 
-Enable Kay's JSX import source in `tsconfig.json`:
+Enable Prunelle's JSX import source in `tsconfig.json`:
 
 ```json
 {
   "compilerOptions": {
     "jsx": "react-jsx",
-    "jsxImportSource": "@kayjs/kay",
+    "jsxImportSource": "prunelle",
     "noEmit": true
   }
 }
 ```
 
-## Configuration (`kay.config.ts`)
+## Configuration (`prunelle.config.ts`)
 
 ```ts
-import { defineConfig } from '@kayjs/kay/config'
-import { ui } from '@kayjs/ui/plugin'
-import { seo } from '@kayjs/seo'
+import { defineConfig } from 'prunelle/config'
+import { ui } from '@prunelle/ui/plugin'
+import { seo } from '@prunelle/seo'
 
 export default defineConfig({
   lang: 'en',

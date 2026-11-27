@@ -1,20 +1,20 @@
-# @kayjs/icons Reference
+# @prunelle/icons Reference
 
 > Compile-time Iconify & local SVG icon imports (`~icons/<set>/<name>`) with zero runtime set overhead, accessible `<Icon>`, CLI discovery, and server-side search.
 
 ## Imports
 
-- `@kayjs/icons`: `Icon`, `iconData`; types `IconComponentProps`, `IconData`, `IconifyIcon`, `IconSet`.
-- `@kayjs/icons/plugin`: `icons(options?)`; type `IconsPluginOptions`. Registering it in `kay.config.ts` automatically loads ambient `~icons/*` types.
-- `@kayjs/icons/ambient`: `/// <reference types="@kayjs/icons/ambient" />` (only needed if `kay.config.ts` is outside your `tsconfig` include).
-- `@kayjs/icons/search` (server-only — 1.7 MB word table; build warns if imported in an island): `findIcons(source, query, { limit?, offset? }?)`, `relatedWords(word)`; types `IconifyNames`, `IconPage`.
+- `@prunelle/icons`: `Icon`, `iconData`; types `IconComponentProps`, `IconData`, `IconifyIcon`, `IconSet`.
+- `@prunelle/icons/plugin`: `icons(options?)`; type `IconsPluginOptions`. Registering it in `prunelle.config.ts` automatically loads ambient `~icons/*` types.
+- `@prunelle/icons/ambient`: `/// <reference types="@prunelle/icons/ambient" />` (only needed if `prunelle.config.ts` is outside your `tsconfig` include).
+- `@prunelle/icons/search` (server-only — 1.7 MB word table; build warns if imported in an island): `findIcons(source, query, { limit?, offset? }?)`, `relatedWords(word)`; types `IconifyNames`, `IconPage`.
 
 ## Plugin Setup (`icons(options?)`)
 
 - `sets`: optional `Record<string, IconSet>` of custom in-memory sets keyed by prefix.
-- `dirs`: optional `Record<string, string>` mapping prefixes to local `.svg` folders relative to app root (e.g. `{ brand: 'assets/brand' }`). `src/icons` is automatically mounted as `~icons/local/<name>` unless overridden; edited files reload in `kay dev`.
+- `dirs`: optional `Record<string, string>` mapping prefixes to local `.svg` folders relative to app root (e.g. `{ brand: 'assets/brand' }`). `src/icons` is automatically mounted as `~icons/local/<name>` unless overridden; edited files reload in `prunelle dev`.
 - Install Iconify icon packs as dev dependencies (e.g. `bun add -d @iconify-json/tabler`), then import `~icons/tabler/home`.
-- CLI & checks: run `kay icons-find <words> [--set <prefix>] [--limit <n>]` instead of guessing names. `kay check` and `kay build` fail on missing/invalid icons and suggest closest matches.
+- CLI & checks: run `prunelle icons-find <words> [--set <prefix>] [--limit <n>]` instead of guessing names. `prunelle check` and `prunelle build` fail on missing/invalid icons and suggest closest matches.
 
 ## `<Icon>` Component
 
@@ -24,9 +24,9 @@
 ## Snippets
 
 ```ts
-// kay.config.ts
-import { icons } from '@kayjs/icons/plugin'
-import { defineConfig } from '@kayjs/kay/config'
+// prunelle.config.ts
+import { icons } from '@prunelle/icons/plugin'
+import { defineConfig } from 'prunelle/config'
 
 export default defineConfig({
   plugins: [icons({ dirs: { brand: 'assets/brand' } })],
@@ -34,7 +34,7 @@ export default defineConfig({
 ```
 
 ```tsx
-import { Icon } from '@kayjs/icons'
+import { Icon } from '@prunelle/icons'
 import check from '~icons/tabler/check'
 import logo from '~icons/brand/logo'
 

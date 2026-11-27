@@ -1,12 +1,12 @@
-// @kayjs/content — Zero-dependency Bun-native Markdown collections, nested YAML frontmatter (Bun.YAML),
+// @prunelle/content — Zero-dependency Bun-native Markdown collections, nested YAML frontmatter (Bun.YAML),
 // Shiki/custom highlight hook, MDX-lite embedded TSX components, localized collections, TOC, and RSS (`0 KB` client JS).
 
-import type { KayPlugin } from '@kayjs/kay/config'
+import type { PrunellePlugin } from 'prunelle/config'
 import type { Collection, InternalCollection } from './collection'
 import type { ContentFeed, RssFeedConfig } from './rss'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { definePlugin, isInside } from '@kayjs/kay/config'
+import { definePlugin, isInside } from 'prunelle/config'
 import { currentApp } from './app'
 import {
   COLLECTION_DIR_FOR_ROOT_KEY,
@@ -72,8 +72,8 @@ function discoverStaticCollectionDirs(root: string): string[] {
 export function content<const TDataList extends readonly unknown[] = readonly unknown[]>(options?: {
   feeds?: { [K in keyof TDataList]: RssFeedConfig<TDataList[K]> } | undefined
   collections?: readonly Collection<unknown>[] | undefined
-}): KayPlugin
-export function content(options: { feeds?: readonly ContentFeed[] | undefined, collections?: readonly Collection<unknown>[] | undefined } = {}): KayPlugin {
+}): PrunellePlugin
+export function content(options: { feeds?: readonly ContentFeed[] | undefined, collections?: readonly Collection<unknown>[] | undefined } = {}): PrunellePlugin {
   const feeds = options.feeds ?? []
   const extraCollections = options.collections ?? []
 
@@ -102,8 +102,8 @@ export function content(options: { feeds?: readonly ContentFeed[] | undefined, c
   }
 
   return definePlugin({
-    name: '@kayjs/content',
-    after: ['@kayjs/i18n', '@kayjs/images'],
+    name: '@prunelle/content',
+    after: ['@prunelle/i18n', '@prunelle/images'],
     watchPaths: (root) => {
       const dirs = new Set<string>()
       for (const c of activeCollections(root))
@@ -115,7 +115,7 @@ export function content(options: { feeds?: readonly ContentFeed[] | undefined, c
     requires(ctx) {
       return feeds
         .filter(feed => (feed.site ?? ctx.site) === undefined)
-        .map(feed => `the feed at ${feed.path ?? '/rss.xml'} has no \`site\`, so its links are relative and feed readers cannot open them: set \`site\` in \`kay.config.ts\` (or on the feed).`)
+        .map(feed => `the feed at ${feed.path ?? '/rss.xml'} has no \`site\`, so its links are relative and feed readers cannot open them: set \`site\` in \`prunelle.config.ts\` (or on the feed).`)
     },
     async check(ctx) {
       await discoverAppCollections(ctx.root)

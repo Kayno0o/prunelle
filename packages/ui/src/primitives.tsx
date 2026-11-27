@@ -1,7 +1,7 @@
-/** @jsxImportSource @kayjs/kay */
+/** @jsxImportSource prunelle */
 // Zero-JS static & native-platform primitives (`0 KB` client JS!) split from static.tsx so islands using only Field/Button/Notice don't bundle unused templates.
 
-import type { KayChild } from '@kayjs/kay'
+import type { PrunelleChild } from 'prunelle'
 import type { ButtonVariant, SpaceValue, Tone, TrackValue } from './static'
 
 const SPACE_TOKENS = new Set<string>(['none', '2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl'])
@@ -65,7 +65,7 @@ export function Split(props: BoxProps & { gap?: SpaceValue | undefined }) {
 
 interface BoxProps {
   class?: string | undefined
-  children?: KayChild | undefined
+  children?: PrunelleChild | undefined
   [attr: string]: unknown
 }
 
@@ -104,7 +104,7 @@ export function Accordion(props: BoxProps) {
   return <div data-ui="accordion" class={props.class} {...rest}>{props.children}</div>
 }
 
-export function AccordionItem(props: { title: string, group?: string | undefined, open?: boolean | undefined, children?: KayChild | undefined, [attr: string]: unknown }) {
+export function AccordionItem(props: { title: string, group?: string | undefined, open?: boolean | undefined, children?: PrunelleChild | undefined, [attr: string]: unknown }) {
   const rest = restProps(props, ['title', 'group', 'open'])
   return (
     <details name={props.group} open={props.open} {...rest}>
@@ -119,7 +119,7 @@ export interface PopoverProps {
   id: string
   triggerLabel: string
   triggerVariant?: ButtonVariant | undefined
-  children?: KayChild | undefined
+  children?: PrunelleChild | undefined
 }
 
 export function Popover({ id, triggerLabel, triggerVariant = 'outline', children }: PopoverProps) {

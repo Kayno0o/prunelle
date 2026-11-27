@@ -1,5 +1,5 @@
-import type { PageProps } from '@kayjs/kay'
-import { Badge, Button, Card, CardBody, CardFooter, CardHeader, Stack } from '@kayjs/ui'
+import type { PageProps } from 'prunelle'
+import { Badge, Button, Card, CardBody, CardFooter, CardHeader, Stack } from '@prunelle/ui'
 
 export default async function AccountPage({ locals }: PageProps) {
   const user = locals.user!
@@ -9,7 +9,7 @@ export default async function AccountPage({ locals }: PageProps) {
       <CardBody>
         <Stack gap="0.75rem">
           <p style="margin:0">
-            Authenticated via <code>@kayjs/auth</code> middleware guard.
+            Authenticated via <code>@prunelle/auth</code> middleware guard.
           </p>
           <p style="margin:0">
             <strong>Email:</strong> {user.email} · <Badge tone="accent">{user.role}</Badge>

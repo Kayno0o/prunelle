@@ -19,14 +19,14 @@ const SHELL_TOOLS = new Set([
   'command',
 ])
 
-const KAY_SRC_RE = /(?:node_modules\/@kayjs\/[^/\s"'`]+|packages\/(?:kay|ui|plugin-[^/\s"'`]+))\/src\/[^\s"'`),:;]+/g
-const LLMS_TXT_RE = /(?:node_modules\/@kayjs\/[^/\s"'`]+\/)?llms\.txt\b/g
+const PRUNELLE_SRC_RE = /(?:node_modules\/(?:@prunelle\/[^/\s"'`]+|prunelle)|packages\/(?:prunelle|ui|plugin-[^/\s"'`]+))\/src\/[^\s"'`),:;]+/g
+const LLMS_TXT_RE = /(?:node_modules\/(?:@prunelle\/[^/\s"'`]+|prunelle)\/)?llms\.txt\b/g
 const SHELL_READ_CMD_RE = /\b(?:cat|head|tail|sed|less|bat|view|src|grep|rg)\b/
 
-const KAY_COMPILER_RE = /kay compiler:\s*([^\n]+)/g
-const KAY_CHECK_ERR_RE = /kay check:\s*([^\n]+)/g
-const KAY_BUILD_ERR_RE = /kay build:\s*([^\n]+)/g
-const KAY_RUNTIME_RE = /kay:\s*([^\n]+)/g
+const PRUNELLE_COMPILER_RE = /prunelle compiler:\s*([^\n]+)/g
+const PRUNELLE_CHECK_ERR_RE = /prunelle check:\s*([^\n]+)/g
+const PRUNELLE_BUILD_ERR_RE = /prunelle build:\s*([^\n]+)/g
+const PRUNELLE_RUNTIME_RE = /prunelle:\s*([^\n]+)/g
 const TSC_ERR_RE = /error (TS\d+):\s*([^\n]+)/g
 
 interface NormalizedFailure {
@@ -64,22 +64,22 @@ function extractFailuresFromText(text: string): NormalizedFailure[] {
     out.push({ category, sample })
   }
 
-  for (const m of text.matchAll(KAY_COMPILER_RE))
-    push('kay-compiler', m[1]!)
-  for (const m of text.matchAll(KAY_CHECK_ERR_RE))
-    push('kay-check', m[1]!)
-  for (const m of text.matchAll(KAY_BUILD_ERR_RE))
-    push('kay-build', m[1]!)
+  for (const m of text.matchAll(PRUNELLE_COMPILER_RE))
+    push('prunelle-compiler', m[1]!)
+  for (const m of text.matchAll(PRUNELLE_CHECK_ERR_RE))
+    push('prunelle-check', m[1]!)
+  for (const m of text.matchAll(PRUNELLE_BUILD_ERR_RE))
+    push('prunelle-build', m[1]!)
   for (const m of text.matchAll(TSC_ERR_RE))
     push(`tsc-${m[1]!}`, m[2]!)
 
-  // Match `kay: ...` runtime errors without double-counting `kay check:` / `kay build:` / `kay compiler:`
-  for (const m of text.matchAll(KAY_RUNTIME_RE)) {
+  // Match `prunelle: ...` runtime errors without double-counting `prunelle check:` / `prunelle build:` / `prunelle compiler:`
+  for (const m of text.matchAll(PRUNELLE_RUNTIME_RE)) {
     const fullIdx = m.index ?? 0
     const before = text.slice(Math.max(0, fullIdx - 1), fullIdx)
     if (before !== '' && /[a-zA-Z0-9_-]/.test(before))
       continue
-    push('kay-runtime', m[1]!)
+    push('prunelle-runtime', m[1]!)
   }
 
   return out
@@ -90,7 +90,7 @@ function collectPathMentions(
   sourceReads: string[],
   llmsReads: string[],
 ): void {
-  for (const m of text.matchAll(KAY_SRC_RE))
+  for (const m of text.matchAll(PRUNELLE_SRC_RE))
     sourceReads.push(m[0])
   for (const m of text.matchAll(LLMS_TXT_RE))
     llmsReads.push(m[0])
@@ -141,8 +141,8 @@ function stringifyContent(value: unknown): string {
 
 function isGreenSignal(text: string): boolean {
   return (
-    /kay check passed\b/.test(text)
-    || /kay build done in\b/.test(text)
+    /prunelle check passed\b/.test(text)
+    || /prunelle build done in\b/.test(text)
     || /"ok"\s*:\s*true/.test(text)
   )
 }
@@ -233,7 +233,7 @@ export function parseTranscript(raw: string): TranscriptMetrics {
         recordFailures(text)
       if (!failed && !sawExplicitGrade && turnsToGreen === null && totalTurns > 0 && isGreenSignal(text)) {
         const cmd = asString(ev.command) ?? ''
-        if (/evals\/run\.ts\s+grade|kay\s+build/.test(cmd))
+        if (/evals\/run\.ts\s+grade|prunelle\s+build/.test(cmd))
           turnsToGreen = totalTurns
       }
       continue
@@ -293,7 +293,7 @@ export function parseTranscript(raw: string): TranscriptMetrics {
           if (block.type === 'tool_result') {
             const text = stringifyContent(block.content)
             recordFailures(text)
-            if (block.is_error !== true && !sawExplicitGrade && turnsToGreen === null && totalTurns > 0 && /kay build done in\b|evals: PASS\b/.test(text))
+            if (block.is_error !== true && !sawExplicitGrade && turnsToGreen === null && totalTurns > 0 && /prunelle build done in\b|evals: PASS\b/.test(text))
               turnsToGreen = totalTurns
           }
           else if (isRecord(block.functionResponse)) {

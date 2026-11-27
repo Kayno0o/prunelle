@@ -1,8 +1,8 @@
 // Browser-scoped reactive toast store with automatic & cancellable dismiss timers.
 
-import type { Signal } from '@kayjs/kay'
+import type { Signal } from 'prunelle'
 import type { Tone } from './static'
-import { signal } from '@kayjs/kay'
+import { signal } from 'prunelle'
 
 export interface ToastItem {
   id: string
@@ -17,7 +17,7 @@ interface ToastStore {
   s: number
 }
 
-const TOAST_KEY = Symbol.for('kay.ui.toasts')
+const TOAST_KEY = Symbol.for('pru.ui.toasts')
 let emptyToasts: Signal<ToastItem[]> | undefined
 
 function getToastStore(): ToastStore | undefined {

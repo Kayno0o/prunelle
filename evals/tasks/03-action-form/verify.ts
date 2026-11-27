@@ -7,15 +7,15 @@ export async function verify({ dir, app }: VerifyContext): Promise<AssertionResu
   const c = new AssertionCollector()
 
   let actionUrl = ''
-  await c.run('GET / renders a progressive POST form targeting a kay action', async () => {
+  await c.run('GET / renders a progressive POST form targeting a prunelle action', async () => {
     const res = await app.get('/')
     assert(res.status === 200, `expected 200, got ${res.status}`)
     const html = await res.text()
     assert(/<form\b[^>]*\bmethod=["']post["']/i.test(html), 'missing <form method="post">')
     const actions = extractFormActions(html)
-    const kayAction = actions.find(a => a.startsWith('/_kay/action/'))
-    assert(kayAction !== undefined, `no /_kay/action/* form action found (saw: ${actions.join(', ') || 'none'})`)
-    actionUrl = kayAction
+    const prunelleAction = actions.find(a => a.startsWith('/_pru/action/'))
+    assert(prunelleAction !== undefined, `no /_pru/action/* form action found (saw: ${actions.join(', ') || 'none'})`)
+    actionUrl = prunelleAction
     return `action URL: ${actionUrl}`
   })
 
@@ -40,7 +40,7 @@ export async function verify({ dir, app }: VerifyContext): Promise<AssertionResu
     assert(res.status === 303, `expected 303 redirect on invalid zero-JS form POST, got ${res.status}`)
     const loc = res.headers.get('location') ?? ''
     assert(loc === '/' || loc.endsWith('/'), `expected redirect back to /, got "${loc}"`)
-    assert(app.cookies.has('__kay_action_err'), 'expected __kay_action_err flash cookie to be set')
+    assert(app.cookies.has('__pru_action_err'), 'expected __pru_action_err flash cookie to be set')
 
     const follow = await app.get('/')
     assert(follow.status === 200, `expected 200 on follow-up GET /, got ${follow.status}`)
@@ -70,7 +70,7 @@ export async function verify({ dir, app }: VerifyContext): Promise<AssertionResu
     const testFiles = readdirSync(testsDir).filter(f => /\.(?:test|spec)\.tsx?$/.test(f))
     assert(testFiles.length >= 1, 'no test file found under tests/')
     const testSrc = testFiles.map(f => readFileSync(join(testsDir, f), 'utf8')).join('\n')
-    assert(/\btestApp\s*\(/.test(testSrc), 'tests do not use testApp() from @kayjs/kay/test')
+    assert(/\btestApp\s*\(/.test(testSrc), 'tests do not use testApp() from prunelle/test')
   })
 
   return c.results

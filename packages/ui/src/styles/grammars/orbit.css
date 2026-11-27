@@ -1,7 +1,7 @@
 /* Grammar: Orbit — deep starry sky, one-step hairline surfaces, 4px/3px corners, amber accent & FAA cockpit state colors.
  * Light mode renders as a printed star atlas via native light-dark() with zero JS.
  * Override --ui-accent in your app CSS to give each app its own signature hue.
- * Eject via `kay ui-eject orbit`. */
+ * Eject via `prunelle ui-eject orbit`. */
 
 @import '../bare.css';
 

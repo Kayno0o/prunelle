@@ -1,3 +1,3 @@
-import { auth } from '../../../kay.config'
+import { auth } from '../../../prunelle.config'
 
 export default auth.guard({ redirectTo: '/' })

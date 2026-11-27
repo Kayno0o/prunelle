@@ -1,7 +1,7 @@
 {
-  "name": "@kayjs/auth",
+  "name": "@prunelle/auth",
   "version": "2.0.0-beta.8",
-  "description": "Zero-dependency Bun-native auth plugin for Kay v2 (Argon2id, hashed sessions, SQLite, magic links, OAuth2 PKCE)",
+  "description": "Zero-dependency Bun-native auth plugin for Prunelle v2 (Argon2id, hashed sessions, SQLite, magic links, OAuth2 PKCE)",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -19,10 +19,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Kayno0o/kayjs",
+    "url": "https://github.com/Kayno0o/prunelle",
     "directory": "packages/plugin-auth"
   },
   "peerDependencies": {
-    "@kayjs/kay": "^2.0.0-beta.8"
+    "prunelle": "^2.0.0-beta.8"
   }
 }

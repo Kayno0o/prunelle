@@ -1,5 +1,5 @@
-import type { PageProps } from '@kayjs/kay'
-import { Region } from '@kayjs/kay'
+import type { PageProps } from 'prunelle'
+import { Region } from 'prunelle'
 import { formatPrice, PRODUCTS } from '../data'
 
 // The one bench page that swaps a region: its weight is the regions client, which no other page loads.
@@ -10,7 +10,7 @@ export default function RegionsPage({ url }: PageProps) {
   return (
     <>
       <h1>Products by tag</h1>
-      <form method="get" data-kay-target="products" data-kay-live>
+      <form method="get" data-pru-target="products" data-pru-live>
         <input type="search" name="tag" value={tag} aria-label="Tag" />
       </form>
       <Region name="products" aria-label="Products">

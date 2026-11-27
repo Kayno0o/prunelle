@@ -1,4 +1,4 @@
-import { signal } from '@kayjs/kay'
+import { signal } from 'prunelle'
 
 export function Counter({ start = 0 }: { start?: number }) {
   const count = signal(start)

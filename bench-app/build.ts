@@ -1,4 +1,4 @@
-import { build } from '@kayjs/kay/build'
+import { build } from 'prunelle/build'
 
 const start = performance.now()
 const manifest = await build({ root: import.meta.dir })

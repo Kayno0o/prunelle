@@ -3,23 +3,100 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "kay-v2-monorepo",
+      "name": "prunelle-monorepo",
       "devDependencies": {
         "@happy-dom/global-registrator": "^21.0.4",
-        "@kayjs/kay": "link:./packages/kay",
         "@kaynooo/cli-kit": "^0.52.0",
         "@types/bun": "^1.4.4",
         "happy-dom": "^21.0.4",
         "mitata": "1.0.34",
         "playwright-core": "1.64.1",
+        "prunelle": "link:./packages/prunelle",
         "typescript": "^6.0.3",
       },
     },
-    "packages/kay": {
-      "name": "@kayjs/kay",
+    "packages/plugin-auth": {
+      "name": "@prunelle/auth",
+      "version": "2.0.0-beta.8",
+      "peerDependencies": {
+        "prunelle": "^2.0.0-beta.8",
+      },
+    },
+    "packages/plugin-content": {
+      "name": "@prunelle/content",
+      "version": "2.0.0-beta.8",
+      "peerDependencies": {
+        "prunelle": "^2.0.0-beta.8",
+      },
+    },
+    "packages/plugin-i18n": {
+      "name": "@prunelle/i18n",
+      "version": "2.0.0-beta.8",
+      "peerDependencies": {
+        "prunelle": "^2.0.0-beta.8",
+      },
+    },
+    "packages/plugin-icons": {
+      "name": "@prunelle/icons",
+      "version": "2.0.0-beta.8",
+      "peerDependencies": {
+        "prunelle": "^2.0.0-beta.8",
+      },
+    },
+    "packages/plugin-images": {
+      "name": "@prunelle/images",
+      "version": "2.0.0-beta.8",
+      "peerDependencies": {
+        "prunelle": "^2.0.0-beta.8",
+      },
+    },
+    "packages/plugin-live": {
+      "name": "@prunelle/live",
+      "version": "2.0.0-beta.8",
+      "peerDependencies": {
+        "prunelle": "^2.0.0-beta.8",
+      },
+    },
+    "packages/plugin-mail": {
+      "name": "@prunelle/mail",
+      "version": "2.0.0-beta.8",
+      "peerDependencies": {
+        "prunelle": "^2.0.0-beta.8",
+      },
+    },
+    "packages/plugin-mcp": {
+      "name": "@prunelle/mcp",
+      "version": "2.0.0-beta.8",
+      "peerDependencies": {
+        "prunelle": "^2.0.0-beta.8",
+      },
+    },
+    "packages/plugin-seo": {
+      "name": "@prunelle/seo",
+      "version": "2.0.0-beta.8",
+      "peerDependencies": {
+        "prunelle": "^2.0.0-beta.8",
+      },
+    },
+    "packages/plugin-spa": {
+      "name": "@prunelle/spa",
+      "version": "2.0.0-beta.8",
+      "peerDependencies": {
+        "prunelle": "^2.0.0-beta.8",
+      },
+    },
+    "packages/plugin-tailwind": {
+      "name": "@prunelle/tailwind",
+      "version": "2.0.0-beta.8",
+      "peerDependencies": {
+        "prunelle": "^2.0.0-beta.8",
+      },
+    },
+    "packages/prunelle": {
+      "name": "prunelle",
       "version": "2.0.0-beta.8",
       "bin": {
-        "kay": "./src/cli/index.ts",
+        "prunelle": "./src/cli/index.ts",
       },
       "dependencies": {
         "@kaynooo/cli-kit": "^0.52.0",
@@ -32,88 +109,11 @@
         "playwright-core",
       ],
     },
-    "packages/plugin-auth": {
-      "name": "@kayjs/auth",
-      "version": "2.0.0-beta.8",
-      "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
-      },
-    },
-    "packages/plugin-content": {
-      "name": "@kayjs/content",
-      "version": "2.0.0-beta.8",
-      "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
-      },
-    },
-    "packages/plugin-i18n": {
-      "name": "@kayjs/i18n",
-      "version": "2.0.0-beta.8",
-      "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
-      },
-    },
-    "packages/plugin-icons": {
-      "name": "@kayjs/icons",
-      "version": "2.0.0-beta.8",
-      "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
-      },
-    },
-    "packages/plugin-images": {
-      "name": "@kayjs/images",
-      "version": "2.0.0-beta.8",
-      "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
-      },
-    },
-    "packages/plugin-live": {
-      "name": "@kayjs/live",
-      "version": "2.0.0-beta.8",
-      "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
-      },
-    },
-    "packages/plugin-mail": {
-      "name": "@kayjs/mail",
-      "version": "2.0.0-beta.8",
-      "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
-      },
-    },
-    "packages/plugin-mcp": {
-      "name": "@kayjs/mcp",
-      "version": "2.0.0-beta.8",
-      "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
-      },
-    },
-    "packages/plugin-seo": {
-      "name": "@kayjs/seo",
-      "version": "2.0.0-beta.8",
-      "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
-      },
-    },
-    "packages/plugin-spa": {
-      "name": "@kayjs/spa",
-      "version": "2.0.0-beta.8",
-      "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
-      },
-    },
-    "packages/plugin-tailwind": {
-      "name": "@kayjs/tailwind",
-      "version": "2.0.0-beta.8",
-      "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
-      },
-    },
     "packages/ui": {
-      "name": "@kayjs/ui",
+      "name": "@prunelle/ui",
       "version": "2.0.0-beta.8",
       "peerDependencies": {
-        "@kayjs/kay": "^2.0.0-beta.8",
+        "prunelle": "^2.0.0-beta.8",
       },
     },
   },
@@ -121,32 +121,6 @@
     "@happy-dom/global-registrator": ["@happy-dom/global-registrator@21.0.4", "", { "dependencies": { "@types/node": ">=20.0.0", "happy-dom": "^21.0.4" } }, "sha512-Bbr0hW9hhDhBf3Jp0EyDlkCbFgbr0z2jd3BMKYOYW+fOkPM4Nx195GMXyCtRCGEgoNn6i09FabXrSkNFm2ONzg=="],
 
     "@joplin/turndown-plugin-gfm": ["@joplin/turndown-plugin-gfm@1.0.71", "", {}, "sha512-lzquxBhjG9ad6ykVsUYjs+lQc4Xmh3ob0n+oOUL5cvdQ2xUO0tsAAvIJ8Wm/+Pf59/4NNpmRa/zlbKeYP4XBrw=="],
-
-    "@kayjs/auth": ["@kayjs/auth@workspace:packages/plugin-auth"],
-
-    "@kayjs/content": ["@kayjs/content@workspace:packages/plugin-content"],
-
-    "@kayjs/i18n": ["@kayjs/i18n@workspace:packages/plugin-i18n"],
-
-    "@kayjs/icons": ["@kayjs/icons@workspace:packages/plugin-icons"],
-
-    "@kayjs/images": ["@kayjs/images@workspace:packages/plugin-images"],
-
-    "@kayjs/kay": ["@kayjs/kay@link:./packages/kay", { "bin": { "kay": "./src/cli/index.ts" } }],
-
-    "@kayjs/live": ["@kayjs/live@workspace:packages/plugin-live"],
-
-    "@kayjs/mail": ["@kayjs/mail@workspace:packages/plugin-mail"],
-
-    "@kayjs/mcp": ["@kayjs/mcp@workspace:packages/plugin-mcp"],
-
-    "@kayjs/seo": ["@kayjs/seo@workspace:packages/plugin-seo"],
-
-    "@kayjs/spa": ["@kayjs/spa@workspace:packages/plugin-spa"],
-
-    "@kayjs/tailwind": ["@kayjs/tailwind@workspace:packages/plugin-tailwind"],
-
-    "@kayjs/ui": ["@kayjs/ui@workspace:packages/ui"],
 
     "@kaynooo/cli-kit": ["@kaynooo/cli-kit@0.52.0", "https://git.kaynooo.fr/api/packages/kaynooo/npm/%40kaynooo%2Fcli-kit/-/0.52.0/cli-kit-0.52.0.tgz", { "dependencies": { "@kaynooo/utils": "3.1.0" }, "peerDependencies": { "@xterm/headless": ">=6.0.0" } }, "sha512-4/Uhsw6syMpjxNXSVI9hDlnRxrmdUcH+G8JqZqz+7IParJlDwI199Vujyzu+bW/ZjcjKRvRQ1KBCVmNFd8jiwg=="],
 
@@ -194,6 +168,30 @@
 
     "@oxc-project/types": ["@oxc-project/types@0.155.0", "", {}, "sha512-SeE8JPwW1xs1tHeNycjUtUBdhorRa8o4jlvjwk49R7/Z291i+4DQa7JJIgOm/TaYQZx+QrPQbVJ/9c8dMIZN8Q=="],
 
+    "@prunelle/auth": ["@prunelle/auth@workspace:packages/plugin-auth"],
+
+    "@prunelle/content": ["@prunelle/content@workspace:packages/plugin-content"],
+
+    "@prunelle/i18n": ["@prunelle/i18n@workspace:packages/plugin-i18n"],
+
+    "@prunelle/icons": ["@prunelle/icons@workspace:packages/plugin-icons"],
+
+    "@prunelle/images": ["@prunelle/images@workspace:packages/plugin-images"],
+
+    "@prunelle/live": ["@prunelle/live@workspace:packages/plugin-live"],
+
+    "@prunelle/mail": ["@prunelle/mail@workspace:packages/plugin-mail"],
+
+    "@prunelle/mcp": ["@prunelle/mcp@workspace:packages/plugin-mcp"],
+
+    "@prunelle/seo": ["@prunelle/seo@workspace:packages/plugin-seo"],
+
+    "@prunelle/spa": ["@prunelle/spa@workspace:packages/plugin-spa"],
+
+    "@prunelle/tailwind": ["@prunelle/tailwind@workspace:packages/plugin-tailwind"],
+
+    "@prunelle/ui": ["@prunelle/ui@workspace:packages/ui"],
+
     "@types/bun": ["@types/bun@1.4.5", "", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
     "@types/node": ["@types/node@26.6.6", "", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-MzQj+8Kx3XI40OmUAE6Qoh58ZMNstNNMwn2nfd3qWsfe7nDNSqJNzes4njhz6AHwrSHOffSLwXU6yb474Q4aog=="],
@@ -217,6 +215,8 @@
     "oxc-parser": ["oxc-parser@0.155.0", "", { "dependencies": { "@oxc-project/types": "^0.155.0" }, "optionalDependencies": { "@oxc-parser/binding-android-arm-eabi": "0.155.0", "@oxc-parser/binding-android-arm64": "0.155.0", "@oxc-parser/binding-darwin-arm64": "0.155.0", "@oxc-parser/binding-darwin-x64": "0.155.0", "@oxc-parser/binding-freebsd-x64": "0.155.0", "@oxc-parser/binding-linux-arm-gnueabihf": "0.155.0", "@oxc-parser/binding-linux-arm-musleabihf": "0.155.0", "@oxc-parser/binding-linux-arm64-gnu": "0.155.0", "@oxc-parser/binding-linux-arm64-musl": "0.155.0", "@oxc-parser/binding-linux-ppc64-gnu": "0.155.0", "@oxc-parser/binding-linux-riscv64-gnu": "0.155.0", "@oxc-parser/binding-linux-riscv64-musl": "0.155.0", "@oxc-parser/binding-linux-s390x-gnu": "0.155.0", "@oxc-parser/binding-linux-x64-gnu": "0.155.0", "@oxc-parser/binding-linux-x64-musl": "0.155.0", "@oxc-parser/binding-openharmony-arm64": "0.155.0", "@oxc-parser/binding-win32-arm64-msvc": "0.155.0", "@oxc-parser/binding-win32-ia32-msvc": "0.155.0", "@oxc-parser/binding-win32-x64-msvc": "0.155.0" } }, "sha512-C/ReSf1JUFukK/zvk6jhcNibSssvas5+ktIzK7fbKVd3CedWe59C3QwHEOrEZj/4Rt9+xg0Jeis/Jv1F/KM1mw=="],
 
     "playwright-core": ["playwright-core@1.64.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ=="],
+
+    "prunelle": ["prunelle@link:./packages/prunelle", { "bin": { "prunelle": "./src/cli/index.ts" } }],
 
     "turndown": ["turndown@7.2.5", "", { "dependencies": { "@mixmark-io/domino": "^2.2.0" } }, "sha512-EKZvCCFHh8sWttpAMs10U6niZFJ2cpz8LkCPlylxoG4JcHF50J7EHnnBW3AY1qXtUMu7kDjCp7dnggB1sIbqEQ=="],
 

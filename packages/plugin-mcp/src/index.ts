@@ -1,17 +1,17 @@
-// @kayjs/mcp — Zero-dependency MCP Streamable HTTP (2025-03-26) plugin for Kay v2.
-// Exposes typed Kay v2 server `action()` handlers (and standalone tool handlers) as MCP tools
-// over a bearer-authenticated endpoint via `KayPlugin.server`, keeping core free of MCP code.
+// @prunelle/mcp — Zero-dependency MCP Streamable HTTP (2025-03-26) plugin for Prunelle v2.
+// Exposes typed Prunelle v2 server `action()` handlers (and standalone tool handlers) as MCP tools
+// over a bearer-authenticated endpoint via `PrunellePlugin.server`, keeping core free of MCP code.
 
-import type { KayPlugin } from '@kayjs/kay/config'
-import type { ActionContext, InferOutput, RateLimit, RequestContext, ServerAction, StandardSchemaV1 } from '@kayjs/kay/server'
+import type { PrunellePlugin } from 'prunelle/config'
+import type { ActionContext, InferOutput, RateLimit, RequestContext, ServerAction, StandardSchemaV1 } from 'prunelle/server'
 import type { McpBudgetOptions, McpFootprint } from './footprint'
 import type { McpPruneMode, McpToolResult } from './format'
 import type { ListedTool, McpToolAnnotations, ResolvedResource, ResolvedToolEntry } from './rpc'
 import type { CompactSchemaOptions, JsonSchemaObject } from './schema'
 
 import { readFile, stat } from 'node:fs/promises'
-import { definePlugin } from '@kayjs/kay/config'
-import { nodeEnv, safeEqual } from '@kayjs/kay/server'
+import { definePlugin } from 'prunelle/config'
+import { nodeEnv, safeEqual } from 'prunelle/server'
 import { collectBudgetViolations, computeFootprint, formatMcpFootprint } from './footprint'
 import { createRpcDispatcher } from './rpc'
 import { isPlainRecord, isStandardSchema, normalizeObjectSchema, schemaToJsonSchema } from './schema'
@@ -37,7 +37,7 @@ export interface McpResource {
 }
 
 export interface McpActionTool<Input = unknown, Output = unknown> {
-  /** Existing Kay v2 `action()` handler to expose as an MCP tool. */
+  /** Existing Prunelle v2 `action()` handler to expose as an MCP tool. */
   action: ServerAction<Input, Output>
   handler?: never
   /** Human/agent-facing tool description shown in `tools/list`. */
@@ -150,7 +150,7 @@ export type McpTokenSource =
   | (() => string | undefined | Promise<string | undefined>)
 
 export interface McpOptions {
-  /** Server name reported in `initialize` `serverInfo.name` (default: 'kay-mcp'). */
+  /** Server name reported in `initialize` `serverInfo.name` (default: 'prunelle-mcp'). */
   name?: string | undefined
   /** Server version reported in `initialize` `serverInfo.version` (default: '1.0.0'). */
   version?: string | undefined
@@ -160,11 +160,11 @@ export interface McpOptions {
   path?: string | undefined
   /** Bearer token source: inline string, `{ env }`, `{ file }`, or resolver function. */
   token?: McpTokenSource | undefined
-  /** Map of MCP tool names to Kay `action()` or handler definitions. */
+  /** Map of MCP tool names to Prunelle `action()` or handler definitions. */
   tools: Record<string, McpTool>
   /** Optional on-demand MCP resources exposed via `resources/list` and `resources/read`. */
   resources?: Record<string, McpResource> | undefined
-  /** Shared schemas exposed on demand via `describe_schema` tool and `kay://schemas/<name>` resources for tools using `schemaRef`. */
+  /** Shared schemas exposed on demand via `describe_schema` tool and `prunelle://schemas/<name>` resources for tools using `schemaRef`. */
   schemas?: Record<string, StandardSchemaV1 | JsonSchemaObject> | undefined
   /** Optional domain-error formatter for thrown errors (defaults to `err.message`). */
   mapError?: ((error: unknown) => string | { message: string } | undefined) | undefined
@@ -176,7 +176,7 @@ export interface McpOptions {
   maxOutputChars?: number | undefined
   /** Optional server-wide fallback formatter used when a tool does not define its own `format`. */
   formatResult?: ((output: unknown, toolName: string, input: unknown) => unknown) | undefined
-  /** Tool & catalog byte budget checked in dev startup and `kay check` (default: `{ maxToolBytes: 2048 }`; `false` disables). */
+  /** Tool & catalog byte budget checked in dev startup and `prunelle check` (default: `{ maxToolBytes: 2048 }`; `false` disables). */
   budget?: McpBudgetOptions | false | undefined
   /** Calls one client may make to the endpoint, each method counted apart (default: 120 per minute per address; `false` disables). */
   rateLimit?: RateLimit<RequestContext> | false | undefined
@@ -250,7 +250,7 @@ function buildCatalog(
         sharedValidators.set(name, def)
       const serialized = JSON.stringify(jsonSchema)
       sharedJsonSchemas.set(name, serialized)
-      const uri = `kay://schemas/${name}`
+      const uri = `prunelle://schemas/${name}`
       if (!resourceMap.has(uri)) {
         resourceMap.set(uri, {
           uri,
@@ -280,7 +280,7 @@ function buildCatalog(
     else if (def.schemaRef !== undefined && sharedJsonSchemas.has(def.schemaRef)) {
       inputSchema = {
         type: 'object',
-        description: `Matches schema "${def.schemaRef}" (call describe_schema or read kay://schemas/${def.schemaRef}).`,
+        description: `Matches schema "${def.schemaRef}" (call describe_schema or read prunelle://schemas/${def.schemaRef}).`,
       }
     }
     else {
@@ -431,13 +431,13 @@ function extractBearerToken(request: Request): string | undefined {
 
 export function mcp<T extends Record<string, unknown>>(
   options: Omit<McpOptions, 'tools'> & { tools: McpToolsRecord<T> },
-): KayPlugin
-export function mcp(options: McpOptions): KayPlugin
-export function mcp(options: McpOptions): KayPlugin {
+): PrunellePlugin
+export function mcp(options: McpOptions): PrunellePlugin
+export function mcp(options: McpOptions): PrunellePlugin {
   const rawPath = options.path ?? '/mcp/tools'
   const endpoint = rawPath === '/' ? '/' : `/${rawPath.replace(/^\/+|\/+$/g, '')}`
   const rateLimit = options.rateLimit === false ? undefined : options.rateLimit ?? { max: 120, windowMs: 60_000 }
-  const serverName = options.name ?? 'kay-mcp'
+  const serverName = options.name ?? 'prunelle-mcp'
   const serverVersion = options.version ?? '1.0.0'
 
   const { listedTools, toolMap, resourceMap } = buildCatalog(options)
@@ -481,7 +481,7 @@ export function mcp(options: McpOptions): KayPlugin {
   }
 
   return definePlugin({
-    name: '@kayjs/mcp',
+    name: '@prunelle/mcp',
 
     async requires() {
       return await resolveToken(options.token, readTokenFile) === undefined

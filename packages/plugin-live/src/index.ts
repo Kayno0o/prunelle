@@ -1,9 +1,9 @@
-// @kayjs/live — Zero-dependency typed real-time rooms, coalesced presence, and SSE streaming for Kay v2.
-// Built strictly on Web Streams (text/event-stream) + KayPlugin (`api.route`) — zero core WebSocket coupling.
+// @prunelle/live — Zero-dependency typed real-time rooms, coalesced presence, and SSE streaming for Prunelle v2.
+// Built strictly on Web Streams (text/event-stream) + PrunellePlugin (`api.route`) — zero core WebSocket coupling.
 
-import type { KayPlugin } from '@kayjs/kay/config'
-import type { RequestContext } from '@kayjs/kay/server'
-import { definePlugin } from '@kayjs/kay/config'
+import type { PrunellePlugin } from 'prunelle/config'
+import type { RequestContext } from 'prunelle/server'
+import { definePlugin } from 'prunelle/config'
 
 export interface Subscriber<TMember> {
   readonly id: string
@@ -56,8 +56,8 @@ export interface StreamOptions<TMember> extends ConnectionLimits {
   onLeave?: ((room: string, member: TMember) => void) | undefined
 }
 
-/** The plugin `kay.config.ts` registers (mounting the endpoint when `path` is set), and the handle routes publish with. */
-export interface Rooms<TMessage, TMember = undefined> extends KayPlugin {
+/** The plugin `prunelle.config.ts` registers (mounting the endpoint when `path` is set), and the handle routes publish with. */
+export interface Rooms<TMessage, TMember = undefined> extends PrunellePlugin {
   join(room: string, sub: Subscriber<TMember>): void
   leave(room: string, sub: Subscriber<TMember>): void
   members(room: string): TMember[]
@@ -79,7 +79,7 @@ const CR_LF_RE = /[\r\n]/
 
 function assertSafeSseField(value: string | undefined, label: string): void {
   if (value !== undefined && CR_LF_RE.test(value))
-    throw new RangeError(`@kayjs/live: SSE ${label} must not contain CR or LF characters`)
+    throw new RangeError(`@prunelle/live: SSE ${label} must not contain CR or LF characters`)
 }
 
 function encodeEvent(message: unknown, event?: string, id?: string): Uint8Array {
@@ -353,11 +353,11 @@ export function createRooms<TMessage, TMember = undefined>(
     }
   }
 
-  function endpoint(opts: RoomsEndpointOptions<TMember>): KayPlugin {
+  function endpoint(opts: RoomsEndpointOptions<TMember>): PrunellePlugin {
     if (typeof opts.member !== 'function')
-      throw new TypeError(`@kayjs/live: createRooms({ path: '${opts.path}' }) needs member(ctx), the member each stream joins as`)
+      throw new TypeError(`@prunelle/live: createRooms({ path: '${opts.path}' }) needs member(ctx), the member each stream joins as`)
     return definePlugin({
-      name: `@kayjs/live(${opts.path})`,
+      name: `@prunelle/live(${opts.path})`,
       server(api) {
         api.onShutdown(closeAll)
         api.route('GET', opts.path, async (ctx) => {
@@ -376,6 +376,6 @@ export function createRooms<TMessage, TMember = undefined>(
     })
   }
 
-  const plugin = options.path === undefined ? definePlugin({ name: '@kayjs/live', server: api => api.onShutdown(closeAll) }) : endpoint(options)
+  const plugin = options.path === undefined ? definePlugin({ name: '@prunelle/live', server: api => api.onShutdown(closeAll) }) : endpoint(options)
   return { ...plugin, join, leave, members, size, publish, coalesce, stream }
 }

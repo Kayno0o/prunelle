@@ -1,4 +1,4 @@
-// Why an `~icons/<set>/<name>` import cannot load, with the closest imports that can, for the build error and `kay check`.
+// Why an `~icons/<set>/<name>` import cannot load, with the closest imports that can, for the build error and `prunelle check`.
 
 import type { IconSet } from './types'
 import { iconData } from './icon-data'
@@ -29,7 +29,7 @@ export async function iconProblem(prefix: string, name: string, where: string, l
     // A mistyped import is closest to a whole name; the search fills in names sharing its words.
     const names = [...Object.keys(set.icons), ...Object.keys(set.aliases ?? {})]
     const closest = [...new Set([...closeWords(name, names), ...findIcons(set, name, { limit: SUGGESTED })])].slice(0, SUGGESTED).map(found => `~icons/${prefix}/${found}`)
-    return `no icon "${name}" in set "${prefix}"${where}. ${didYouMean(closest)}Search with kay icons-find <words>.`
+    return `no icon "${name}" in set "${prefix}"${where}. ${didYouMean(closest)}Search with prunelle icons-find <words>.`
   }
   if (!isSetPrefix(prefix))
     return `"${prefix}" is not an icon set name${where}: write ~icons/<set>/<name>, such as ~icons/tabler/home.`

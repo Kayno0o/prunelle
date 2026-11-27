@@ -1,7 +1,7 @@
 // renderMarkdown: Bun's native Markdown renderer plus highlight hook, embedded components, heading ids and TOC.
 
 import type { ContentHeading, MarkdownImageResolver, MarkdownImageResult, RenderMarkdownOptions } from './index'
-import { escAttr } from '@kayjs/kay/server'
+import { escAttr } from 'prunelle/server'
 import { currentApp } from './app'
 import { expandComponents } from './components'
 import { sanitizeMarkdownHtml } from './sanitize'
@@ -60,12 +60,12 @@ function renderMarkdownInternal(
         const lang = info.trim().split(/\s+/)[0] || undefined
         const idx = slots.length
         slots.push(options.highlight(code.replace(/\n$/, ''), lang))
-        return `\n\n<div data-kay-md-slot="${slotPrefix}${idx}"></div>\n\n`
+        return `\n\n<div data-pru-md-slot="${slotPrefix}${idx}"></div>\n\n`
       }
       // Protect code fences from component expansion when only components are configured
       const idx = slots.length
       slots.push(Bun.markdown.html(full, { tables: true, strikethrough: true, tasklists: true, autolinks: true }))
-      return `\n\n<div data-kay-md-slot="${slotPrefix}${idx}"></div>\n\n`
+      return `\n\n<div data-pru-md-slot="${slotPrefix}${idx}"></div>\n\n`
     })
   }
 
@@ -111,7 +111,7 @@ function renderMarkdownInternal(
     return `<h${level} id="${id}">${inner}</h${level}>`
   })
 
-  // 4b. Image rewriting (explicit resolveImage or auto-wired @kayjs/images; `false` disables)
+  // 4b. Image rewriting (explicit resolveImage or auto-wired @prunelle/images; `false` disables)
   const resolveImageFn = options.resolveImage === false
     ? undefined
     : (options.resolveImage ?? findDefaultImageResolver(options.file))
@@ -147,7 +147,7 @@ function renderMarkdownInternal(
 
   // 5. Splice this batch's highlighted code blocks & embedded TSX components back in (loop handles components wrapping code fences)
   if (slots.length > 0) {
-    const slotRe = new RegExp(`<div data-kay-md-slot="${slotPrefix}(\\d+)"><\\/div>`, 'g')
+    const slotRe = new RegExp(`<div data-pru-md-slot="${slotPrefix}(\\d+)"><\\/div>`, 'g')
     let prev = ''
     while (prev !== html) {
       prev = html

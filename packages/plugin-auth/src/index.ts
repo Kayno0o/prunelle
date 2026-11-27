@@ -1,15 +1,15 @@
-// @kayjs/auth — Zero-dependency Bun-native authentication plugin for Kay v2.
-// Built strictly on the public KayPlugin API (`api.use` + `api.route`).
+// @prunelle/auth — Zero-dependency Bun-native authentication plugin for Prunelle v2.
+// Built strictly on the public PrunellePlugin API (`api.use` + `api.route`).
 // Supports Argon2id passwords, hashed DB sessions with sliding renewal, email verification,
 // magic links, OAuth 2.0 + PKCE (S256), role/route guards, RGPD helpers, and memory or `bun:sqlite` stores.
 
-import type { KayPlugin } from '@kayjs/kay/config'
-import type { KayLocals, Middleware, RequestContext, TrustProxy } from '@kayjs/kay/server'
+import type { PrunellePlugin } from 'prunelle/config'
+import type { PrunelleLocals, Middleware, RequestContext, TrustProxy } from 'prunelle/server'
 import type { OAuthProvider } from './oauth'
 
 import type { AuthSession, AuthStore, AuthUser, PublicUser, UserExport } from './store'
-import { definePlugin } from '@kayjs/kay/config'
-import { createRateLimitStore, isHttpsRequest, nodeEnv, safeRedirect, wantsJson } from '@kayjs/kay/server'
+import { definePlugin } from 'prunelle/config'
+import { createRateLimitStore, isHttpsRequest, nodeEnv, safeRedirect, wantsJson } from 'prunelle/server'
 import { hashPassword, randomToken, sha256Hex } from './crypto'
 import { authLimits, fail, isValidEmail } from './http'
 import { registerOAuthRoutes } from './oauth-routes'
@@ -18,8 +18,8 @@ import { registerAuthRoutes } from './routes'
 import { createSessionManager } from './session'
 import { isKeptInMemory, memoryAuthStore, normalizeEmail, toPublicUser } from './store'
 
-declare module '@kayjs/kay/server' {
-  interface KayLocals {
+declare module 'prunelle/server' {
+  interface PrunelleLocals {
     user?: PublicUser | undefined
     session?: AuthSession | undefined
   }
@@ -50,7 +50,7 @@ export function createRateLimiter(opts: RateLimitOptions | false | undefined): R
   return { allow: key => limiter.hit(key) === 0, sweep: now => store.sweep(now), size: () => store.size }
 }
 
-export { safeRedirect } from '@kayjs/kay/server'
+export { safeRedirect } from 'prunelle/server'
 export { discord, github, google, oauthProvider } from './oauth'
 export type { OAuthPresetConfig, OAuthProfile, OAuthProvider } from './oauth'
 export { memoryAuthStore, normalizeEmail, toPublicUser } from './store'
@@ -69,7 +69,7 @@ const LINK_MAILS = {
 function siteOrigin(value: string): string {
   const url = new URL(value)
   if (url.protocol !== 'https:' && url.protocol !== 'http:')
-    throw new Error(`[kay/auth] \`site\` must be an http or https origin, got ${value}`)
+    throw new Error(`[prunelle/auth] \`site\` must be an http or https origin, got ${value}`)
   return url.origin
 }
 
@@ -82,7 +82,7 @@ export interface AuthMailPayload {
   kind: 'magic-link' | 'verify-email' | 'reset-password'
 }
 
-/** Structural interface matching `@kayjs/mail`'s `Mailer` so `createAuth({ mailer })` needs no glue callback. */
+/** Structural interface matching `@prunelle/mail`'s `Mailer` so `createAuth({ mailer })` needs no glue callback. */
 export interface AuthMailer {
   send(message: {
     to: string
@@ -114,7 +114,7 @@ export interface AuthOptions<TUser extends AuthUser = AuthUser> {
   secret?: string | undefined
   /** Route prefix (default: '/auth'). */
   basePath?: string | undefined
-  /** Session cookie name (default: 'kay_session'). */
+  /** Session cookie name (default: 'pru_session'). */
   cookieName?: string | undefined
   /** Session lifetime in seconds (default: 30 days). */
   sessionTtlSeconds?: number | undefined
@@ -128,13 +128,13 @@ export interface AuthOptions<TUser extends AuthUser = AuthUser> {
   defaultRole?: string | undefined
   /** Default redirect after successful form login/signup/OAuth (default: '/'). */
   defaultRedirect?: string | undefined
-  /** Additional trusted cross-origin origins merged with `KayConfig.trustedOrigins` for auth POST routes. */
+  /** Additional trusted cross-origin origins merged with `PrunelleConfig.trustedOrigins` for auth POST routes. */
   trustedOrigins?: string[] | undefined
-  /** Public origin of the site (`https://example.com`), defaults to `KayConfig.site`. Without it, mailed links are only built for a loopback host. */
+  /** Public origin of the site (`https://example.com`), defaults to `PrunelleConfig.site`. Without it, mailed links are only built for a loopback host. */
   site?: string | undefined
   /** OAuth 2.0 providers (e.g. `[github(...), discord(...), google(...)]`). */
   providers?: OAuthProvider[] | undefined
-  /** Pass a `@kayjs/mail` `Mailer` instance directly for magic links & verification emails (shorthand for `sendMail`). */
+  /** Pass a `@prunelle/mail` `Mailer` instance directly for magic links & verification emails (shorthand for `sendMail`). */
   mailer?: AuthMailer | undefined
   /** Custom mail sender for magic links / verification emails (overrides `mailer` when both are provided). */
   sendMail?: ((mail: AuthMailPayload) => void | Promise<void>) | undefined
@@ -145,7 +145,7 @@ export interface AuthOptions<TUser extends AuthUser = AuthUser> {
   requireEmailVerification?: boolean | undefined
   /**
    * Trust `X-Forwarded-For` / `X-Real-IP` headers as a fallback when `ctx.ip` is not populated by the server (default: `false`).
-   * When `ctx.ip` is provided by Kay's `trustProxy`-aware server, `ctx.ip` is always used.
+   * When `ctx.ip` is provided by Prunelle's `trustProxy`-aware server, `ctx.ip` is always used.
    */
   trustProxy?: TrustProxy | undefined
   /** Optional per-key rate limit on auth endpoints (`false` disables). */
@@ -172,12 +172,12 @@ export interface GuardOptions<TUser extends AuthUser = AuthUser> {
   allow?: ((user: PublicUser<TUser>, ctx: RequestContext) => boolean | Promise<boolean>) | undefined
 }
 
-/** The plugin `kay.config.ts` registers, and the handle routes and actions call. */
-export interface Auth<TUser extends AuthUser = AuthUser> extends KayPlugin {
+/** The plugin `prunelle.config.ts` registers, and the handle routes and actions call. */
+export interface Auth<TUser extends AuthUser = AuthUser> extends PrunellePlugin {
   readonly store: AuthStore<TUser>
   readonly basePath: string
-  getUser(ctx: { locals: KayLocals }): PublicUser<TUser> | undefined
-  getSession(ctx: { locals: KayLocals }): AuthSession | undefined
+  getUser(ctx: { locals: PrunelleLocals }): PublicUser<TUser> | undefined
+  getSession(ctx: { locals: PrunelleLocals }): AuthSession | undefined
   resolve(ctx: RequestContext): Promise<{ user: PublicUser<TUser>, session: AuthSession } | undefined>
   guard(options?: GuardOptions<TUser>): Middleware
   createUser(input: CreateUserInput<TUser>): Promise<PublicUser<TUser>>
@@ -193,19 +193,19 @@ export interface Auth<TUser extends AuthUser = AuthUser> extends KayPlugin {
   dispose(): void
 }
 
-const STORE_IN_MEMORY = '`store` keeps accounts and sessions in memory, so a restart signs everyone out and loses every account: pass `store: sqliteAuthStore(\'data/auth.db\')` from `@kayjs/auth/sqlite`, or your own `AuthStore`.'
+const STORE_IN_MEMORY = '`store` keeps accounts and sessions in memory, so a restart signs everyone out and loses every account: pass `store: sqliteAuthStore(\'data/auth.db\')` from `@prunelle/auth/sqlite`, or your own `AuthStore`.'
 
 function resolveSecret(optionSecret: string | undefined): string {
   if (optionSecret !== undefined && optionSecret.trim().length === 0)
-    throw new Error('[kay/auth] `secret` must not be empty')
+    throw new Error('[prunelle/auth] `secret` must not be empty')
 
   const envSecret = process.env.AUTH_SECRET
   const configured = optionSecret ?? (envSecret && envSecret.trim().length > 0 ? envSecret : undefined)
   if (nodeEnv() === 'production') {
     if (configured === undefined)
-      throw new Error('[kay/auth] `secret` (or `AUTH_SECRET` env) is required in production and must be at least 32 bytes')
+      throw new Error('[prunelle/auth] `secret` (or `AUTH_SECRET` env) is required in production and must be at least 32 bytes')
     if (Buffer.byteLength(configured, 'utf8') < MIN_PROD_SECRET_BYTES)
-      throw new Error(`[kay/auth] \`secret\` must be at least ${MIN_PROD_SECRET_BYTES} UTF-8 bytes in production`)
+      throw new Error(`[prunelle/auth] \`secret\` must be at least ${MIN_PROD_SECRET_BYTES} UTF-8 bytes in production`)
   }
   return configured ?? randomToken(32)
 }
@@ -214,7 +214,7 @@ export function createAuth<TUser extends AuthUser = AuthUser>(options: AuthOptio
   const secret = resolveSecret(options.secret)
   const store = options.store ?? memoryAuthStore<TUser>()
   const basePath = (options.basePath ?? '/auth').replace(/\/$/, '')
-  const cookieName = options.cookieName ?? 'kay_session'
+  const cookieName = options.cookieName ?? 'pru_session'
   const oauthCookieName = `${cookieName}_oauth`
   const sessionTtlSeconds = options.sessionTtlSeconds ?? 60 * 60 * 24 * 30
   const sessionTtlMs = sessionTtlSeconds * 1000
@@ -266,7 +266,7 @@ export function createAuth<TUser extends AuthUser = AuthUser>(options: AuthOptio
     isSecureCookie,
   })
 
-  // One timer per server the plugin runs on: `kay dev` starts the next server before it shuts the previous one down.
+  // One timer per server the plugin runs on: `prunelle dev` starts the next server before it shuts the previous one down.
   const pruneTimers = new Set<ReturnType<typeof setInterval>>()
   let activeServers = 0
   const startPruneTimer = (): (() => void) | undefined => {
@@ -434,8 +434,8 @@ export function createAuth<TUser extends AuthUser = AuthUser>(options: AuthOptio
     void Promise.resolve(store.close?.()).catch(() => {})
   }
 
-  const plugin: KayPlugin = definePlugin({
-    name: '@kayjs/auth',
+  const plugin: PrunellePlugin = definePlugin({
+    name: '@prunelle/auth',
     enforce: 'pre',
     providesLocals: ['user', 'session'],
     requires: () => isKeptInMemory(store) ? [STORE_IN_MEMORY] : [],
@@ -474,7 +474,7 @@ export function createAuth<TUser extends AuthUser = AuthUser>(options: AuthOptio
         return next()
       }, { scope: 'rendered' })
 
-      // Counted in this server's store, so a `kay dev` restart or a test's new server starts from zero.
+      // Counted in this server's store, so a `prunelle dev` restart or a test's new server starts from zero.
       const limits = options.rateLimit === false ? undefined : api.rateLimiter({ max: options.rateLimit?.max ?? 15, windowMs: options.rateLimit?.windowMs ?? 60_000 })
       const { limitIp, limitEmail } = authLimits(limits, () => trustProxy)
       registerAuthRoutes({

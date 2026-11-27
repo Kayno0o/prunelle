@@ -1,9 +1,9 @@
-// @kayjs/spa client bootstrap:
+// @prunelle/spa client bootstrap:
 // - Intercepts internal <a> clicks with AbortController cancellation (no dropped rapid clicks)
 // - Diffs <head> stylesheets (zero-FOUC load-before-remove), <html lang>, <title>, meta/canonical tags
 // - Preserves [data-persist] islands alive across View Transitions swaps
 // - Restores scroll position on popstate, scrolls to #hash targets, manages focus & polite live announcements
-// - Opt-in prefetch via [data-kay-prefetch] (bounded 8-entry / 15s TTL cache, respects Save-Data)
+// - Opt-in prefetch via [data-pru-prefetch] (bounded 8-entry / 15s TTL cache, respects Save-Data)
 
 import type { EntryScroll } from './swap'
 import { ANNOUNCER_ID, announce } from './announcer'
@@ -15,10 +15,10 @@ export { prefetch }
 let activeController: AbortController | undefined
 let currentDocKey = typeof location !== 'undefined' ? `${location.pathname}${location.search}` : ''
 
-// Framework inline styles shipped in kay-island.css so SPA navigation never injects unhashed <style> tags.
-const KAY_BUILTIN_STYLES = new Set([
-  'kay-island,kay-slot{display:contents}',
-  'kay-s{display:contents}',
+// Framework inline styles shipped in pru-island.css so SPA navigation never injects unhashed <style> tags.
+const PRUNELLE_BUILTIN_STYLES = new Set([
+  'pru-island,pru-slot{display:contents}',
+  'pru-s{display:contents}',
 ])
 
 // One-time token and OAuth redirect endpoints must hit the server once via normal navigation, never via SPA fetch.
@@ -54,7 +54,7 @@ function hasBlockedInlineStyle(nextDoc: Document, csp: string | null | undefined
     return false
   for (const style of nextDoc.querySelectorAll('style')) {
     const txt = style.textContent ?? ''
-    if (txt && !KAY_BUILTIN_STYLES.has(txt) && !initialInlineStyles.has(txt))
+    if (txt && !PRUNELLE_BUILTIN_STYLES.has(txt) && !initialInlineStyles.has(txt))
       return true
   }
   return false
@@ -171,24 +171,24 @@ async function prepareHeadStyles(nextDoc: Document): Promise<{ commit: () => voi
       }
       for (const el of moved)
         el.remove()
-      // Sync non-builtin <head> <style> tags (skipping kay-island/kay-s styles already covered by kay-island.css).
+      // Sync non-builtin <head> <style> tags (skipping pru-island/pru-s styles already covered by pru-island.css).
       const nextHeadStyles = new Set<string>()
       for (const nextStyle of nextDoc.head.querySelectorAll('style')) {
         const txt = nextStyle.textContent ?? ''
-        if (txt && !KAY_BUILTIN_STYLES.has(txt))
+        if (txt && !PRUNELLE_BUILTIN_STYLES.has(txt))
           nextHeadStyles.add(txt)
       }
       const existingStyles = new Set<string>()
       for (const curStyle of document.head.querySelectorAll('style')) {
         const txt = curStyle.textContent ?? ''
-        if (!KAY_BUILTIN_STYLES.has(txt) && !nextHeadStyles.has(txt))
+        if (!PRUNELLE_BUILTIN_STYLES.has(txt) && !nextHeadStyles.has(txt))
           curStyle.remove()
         else if (txt)
           existingStyles.add(txt)
       }
       for (const nextStyle of nextDoc.head.querySelectorAll('style')) {
         const txt = nextStyle.textContent ?? ''
-        if (txt && !KAY_BUILTIN_STYLES.has(txt) && !existingStyles.has(txt)) {
+        if (txt && !PRUNELLE_BUILTIN_STYLES.has(txt) && !existingStyles.has(txt)) {
           document.head.appendChild(document.importNode(nextStyle, true))
           existingStyles.add(txt)
         }
@@ -227,7 +227,7 @@ async function fetchPageHtml(fetchKey: string, signal: AbortSignal): Promise<{ h
     return { html: prefetched.html, url: prefetched.url, csp: prefetched.csp }
   }
   const res = await fetch(fetchKey, {
-    headers: { 'x-kay-spa': '1' },
+    headers: { 'x-pru-spa': '1' },
     signal,
   })
   if (signal.aborted)
@@ -309,7 +309,7 @@ export async function navigate(url: string, push = true, restore?: EntryScroll, 
       if (push) {
         const newDocId = nextDocId()
         setDocId(newDocId)
-        history.pushState({ __kayDoc: newDocId }, '', nextFullUrl)
+        history.pushState({ __pruDoc: newDocId }, '', nextFullUrl)
       }
       else {
         setDocId(targetDocId ?? nextDocId())
@@ -344,7 +344,7 @@ export async function navigate(url: string, push = true, restore?: EntryScroll, 
       focusPrimaryLandmark()
       announce(document.title)
 
-      window.dispatchEvent(new CustomEvent('kay:navigate', { detail: { url: nextFullUrl } }))
+      window.dispatchEvent(new CustomEvent('pru:navigate', { detail: { url: nextFullUrl } }))
     }
 
     await swapInTransition(applySwap)
@@ -382,10 +382,10 @@ if (typeof document !== 'undefined') {
     const target = event.target as Element | null
     const link = target?.closest?.('a[href]') as HTMLAnchorElement | null
     // A region link prefetches its region alone, in regions().
-    if (!link || link.hasAttribute('data-no-prefetch') || link.hasAttribute('data-kay-target'))
+    if (!link || link.hasAttribute('data-no-prefetch') || link.hasAttribute('data-pru-target'))
       return
-    // Prefetch is strictly opt-in via [data-kay-prefetch] so side-effecting links like /logout are never prefetched
-    if (link.closest('[data-kay-prefetch]') === null)
+    // Prefetch is strictly opt-in via [data-pru-prefetch] so side-effecting links like /logout are never prefetched
+    if (link.closest('[data-pru-prefetch]') === null)
       return
     const url = isEligibleLink(link)
     if (url === undefined)
@@ -399,16 +399,16 @@ if (typeof document !== 'undefined') {
   document.addEventListener('focusin', onIntent, { passive: true })
 
   // A region swap moves the address too, so a later #hash entry of that address is no new page.
-  window.addEventListener('kay:region', () => { currentDocKey = `${location.pathname}${location.search}` })
+  window.addEventListener('pru:region', () => { currentDocKey = `${location.pathname}${location.search}` })
   window.addEventListener('popstate', (event) => {
     const nextDocKey = `${location.pathname}${location.search}`
     if (nextDocKey === currentDocKey)
       return
-    const st = event.state as { __kayIdx?: number, __kayDoc?: number } | null
-    // Only same-document region swaps belong to regions(); cross-document entries (even with __kayIdx) belong to spa().
+    const st = event.state as { __pruIdx?: number, __pruDoc?: number } | null
+    // Only same-document region swaps belong to regions(); cross-document entries (even with __pruIdx) belong to spa().
     if (isSameDocRegionState(st))
       return
-    const targetDocId = typeof st?.__kayDoc === 'number' ? st.__kayDoc : undefined
+    const targetDocId = typeof st?.__pruDoc === 'number' ? st.__pruDoc : undefined
     void navigate(location.href, false, entryScroll(st), targetDocId)
   })
   // The browser's own restoring would fight the one the swap does, once the new page is in.

@@ -1,7 +1,7 @@
-import type { BundleReport } from '../../packages/kay/src/build/report'
-import type { CheckDiagnostic } from '../../packages/kay/src/cli/check'
-import type { ScaffoldTemplate } from '../../packages/kay/src/cli/new'
-import type { TestApp } from '../../packages/kay/src/test/index'
+import type { BundleReport } from '../../packages/prunelle/src/build/report'
+import type { CheckDiagnostic } from '../../packages/prunelle/src/cli/check'
+import type { ScaffoldTemplate } from '../../packages/prunelle/src/cli/new'
+import type { TestApp } from '../../packages/prunelle/src/test/index'
 
 export interface TaskSpec {
   id: string

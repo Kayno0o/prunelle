@@ -1,11 +1,11 @@
 ---
-title: "@kayjs/ui (5 Style Grammars)"
+title: "@prunelle/ui (5 Style Grammars)"
 description: Platform-first headless UI primitives and pure CSS @layer kui Style Grammars with zero JS styling runtime and one-file eject.
 section: plugins
 order: 1
 ---
 
-`@kayjs/ui` pairs **platform-first headless TSX primitives** (zero-JS native HTML wherever the platform suffices: `<details name>`, `<dialog>`, `popover`, `<input type="checkbox">`) with **5 structurally distinct pure CSS `@layer kui` Style Grammars**.
+`@prunelle/ui` pairs **platform-first headless TSX primitives** (zero-JS native HTML wherever the platform suffices: `<details name>`, `<dialog>`, `popover`, `<input type="checkbox">`) with **5 structurally distinct pure CSS `@layer kui` Style Grammars**.
 
 <Callout title="Try all 5 grammars live" tone="tip">
 Visit the interactive [UI Grammars sandbox](/grammars) to switch this site between **Orbit**, **Editorial**, **Workshop**, **Console**, **Soft**, and **Bare** in real time.
@@ -14,9 +14,9 @@ Visit the interactive [UI Grammars sandbox](/grammars) to switch this site betwe
 ## Setup
 
 ```ts
-// kay.config.ts
-import { defineConfig } from '@kayjs/kay/config'
-import { ui } from '@kayjs/ui/plugin'
+// prunelle.config.ts
+import { defineConfig } from 'prunelle/config'
+import { ui } from '@prunelle/ui/plugin'
 
 export default defineConfig({
   plugins: [ui({ grammar: 'orbit' })],
@@ -37,7 +37,7 @@ Available grammars: `'orbit'` · `'editorial'` · `'workshop'` · `'console'` ·
 A browser that lacks one of these features, such as Safari before 26.2 or Firefox before 147, loads a fallback of about 700 bytes that does their work; other browsers fetch nothing. The `ui()` plugin adds that check to pages with a `commandfor` button, a `Menu`, a `Select` or a `Popover`, so your own `commandfor` buttons get it too.
 
 ```tsx
-import { Button, Card, CardBody, CardHeader, Switch } from '@kayjs/ui'
+import { Button, Card, CardBody, CardHeader, Switch } from '@prunelle/ui'
 
 export default function Settings() {
   return (
@@ -57,5 +57,5 @@ export default function Settings() {
 Because every grammar is a single pure CSS file wrapped in `@layer kui`, you can eject and customize it anytime — and Tailwind or your own stylesheet always wins without `!important`:
 
 ```bash
-kay ui-eject orbit src/styles/ui.css
+prunelle ui-eject orbit src/styles/ui.css
 ```

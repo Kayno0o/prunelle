@@ -1,25 +1,25 @@
-# @kayjs/tailwind Reference
+# @prunelle/tailwind Reference
 
-> Tailwind CSS v4 integration plugin for Kay v2 via `bun-plugin-tailwind`.
+> Tailwind CSS v4 integration plugin for Prunelle v2 via `bun-plugin-tailwind`.
 
 ## Imports
 
-- `@kayjs/tailwind`: `tailwind(options?)`; type `TailwindPluginOptions`.
+- `@prunelle/tailwind`: `tailwind(options?)`; type `TailwindPluginOptions`.
 
 ## Setup
 
-Install `tailwindcss` and `bun-plugin-tailwind` in your app (`bun add -d tailwindcss bun-plugin-tailwind`), then register `tailwind()` in `kay.config.ts`:
+Install `tailwindcss` and `bun-plugin-tailwind` in your app (`bun add -d tailwindcss bun-plugin-tailwind`), then register `tailwind()` in `prunelle.config.ts`:
 
 - `css`: global stylesheet entry path relative to project root (default `'src/app.css'`).
 - `bunPlugin`: optional `BunPlugin` override (auto-resolved from `bun-plugin-tailwind` when omitted).
-- `kay check`: reports an error if `bun-plugin-tailwind` cannot be resolved and no `bunPlugin` was passed.
+- `prunelle check`: reports an error if `bun-plugin-tailwind` cannot be resolved and no `bunPlugin` was passed.
 
 ## Snippets
 
 ```ts
-// kay.config.ts
-import { defineConfig } from '@kayjs/kay/config'
-import { tailwind } from '@kayjs/tailwind'
+// prunelle.config.ts
+import { defineConfig } from 'prunelle/config'
+import { tailwind } from '@prunelle/tailwind'
 
 export default defineConfig({
   plugins: [tailwind()], // defaults to css: 'src/app.css'

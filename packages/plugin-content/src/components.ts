@@ -1,8 +1,8 @@
 // MDX-lite: literal prop parsing and embedded component expansion for Markdown bodies.
 
 import type { MarkdownComponent, RenderMarkdownOptions } from './index'
-import { ssrRaw } from '@kayjs/kay/internal/ssr'
-import { raw } from '@kayjs/kay/server'
+import { ssrRaw } from 'prunelle/internal/ssr'
+import { raw } from 'prunelle/server'
 
 // Safe recursive-descent JSON5-literal parser for embedded Markdown component props.
 // Supports objects (unquoted/quoted keys, trailing commas), arrays (trailing commas),
@@ -516,7 +516,7 @@ export function expandComponents(
     const renderedHtml = ssrRaw(components[tagName]!(props as never))
     const slotIdx = slots.length
     slots.push(renderedHtml)
-    out += `\n\n<div data-kay-md-slot="${slotPrefix}${slotIdx}"></div>\n\n`
+    out += `\n\n<div data-pru-md-slot="${slotPrefix}${slotIdx}"></div>\n\n`
     i = afterIndex
   }
 

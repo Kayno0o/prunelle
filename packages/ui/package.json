@@ -1,7 +1,7 @@
 {
-  "name": "@kayjs/ui",
+  "name": "@prunelle/ui",
   "version": "2.0.0-beta.8",
-  "description": "Platform-first headless UI primitives and pure CSS @layer kui Style Grammars for Kay v2",
+  "description": "Platform-first headless UI primitives and pure CSS @layer kui Style Grammars for Prunelle v2",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -24,10 +24,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Kayno0o/kayjs",
+    "url": "https://github.com/Kayno0o/prunelle",
     "directory": "packages/ui"
   },
   "peerDependencies": {
-    "@kayjs/kay": "^2.0.0-beta.8"
+    "prunelle": "^2.0.0-beta.8"
   }
 }

@@ -84,7 +84,7 @@ const light = orbitTheme(
   ) as unknown as Palette,
 )
 
-const HL_KEY = Symbol.for('kay.docs.shiki')
+const HL_KEY = Symbol.for('pru.docs.shiki')
 const g = globalThis as Record<symbol, Awaited<ReturnType<typeof createHighlighterCore>> | undefined>
 const highlighter = g[HL_KEY] ??= await createHighlighterCore({
   themes: [light, dark],

@@ -1,4 +1,4 @@
-// Output pruning, compact text/TSV formatting, truncation, and Response normalization for @kayjs/mcp.
+// Output pruning, compact text/TSV formatting, truncation, and Response normalization for @prunelle/mcp.
 
 export interface McpContentBlock {
   type: 'text'
@@ -183,7 +183,7 @@ export function formatFieldErrors(fieldErrors: unknown): string {
 }
 
 export async function formatResponseResult(res: Response, pruneMode: McpPruneMode): Promise<McpToolResult> {
-  // 3xx redirects from reused Kay form actions indicate a completed mutation, not a failure.
+  // 3xx redirects from reused Prunelle form actions indicate a completed mutation, not a failure.
   if (res.status >= 300 && res.status < 400) {
     const location = res.headers.get('location')
     return { content: [{ type: 'text', text: location ? `ok -> ${location}` : 'ok' }] }

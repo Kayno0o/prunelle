@@ -1,5 +1,5 @@
 // Zero-dependency production SQLite AuthStore built natively on `bun:sqlite`.
-// Works out-of-the-box in single-binary `kay build --compile` deployments.
+// Works out-of-the-box in single-binary `prunelle build --compile` deployments.
 
 import type { AuthSession, AuthStore, AuthUser, OAuthAccount, TokenKind, UserExport, VerificationToken } from './store'
 import { mkdirSync } from 'node:fs'
@@ -84,7 +84,7 @@ export function sqliteAuthStore(dbOrPath: string | Database = ':memory:'): AuthS
     PRAGMA journal_mode = WAL;
     PRAGMA foreign_keys = ON;
 
-    CREATE TABLE IF NOT EXISTS kay_auth_users (
+    CREATE TABLE IF NOT EXISTS prunelle_auth_users (
       id TEXT PRIMARY KEY,
       email TEXT NOT NULL UNIQUE,
       name TEXT,
@@ -96,72 +96,72 @@ export function sqliteAuthStore(dbOrPath: string | Database = ':memory:'): AuthS
       updated_at INTEGER NOT NULL
     );
 
-    CREATE TABLE IF NOT EXISTS kay_auth_sessions (
+    CREATE TABLE IF NOT EXISTS prunelle_auth_sessions (
       id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES kay_auth_users(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES prunelle_auth_users(id) ON DELETE CASCADE,
       expires_at INTEGER NOT NULL,
       created_at INTEGER NOT NULL,
       user_agent TEXT,
       ip TEXT
     );
-    CREATE INDEX IF NOT EXISTS idx_kay_auth_sessions_user ON kay_auth_sessions(user_id);
-    CREATE INDEX IF NOT EXISTS idx_kay_auth_sessions_exp ON kay_auth_sessions(expires_at);
+    CREATE INDEX IF NOT EXISTS idx_prunelle_auth_sessions_user ON prunelle_auth_sessions(user_id);
+    CREATE INDEX IF NOT EXISTS idx_prunelle_auth_sessions_exp ON prunelle_auth_sessions(expires_at);
 
-    CREATE TABLE IF NOT EXISTS kay_auth_oauth (
+    CREATE TABLE IF NOT EXISTS prunelle_auth_oauth (
       provider TEXT NOT NULL,
       provider_account_id TEXT NOT NULL,
-      user_id TEXT NOT NULL REFERENCES kay_auth_users(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES prunelle_auth_users(id) ON DELETE CASCADE,
       created_at INTEGER NOT NULL,
       PRIMARY KEY (provider, provider_account_id)
     );
-    CREATE INDEX IF NOT EXISTS idx_kay_auth_oauth_user ON kay_auth_oauth(user_id);
+    CREATE INDEX IF NOT EXISTS idx_prunelle_auth_oauth_user ON prunelle_auth_oauth(user_id);
 
-    CREATE TABLE IF NOT EXISTS kay_auth_tokens (
+    CREATE TABLE IF NOT EXISTS prunelle_auth_tokens (
       token_hash TEXT PRIMARY KEY,
-      user_id TEXT REFERENCES kay_auth_users(id) ON DELETE CASCADE,
+      user_id TEXT REFERENCES prunelle_auth_users(id) ON DELETE CASCADE,
       email TEXT NOT NULL,
       kind TEXT NOT NULL,
       expires_at INTEGER NOT NULL
     );
-    CREATE INDEX IF NOT EXISTS idx_kay_auth_tokens_exp ON kay_auth_tokens(expires_at);
+    CREATE INDEX IF NOT EXISTS idx_prunelle_auth_tokens_exp ON prunelle_auth_tokens(expires_at);
   `)
 
-  const qUserById = db.query<UserRow, [string]>('SELECT * FROM kay_auth_users WHERE id = ?')
-  const qUserByEmail = db.query<UserRow, [string]>('SELECT * FROM kay_auth_users WHERE email = ?')
+  const qUserById = db.query<UserRow, [string]>('SELECT * FROM prunelle_auth_users WHERE id = ?')
+  const qUserByEmail = db.query<UserRow, [string]>('SELECT * FROM prunelle_auth_users WHERE email = ?')
   const qInsertUser = db.query<null, [string, string, string | null, string | null, string, number, string | null, number, number]>(
-    'INSERT INTO kay_auth_users (id, email, name, avatar_url, role, email_verified, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO prunelle_auth_users (id, email, name, avatar_url, role, email_verified, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
   )
   const qUpdateUser = db.query<null, [string, string | null, string | null, string, number, string | null, number, string]>(
-    'UPDATE kay_auth_users SET email = ?, name = ?, avatar_url = ?, role = ?, email_verified = ?, password_hash = ?, updated_at = ? WHERE id = ?',
+    'UPDATE prunelle_auth_users SET email = ?, name = ?, avatar_url = ?, role = ?, email_verified = ?, password_hash = ?, updated_at = ? WHERE id = ?',
   )
-  const qDelUser = db.query<null, [string]>('DELETE FROM kay_auth_users WHERE id = ?')
+  const qDelUser = db.query<null, [string]>('DELETE FROM prunelle_auth_users WHERE id = ?')
 
-  const qGetSession = db.query<SessionRow, [string]>('SELECT * FROM kay_auth_sessions WHERE id = ?')
+  const qGetSession = db.query<SessionRow, [string]>('SELECT * FROM prunelle_auth_sessions WHERE id = ?')
   const qListUserSessions = db.query<SessionRow, [string, number]>(
-    'SELECT * FROM kay_auth_sessions WHERE user_id = ? AND expires_at > ? ORDER BY created_at DESC',
+    'SELECT * FROM prunelle_auth_sessions WHERE user_id = ? AND expires_at > ? ORDER BY created_at DESC',
   )
   const qInsertSession = db.query<null, [string, string, number, number, string | null, string | null]>(
-    'INSERT INTO kay_auth_sessions (id, user_id, expires_at, created_at, user_agent, ip) VALUES (?, ?, ?, ?, ?, ?)',
+    'INSERT INTO prunelle_auth_sessions (id, user_id, expires_at, created_at, user_agent, ip) VALUES (?, ?, ?, ?, ?, ?)',
   )
-  const qTouchSession = db.query<null, [number, string]>('UPDATE kay_auth_sessions SET expires_at = ? WHERE id = ?')
-  const qDelSession = db.query<null, [string]>('DELETE FROM kay_auth_sessions WHERE id = ?')
-  const qDelUserSessions = db.query<null, [string]>('DELETE FROM kay_auth_sessions WHERE user_id = ?')
+  const qTouchSession = db.query<null, [number, string]>('UPDATE prunelle_auth_sessions SET expires_at = ? WHERE id = ?')
+  const qDelSession = db.query<null, [string]>('DELETE FROM prunelle_auth_sessions WHERE id = ?')
+  const qDelUserSessions = db.query<null, [string]>('DELETE FROM prunelle_auth_sessions WHERE user_id = ?')
 
-  const qGetOAuth = db.query<OAuthRow, [string, string]>('SELECT * FROM kay_auth_oauth WHERE provider = ? AND provider_account_id = ?')
-  const qListUserOAuth = db.query<OAuthRow, [string]>('SELECT * FROM kay_auth_oauth WHERE user_id = ? ORDER BY created_at ASC')
+  const qGetOAuth = db.query<OAuthRow, [string, string]>('SELECT * FROM prunelle_auth_oauth WHERE provider = ? AND provider_account_id = ?')
+  const qListUserOAuth = db.query<OAuthRow, [string]>('SELECT * FROM prunelle_auth_oauth WHERE user_id = ? ORDER BY created_at ASC')
   const qLinkOAuth = db.query<null, [string, string, string, number]>(
-    'INSERT OR REPLACE INTO kay_auth_oauth (provider, provider_account_id, user_id, created_at) VALUES (?, ?, ?, ?)',
+    'INSERT OR REPLACE INTO prunelle_auth_oauth (provider, provider_account_id, user_id, created_at) VALUES (?, ?, ?, ?)',
   )
-  const qDelUserOAuth = db.query<null, [string]>('DELETE FROM kay_auth_oauth WHERE user_id = ?')
+  const qDelUserOAuth = db.query<null, [string]>('DELETE FROM prunelle_auth_oauth WHERE user_id = ?')
 
   const qInsertToken = db.query<null, [string, string | null, string, TokenKind, number]>(
-    'INSERT INTO kay_auth_tokens (token_hash, user_id, email, kind, expires_at) VALUES (?, ?, ?, ?, ?)',
+    'INSERT INTO prunelle_auth_tokens (token_hash, user_id, email, kind, expires_at) VALUES (?, ?, ?, ?, ?)',
   )
   const qConsumeToken = db.query<TokenRow, [string, TokenKind]>(
-    'DELETE FROM kay_auth_tokens WHERE token_hash = ? AND kind = ? RETURNING *',
+    'DELETE FROM prunelle_auth_tokens WHERE token_hash = ? AND kind = ? RETURNING *',
   )
-  const qDelUserTokens = db.query<null, [string]>('DELETE FROM kay_auth_tokens WHERE user_id = ?')
-  const qDelEmailTokens = db.query<null, [string]>('DELETE FROM kay_auth_tokens WHERE email = ?')
+  const qDelUserTokens = db.query<null, [string]>('DELETE FROM prunelle_auth_tokens WHERE user_id = ?')
+  const qDelEmailTokens = db.query<null, [string]>('DELETE FROM prunelle_auth_tokens WHERE email = ?')
 
   const delUserTx = db.transaction((userId: string) => {
     const user = qUserById.get(userId)
@@ -188,8 +188,8 @@ export function sqliteAuthStore(dbOrPath: string | Database = ':memory:'): AuthS
     },
     pruneExpired() {
       const now = Date.now()
-      db.run('DELETE FROM kay_auth_sessions WHERE expires_at <= ?', [now])
-      db.run('DELETE FROM kay_auth_tokens WHERE expires_at <= ?', [now])
+      db.run('DELETE FROM prunelle_auth_sessions WHERE expires_at <= ?', [now])
+      db.run('DELETE FROM prunelle_auth_tokens WHERE expires_at <= ?', [now])
     },
     getUserById(id) {
       return rowToUser(qUserById.get(id))

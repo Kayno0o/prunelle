@@ -2,8 +2,8 @@
 
 import { existsSync, rmSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import type { KayPlugin } from '@kayjs/kay'
-import { analyzeBundleWeights, build } from '@kayjs/kay/build'
+import type { PrunellePlugin } from 'prunelle'
+import { analyzeBundleWeights, build } from 'prunelle/build'
 import { fail, parse, runMain } from '@kaynooo/cli-kit'
 import { regions, spa } from '../packages/plugin-spa/src/index'
 
@@ -11,7 +11,7 @@ const ROOT = resolve(import.meta.dir, '..')
 const BASELINE = join(import.meta.dir, 'bundle-weight.json')
 const TOLERANCE = 100
 // Each app under its own name; `bench-app (spa)` adds spa(), whose client entry every page loads, islands or not.
-const APPS: { name: string, dir: string, plugins?: () => KayPlugin[] }[] = [
+const APPS: { name: string, dir: string, plugins?: () => PrunellePlugin[] }[] = [
   { name: 'bench-app', dir: 'bench-app' },
   { name: 'bench-app (spa)', dir: 'bench-app', plugins: () => [regions(), spa()] },
   { name: 'examples/noticeboard', dir: 'examples/noticeboard' },
@@ -23,14 +23,14 @@ type Weights = Record<string, Record<string, number>>
 
 const USAGE = 'bun run bench:weight [options]: builds the bench and example apps and compares each page\'s gzipped eager JS with scripts/bundle-weight.json'
 
-// Each app's routes and their gzipped eager JS in bytes; `report` also prints kay's --analyze report per app.
+// Each app's routes and their gzipped eager JS in bytes; `report` also prints prunelle's --analyze report per app.
 async function measure(report: boolean): Promise<Weights> {
   const weights: Weights = {}
   for (const app of APPS) {
     const dir = join(ROOT, app.dir)
     if (!existsSync(dir))
       continue
-    const outDir = '.kay-weight-tmp'
+    const outDir = '.prunelle-weight-tmp'
     if (report)
       console.log(`\n>>> ${app.name}`)
     try {

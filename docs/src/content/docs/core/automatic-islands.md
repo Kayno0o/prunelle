@@ -1,11 +1,11 @@
 ---
 title: Automatic Islands
-description: Zero-directive island detection via oxc-parser, native <kay-island> hydration strategies, prop serialization, and <kay-slot> static children.
+description: Zero-directive island detection via oxc-parser, native <pru-island> hydration strategies, prop serialization, and <pru-slot> static children.
 section: core
 order: 2
 ---
 
-Kay analyzes every `.tsx` file at build time using `oxc-parser`. Static components compile to flat SSR string concatenation (`0 KB` JS). Interactive components automatically become `<kay-island>` boundaries.
+Prunelle analyzes every `.tsx` file at build time using `oxc-parser`. Static components compile to flat SSR string concatenation (`0 KB` JS). Interactive components automatically become `<pru-island>` boundaries.
 
 ## How detection works
 
@@ -15,19 +15,19 @@ You never write `'use client'` or `client:load`. A component becomes an island a
 - DOM interactivity: `on*` event handlers (`onClick`, `onInput`, etc.) or `ref` on an HTML or SVG element (on a component tag they are plain props)
 - Reactive state imported from another module, such as `export const cart = store([])` in `src/state.ts`
 
-kay decides this for each component, not for each file. A static component exported beside an island stays static and ships no JS. A component that needs the browser is an island wherever server code renders it as a tag, even in the same file. A page that declares `Counter` and renders `<Counter />` in twelve sections stays static, and only the counter ships. The island's JS holds the code it reaches and nothing else of the file. So an `async` page can await data from server code and still render a local widget. Its props cross the same boundary as an imported island's, so a handler the page passes to it is refused. A helper called as a function, such as `renderDialog()`, runs where its caller runs: calling one that needs the browser makes the caller an island. Code at the top of a file that calls a primitive, such as `effect(...)`, makes every component of that file an island.
+prunelle decides this for each component, not for each file. A static component exported beside an island stays static and ships no JS. A component that needs the browser is an island wherever server code renders it as a tag, even in the same file. A page that declares `Counter` and renders `<Counter />` in twelve sections stays static, and only the counter ships. The island's JS holds the code it reaches and nothing else of the file. So an `async` page can await data from server code and still render a local widget. Its props cross the same boundary as an imported island's, so a handler the page passes to it is refused. A helper called as a function, such as `renderDialog()`, runs where its caller runs: calling one that needs the browser makes the caller an island. Code at the top of a file that calls a primitive, such as `effect(...)`, makes every component of that file an island.
 
-A handler passed from server code to a component that is not an island would never reach the browser, so `kay build` and `kay check` refuse `<Button onClick={...}>` there. Write the handler inside `Button`, which makes it an island, or render `Button` from an island.
+A handler passed from server code to a component that is not an island would never reach the browser, so `prunelle build` and `prunelle check` refuse `<Button onClick={...}>` there. Write the handler inside `Button`, which makes it an island, or render `Button` from an island.
 
-An island renders on the server first, where `window`, `document` and `localStorage` do not exist. Reading one while a component renders, or when its module loads, throws at the first request, so `kay build` and `kay check` warn with the file and line. Read it in `onMount()`, an effect or an event handler, or check `typeof window !== 'undefined'` first.
+An island renders on the server first, where `window`, `document` and `localStorage` do not exist. Reading one while a component renders, or when its module loads, throws at the first request, so `prunelle build` and `prunelle check` warn with the file and line. Read it in `onMount()`, an effect or an event handler, or check `typeof window !== 'undefined'` first.
 
 <Callout title="Zero-JS guarantee" tone="tip">
-When a route renders only static components and native HTML forms, Kay omits the client runtime completely. Zero `<script>` tags are emitted in the HTML.
+When a route renders only static components and native HTML forms, Prunelle omits the client runtime completely. Zero `<script>` tags are emitted in the HTML.
 </Callout>
 
 ```tsx
 // src/components/Counter.tsx — auto-detected island
-import { signal } from '@kayjs/kay'
+import { signal } from 'prunelle'
 
 export function Counter({ initial = 0 }: { initial?: number }) {
   const count = signal(initial)
@@ -41,7 +41,7 @@ export function Counter({ initial = 0 }: { initial?: number }) {
 
 ## Why a route ships JS
 
-`kay build --analyze` lists, under each route, the islands it loads and why each became one:
+`prunelle build --analyze` lists, under each route, the islands it loads and why each became one:
 
 ```text
 /about                               0.00 KB       0.00 KB     0j/0c
@@ -53,7 +53,7 @@ export function Counter({ initial = 0 }: { initial?: number }) {
 
 Here `/about` renders `Label`, a static component of `Count.tsx`, and ships no JS.
 
-A deferred island hydrates later (any mode but `load`), so its JS is not counted in the route's eager weight. A plugin with a `clientEntry`, such as `spa()`, loads the runtime on every page, so its JS counts on a page with no island too. `kay build --max-js 40kb` fails the build when a route's gzipped eager JS is over 40 KB, and names the route and its eager islands.
+A deferred island hydrates later (any mode but `load`), so its JS is not counted in the route's eager weight. A plugin with a `clientEntry`, such as `spa()`, loads the runtime on every page, so its JS counts on a page with no island too. `prunelle build --max-js 40kb` fails the build when a route's gzipped eager JS is over 40 KB, and names the route and its eager islands.
 
 ## Hydration strategies (`$hydrate`)
 
@@ -75,23 +75,23 @@ The code that waits for a strategy ships only when an island of the app can use 
 Props passed from server code into an island are serialized into HTML and restored in the browser.
 
 - **Supported**: JSON primitives, arrays, plain objects, `Date`, `Map`, `Set`, `URL`, and `RegExp`. Plain JSON costs no extra JS. A page whose props hold one of these classes also preloads a small file that turns them back into objects.
-- **Refused**: Functions, signals, and arbitrary class instances fail `kay check` and SSR. Define callbacks inside the island, or pass serializable IDs and data instead.
-- **JSX goes in children**: JSX in any other prop (`<Modal header={<h2>Hi</h2>} />`) fails `kay check` and SSR, because it would reach the browser as a plain object. Pass it as children, which render on the server, or build it inside the island.
+- **Refused**: Functions, signals, and arbitrary class instances fail `prunelle check` and SSR. Define callbacks inside the island, or pass serializable IDs and data instead.
+- **JSX goes in children**: JSX in any other prop (`<Modal header={<h2>Hi</h2>} />`) fails `prunelle check` and SSR, because it would reach the browser as a plain object. Pass it as children, which render on the server, or build it inside the island.
 
-## Static children inside islands (`<kay-slot>`)
+## Static children inside islands (`<pru-slot>`)
 
-When you pass server-rendered JSX children into an island (`<Modal><ServerMarkdown /></Modal>`), Kay renders those children on the server inside `<kay-slot>`. Hydration preserves the slot untouched and ships **0 bytes** of client JS for its content. The children render before the island, in the page's scope: they read the page's contexts, and an island among them hydrates on its own.
+When you pass server-rendered JSX children into an island (`<Modal><ServerMarkdown /></Modal>`), Prunelle renders those children on the server inside `<pru-slot>`. Hydration preserves the slot untouched and ships **0 bytes** of client JS for its content. The children render before the island, in the page's scope: they read the page's contexts, and an island among them hydrates on its own.
 
 ## When the page changed before hydration
 
-A browser extension or a password manager sometimes adds its own element inside an island before it hydrates. Hydration steps over that element and attaches to the markup kay rendered. If the server rendered something else entirely, the island draws that part again from scratch rather than wiring handlers to the wrong element. When a list has fewer items in the browser than the server rendered, hydration removes the extra rows. Both work in production; in dev, the console also names the island, the element expected and the one found.
+A browser extension or a password manager sometimes adds its own element inside an island before it hydrates. Hydration steps over that element and attaches to the markup prunelle rendered. If the server rendered something else entirely, the island draws that part again from scratch rather than wiring handlers to the wrong element. When a list has fewer items in the browser than the server rendered, hydration removes the extra rows. Both work in production; in dev, the console also names the island, the element expected and the one found.
 
 ## What an island cannot use
 
-The browser renders an island without the page around it, so kay refuses what would differ there:
+The browser renders an island without the page around it, so prunelle refuses what would differ there:
 
 - `<Head>` and `<Suspense>` run during server rendering only. In an island they fail compilation: render them in the page or a layout. `<Catch>` works in both.
-- A context provided outside the island reaches it on the server only. Reading one throws `kay: <Counter> reads a context provided outside the island`: pass the value as a prop. A context the island provides itself works on both sides.
+- A context provided outside the island reaches it on the server only. Reading one throws `prunelle: <Counter> reads a context provided outside the island`: pass the value as a prop. A context the island provides itself works on both sides.
 
 ## Server-only `async` routes and layouts
 
@@ -101,7 +101,7 @@ An `export default async function Page()` route runs strictly on the server. You
 
 ## What an island may import
 
-An island ships to the browser with every module it imports. If any reachable module imports a server-only module (`bun:sqlite`, `node:fs`, `@kayjs/kay/server`, and similar) or reads `process.env`, `kay build` fails and `kay check` names the module and the island that reaches it.
+An island ships to the browser with every module it imports. If any reachable module imports a server-only module (`bun:sqlite`, `node:fs`, `prunelle/server`, and similar) or reads `process.env`, `prunelle build` fails and `prunelle check` names the module and the island that reaches it.
 
 A file that declares server actions is the exception. The browser receives a tiny RPC stub instead of its server code. Importing any non-action export from that file inside an island fails the build.
 

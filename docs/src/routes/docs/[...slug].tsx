@@ -1,8 +1,8 @@
-import type { ContentEntry } from '@kayjs/content'
-import type { RequestContext } from '@kayjs/kay/server'
+import type { ContentEntry } from '@prunelle/content'
+import type { RequestContext } from 'prunelle/server'
 import { join } from 'node:path'
-import { shareCard } from '@kayjs/images'
-import { Head } from '@kayjs/kay'
+import { shareCard } from '@prunelle/images'
+import { Head } from 'prunelle'
 import { type DocFrontmatter, docs, DOCS_ROOT, getFlatNav, getNavGroups, type NavItem, SECTIONS } from '../../content'
 
 export const prerender = true
@@ -36,7 +36,7 @@ export async function load(ctx: RequestContext): Promise<DocPageData | Response>
   const ogImage = shareCard({
     title: entry.data.title,
     badge: sectionLabel,
-    image: join(DOCS_ROOT, 'src/kay-card.svg'),
+    image: join(DOCS_ROOT, 'src/prunelle-card.svg'),
   })
 
   return {
@@ -145,7 +145,7 @@ export default function DocPage({ data }: { data: DocPageData }) {
           <div class="docs-toc-meta">
             <a href="/llms.txt"><span>→</span> View llms.txt (1-page ref)</a>
             <a href="/grammars"><span>→</span> Live UI Grammars</a>
-            <a href={`https://github.com/Kayno0o/kayjs/blob/v2/docs/src/content/docs/${entry.slug}.md`}>
+            <a href={`https://github.com/Kayno0o/prunelle/blob/v2/docs/src/content/docs/${entry.slug}.md`}>
               <span>→</span> Edit on GitHub
             </a>
           </div>

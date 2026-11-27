@@ -1,4 +1,4 @@
-import { toast } from '@kayjs/ui'
+import { toast } from '@prunelle/ui'
 
 export function ToastTrigger() {
   return (

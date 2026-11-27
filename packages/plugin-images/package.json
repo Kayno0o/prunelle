@@ -1,7 +1,7 @@
 {
-  "name": "@kayjs/images",
+  "name": "@prunelle/images",
   "version": "2.0.0-beta.8",
-  "description": "Build-time responsive AVIF/WebP image optimization plugin for Kay v2",
+  "description": "Build-time responsive AVIF/WebP image optimization plugin for Prunelle v2",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -18,10 +18,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Kayno0o/kayjs",
+    "url": "https://github.com/Kayno0o/prunelle",
     "directory": "packages/plugin-images"
   },
   "peerDependencies": {
-    "@kayjs/kay": "^2.0.0-beta.8"
+    "prunelle": "^2.0.0-beta.8"
   }
 }

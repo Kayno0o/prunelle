@@ -1,4 +1,4 @@
-import { signal } from '@kayjs/kay'
+import { signal } from 'prunelle'
 
 export function CopyCommand({ command }: { command: string }) {
   const copied = signal(false)

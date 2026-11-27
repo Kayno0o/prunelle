@@ -1,8 +1,8 @@
-/** @jsxImportSource @kayjs/kay */
+/** @jsxImportSource prunelle */
 // Accessible custom Select (listbox) primitive with aria-activedescendant navigation + hidden input for native <form> submission.
 
-import type { Signal } from '@kayjs/kay'
-import { signal } from '@kayjs/kay'
+import type { Signal } from 'prunelle'
+import { signal } from 'prunelle'
 import { createListPopup, nextUiId, useFieldContext } from './behaviors'
 
 export interface SelectOption {

@@ -5,7 +5,7 @@ import { basename, dirname, join } from 'node:path'
 
 const PREFIX_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
-// Looked up on disk at each call rather than through Bun's resolver, which remembers a package missing at the first lookup and would never see a set installed while `kay dev` runs.
+// Looked up on disk at each call rather than through Bun's resolver, which remembers a package missing at the first lookup and would never see a set installed while `prunelle dev` runs.
 function nodeModulesDirs(root: string): string[] {
   const dirs: string[] = []
   for (let dir = root; ; dir = dirname(dir)) {

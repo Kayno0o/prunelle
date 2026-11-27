@@ -1,5 +1,5 @@
-import type { Context } from '@kayjs/kay'
-import { useContext } from '@kayjs/kay'
+import type { Context } from 'prunelle'
+import { useContext } from 'prunelle'
 
 export interface FieldControlWiring {
   id: string
@@ -8,7 +8,7 @@ export interface FieldControlWiring {
   required: boolean
 }
 
-export const FIELD_CONTEXT_ID = Symbol.for('kay.ui.field')
+export const FIELD_CONTEXT_ID = Symbol.for('pru.ui.field')
 const FIELD_CONTEXT_REF = { id: FIELD_CONTEXT_ID, defaultValue: undefined } as Context<FieldControlWiring | undefined>
 
 export function useFieldContext(): FieldControlWiring | undefined {

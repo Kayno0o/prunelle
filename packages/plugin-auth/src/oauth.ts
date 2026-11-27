@@ -1,4 +1,4 @@
-// Zero-dependency OAuth 2.0 + PKCE (S256) provider definitions for @kayjs/auth.
+// Zero-dependency OAuth 2.0 + PKCE (S256) provider definitions for @prunelle/auth.
 
 export const OAUTH_FETCH_TIMEOUT_MS = 10_000
 
@@ -47,7 +47,7 @@ export function github(config: OAuthPresetConfig): OAuthProvider {
     scopes: config.scopes ?? ['read:user', 'user:email'],
     pkce: false,
     async fetchProfile(accessToken) {
-      const headers = { 'authorization': `Bearer ${accessToken}`, 'accept': 'application/vnd.github+json', 'user-agent': 'kayjs-auth' }
+      const headers = { 'authorization': `Bearer ${accessToken}`, 'accept': 'application/vnd.github+json', 'user-agent': 'prunelle-auth' }
       const userRes = await fetch('https://api.github.com/user', {
         headers,
         signal: AbortSignal.timeout(OAUTH_FETCH_TIMEOUT_MS),

@@ -1,39 +1,39 @@
-# @kayjs/mail Reference
+# @prunelle/mail Reference
 
 > Zero-dependency email delivery (Resend HTTP or custom transport) with a dev-only HTML/JSON outbox preview.
 
 ## Imports
 
-- `@kayjs/mail`: `createMailer`, `resend`, `MailNotConfiguredError`; types `Mailer`, `MailerOptions`, `MailPreviewOptions`, `MailMessage`, `SentMail`, `MailAddress`, `MailTransport`.
+- `@prunelle/mail`: `createMailer`, `resend`, `MailNotConfiguredError`; types `Mailer`, `MailerOptions`, `MailPreviewOptions`, `MailMessage`, `SentMail`, `MailAddress`, `MailTransport`.
 
 ## Setup (`createMailer(options?)`)
 
-`createMailer()` returns a single object that is both the `KayPlugin` (register in `kay.config.ts`) and the handle routes/actions call `mail.send()` on:
+`createMailer()` returns a single object that is both the `PrunellePlugin` (register in `prunelle.config.ts`) and the handle routes/actions call `mail.send()` on:
 
 - `from`: default sender (`string | { name, address }`, falls back to `process.env.MAIL_FROM`, then `'noreply@localhost'` outside production: a production start refuses without one).
 - `to`: default recipient(s) (falls back to `process.env.MAIL_TO`); `send()` with no recipient throws, in every mode.
 - A production start refuses with no transport (`transport` or `RESEND_API_KEY`) unless `optional: true`.
 - `transport`: `MailTransport` (`{ send(mail: SentMail): Promise<void> }`). Defaults to `resend()` when `process.env.RESEND_API_KEY` is set.
 - `optional`: when `false`/omitted, calling `send()` in `NODE_ENV=production` without a transport throws `MailNotConfiguredError`.
-- `previewRoute`: dev outbox URL (default `'/_kay/mail'`). `preview: false` disables the preview.
+- `previewRoute`: dev outbox URL (default `'/_pru/mail'`). `preview: false` disables the preview.
 
 ## Mounted Routes (dev/test only — never in production)
 
-- `GET /_kay/mail` — HTML outbox viewer (HTML bodies rendered in sandboxed `<iframe>`s).
-- `GET /_kay/mail.json` — `{ count, messages }` JSON dump of captured messages (up to 100 in memory; production keeps no copy).
+- `GET /_pru/mail` — HTML outbox viewer (HTML bodies rendered in sandboxed `<iframe>`s).
+- `GET /_pru/mail.json` — `{ count, messages }` JSON dump of captured messages (up to 100 in memory; production keeps no copy).
 
 ## Handle & Transport API
 
 - `await mail.send({ from?, to?, replyTo?, subject, text?, html? })` → `SentMail` (`{ id, from, to, replyTo?, subject, text?, html?, sentAt }`).
 - `mail.isConfigured()`: `boolean`. `mail.outbox`: `SentMail[]`. `mail.clearOutbox()`.
 - `resend({ apiKey?, endpoint?, timeoutMs?, retries? })`: built-in Resend HTTP transport using `fetch()`. Each request times out after `timeoutMs` (10 000). A `429` or `5xx` answer is retried `retries` times (2), after its `retry-after` or 0.5 s doubling, capped at 5 s, under the mail's id as `Idempotency-Key`, so a retry never sends twice.
-- Works directly as `createAuth({ mailer: mail })` with `@kayjs/auth`.
+- Works directly as `createAuth({ mailer: mail })` with `@prunelle/auth`.
 
 ## Snippet
 
 ```ts
-// src/mail.ts (and register `plugins: [mail]` in kay.config.ts)
-import { createMailer, resend } from '@kayjs/mail'
+// src/mail.ts (and register `plugins: [mail]` in prunelle.config.ts)
+import { createMailer, resend } from '@prunelle/mail'
 
 export const mail = createMailer({
   from: 'App <noreply@example.com>',

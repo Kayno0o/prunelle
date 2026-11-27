@@ -1,9 +1,9 @@
-import type { KayChild } from '@kayjs/kay'
+import type { PrunelleChild } from 'prunelle'
 
 export function Callout({ title, tone = 'info', children }: {
   title: string
   tone?: 'info' | 'tip' | 'warning' | undefined
-  children?: KayChild
+  children?: PrunelleChild
 }) {
   return (
     <aside class="docs-callout" data-tone={tone}>

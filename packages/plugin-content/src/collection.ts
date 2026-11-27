@@ -1,19 +1,19 @@
 // Typed file-backed Markdown collections with caching, schema validation, localization, and lazy renderers.
 
-import type { ContentImageResolver, ContentImageResult } from '@kayjs/kay/config'
-import { isInside } from '@kayjs/kay/config'
-import type { StandardSchemaV1 } from '@kayjs/kay/server'
+import type { ContentImageResolver, ContentImageResult } from 'prunelle/config'
+import { isInside } from 'prunelle/config'
+import type { StandardSchemaV1 } from 'prunelle/server'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { isAbsolute, join, relative, resolve } from 'node:path'
-import { formatIssuePath, validateSchemaSync } from '@kayjs/kay/server'
+import { formatIssuePath, validateSchemaSync } from 'prunelle/server'
 import { currentApp } from './app'
 import { findFrontmatterFieldLine, parseFrontmatter } from './frontmatter'
 import { renderMarkdown } from './markdown'
 
-export const COLLECTION_VERSION_KEY = Symbol.for('kay.content.collectionVersion')
-export const COLLECTION_VALIDATE_KEY = Symbol.for('kay.content.validateAll')
-export const COLLECTION_DIR_FOR_ROOT_KEY = Symbol.for('kay.content.dirForRoot')
-export const COLLECTION_OWNER_ROOT_KEY = Symbol.for('kay.content.ownerRoot')
+export const COLLECTION_VERSION_KEY = Symbol.for('pru.content.collectionVersion')
+export const COLLECTION_VALIDATE_KEY = Symbol.for('pru.content.validateAll')
+export const COLLECTION_DIR_FOR_ROOT_KEY = Symbol.for('pru.content.dirForRoot')
+export const COLLECTION_OWNER_ROOT_KEY = Symbol.for('pru.content.ownerRoot')
 
 export interface InternalCollection extends Collection<unknown> {
   [COLLECTION_VERSION_KEY]?: () => number
@@ -72,11 +72,11 @@ export type MarkdownImageResolver = ContentImageResolver
 export interface CollectionRenderConfig {
   /** Custom syntax highlighter for fenced code blocks (e.g. Shiki). */
   highlight?: CodeHighlighter | undefined
-  /** Embedded Kay TSX components usable directly inside Markdown (`<Note>`, `<BarChart rows={[...]} />`). */
+  /** Embedded Prunelle TSX components usable directly inside Markdown (`<Note>`, `<BarChart rows={[...]} />`). */
   components?: Record<string, MarkdownComponent> | undefined
   /** Wrap h2-h6 headings in self-referencing `<a href="#id">` links. */
   headingLinks?: boolean | undefined
-  /** Optional image resolver (set to `false` to disable automatic `@kayjs/images` optimization). */
+  /** Optional image resolver (set to `false` to disable automatic `@prunelle/images` optimization). */
   resolveImage?: MarkdownImageResolver | false | undefined
   /** Opt out of default Markdown HTML sanitization for fully trusted content (default: false). */
   trusted?: boolean | undefined
@@ -89,7 +89,7 @@ export interface RenderMarkdownOptions {
   headingLinks?: boolean | undefined
   /** Active locale passed into embedded components as `props.locale`. */
   locale?: string | undefined
-  /** Optional image resolver for rewriting `<img src="...">` (defaults to auto-wired `@kayjs/images` when active; `false` disables). */
+  /** Optional image resolver for rewriting `<img src="...">` (defaults to auto-wired `@prunelle/images` when active; `false` disables). */
   resolveImage?: MarkdownImageResolver | false | undefined
   /** Source file path passed to `resolveImage`. */
   file?: string | undefined
@@ -108,11 +108,11 @@ export interface CollectionOptions<TData = Record<string, unknown>> {
   schema?: StandardSchemaV1<unknown, TData> | undefined
   /** Custom syntax highlighter for fenced code blocks (e.g. Shiki). */
   highlight?: CodeHighlighter | undefined
-  /** Embedded Kay TSX components usable directly inside Markdown (`<Note>`, `<BarChart rows={[...]} />`). */
+  /** Embedded Prunelle TSX components usable directly inside Markdown (`<Note>`, `<BarChart rows={[...]} />`). */
   components?: Record<string, MarkdownComponent> | undefined
   /** Wrap h2-h6 headings in self-referencing `<a href="#id">` links. */
   headingLinks?: boolean | undefined
-  /** Optional image resolver for rewriting Markdown images (defaults to auto-wired `@kayjs/images`; `false` disables). */
+  /** Optional image resolver for rewriting Markdown images (defaults to auto-wired `@prunelle/images`; `false` disables). */
   resolveImage?: MarkdownImageResolver | false | undefined
   /** Opt out of default Markdown HTML sanitization for fully trusted collections (default: false). */
   trusted?: boolean | undefined
@@ -147,9 +147,9 @@ export interface CollectionOptionsWithoutSchema extends Omit<CollectionOptions<R
 function resolveCollectionDir(dir: string, explicitRoot?: string): string {
   if (isAbsolute(dir))
     return dir
-  const kayRoot = explicitRoot ?? currentApp.root()
-  if (typeof kayRoot === 'string' && kayRoot !== '') {
-    const candidate = resolve(kayRoot, dir)
+  const prunelleRoot = explicitRoot ?? currentApp.root()
+  if (typeof prunelleRoot === 'string' && prunelleRoot !== '') {
+    const candidate = resolve(prunelleRoot, dir)
     if (existsSync(candidate))
       return candidate
   }
@@ -196,7 +196,7 @@ function validateCollectionFiles(
     }
     catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      errors.push(`${rel}:1:1: error: @kayjs/content: invalid YAML frontmatter: ${msg}`)
+      errors.push(`${rel}:1:1: error: @prunelle/content: invalid YAML frontmatter: ${msg}`)
       continue
     }
     if (schema === undefined)
@@ -204,13 +204,13 @@ function validateCollectionFiles(
     const checked = validateSchemaSync(
       schema,
       rawData,
-      `@kayjs/content: async frontmatter schema is not supported (${rel})`,
+      `@prunelle/content: async frontmatter schema is not supported (${rel})`,
     )
     if (!checked.ok) {
       for (const issue of checked.issues) {
         const path = formatIssuePath(issue)
         const line = findFrontmatterFieldLine(rawSource, path || undefined)
-        errors.push(`${rel}:${line}:1: error: @kayjs/content: ${path ? `${path}: ` : ''}${issue.message}`)
+        errors.push(`${rel}:${line}:1: error: @prunelle/content: ${path ? `${path}: ` : ''}${issue.message}`)
       }
     }
   }
@@ -235,19 +235,19 @@ export function walkCollectionDefFiles(dir: string, out: string[] = []): string[
 export const DEFINE_COLLECTION_RE = /\bdefineCollection\s*(?:<[^>]*>)?\s*\(/
 const REGEXP_SPECIAL_RE = /[.*+?^${}()|[\]\\]/g
 
-const kayJsxRoots = new Set<string>()
+const prunelleJsxRoots = new Set<string>()
 
-// Bun gives a runtime import the JSX source of the working directory's tsconfig, not the app's, so `kay check <dir>` run elsewhere would import its routes as React.
-function importAppTsxWithKayJsx(root: string): void {
-  if (kayJsxRoots.has(root))
+// Bun gives a runtime import the JSX source of the working directory's tsconfig, not the app's, so `prunelle check <dir>` run elsewhere would import its routes as React.
+function importAppTsxWithPrunelleJsx(root: string): void {
+  if (prunelleJsxRoots.has(root))
     return
-  kayJsxRoots.add(root)
+  prunelleJsxRoots.add(root)
   const filter = new RegExp(`^${`${root}/`.replace(REGEXP_SPECIAL_RE, '\\$&')}.*\\.tsx$`)
   Bun.plugin({
-    name: `@kayjs/content: kay JSX under ${root}`,
+    name: `@prunelle/content: prunelle JSX under ${root}`,
     setup(build) {
       // The pragma goes last, where it moves no line of a stack trace.
-      build.onLoad({ filter }, async ({ path }) => ({ contents: `${await Bun.file(path).text()}\n/** @jsxImportSource @kayjs/kay */\n`, loader: 'tsx' }))
+      build.onLoad({ filter }, async ({ path }) => ({ contents: `${await Bun.file(path).text()}\n/** @jsxImportSource prunelle */\n`, loader: 'tsx' }))
     },
   })
 }
@@ -257,7 +257,7 @@ export async function discoverAppCollections(root: string): Promise<void> {
   const prevDiscoverRoot = discoverRoot
   discoverRoot = absRoot
   try {
-    importAppTsxWithKayJsx(absRoot)
+    importAppTsxWithPrunelleJsx(absRoot)
     const srcDir = resolve(absRoot, 'src')
     for (const file of walkCollectionDefFiles(srcDir)) {
       let text: string
@@ -323,7 +323,7 @@ export function defineCollection<TData = Record<string, unknown>>(options: Colle
         throw err
       })
       throw new Error(
-        `@kayjs/content: collection "${options.dir}" uses an async "render" loader; call \`await entry.render()\` (e.g. in \`load()\`) before reading \`entry.html\` or \`entry.headings\`.`,
+        `@prunelle/content: collection "${options.dir}" uses an async "render" loader; call \`await entry.render()\` (e.g. in \`load()\`) before reading \`entry.html\` or \`entry.headings\`.`,
       )
     }
     resolvedRenderOpts = mergeRenderConfig(loaded)
@@ -349,7 +349,7 @@ export function defineCollection<TData = Record<string, unknown>>(options: Colle
   let cacheVersion = 0
 
   function isDevMode(): boolean {
-    return currentApp.dev() ?? (process.env.KAY_DEV === '1')
+    return currentApp.dev() ?? (process.env.PRUNELLE_DEV === '1')
   }
 
   function loadFile(absFile: string, baseDir: string, entryLocale?: string): ContentEntry<TData> | null {
@@ -374,11 +374,11 @@ export function defineCollection<TData = Record<string, unknown>>(options: Colle
       const checked = validateSchemaSync(
         options.schema,
         rawData,
-        `@kayjs/content: async frontmatter schema is not supported (${slug})`,
+        `@prunelle/content: async frontmatter schema is not supported (${slug})`,
       )
       if (!checked.ok) {
         const msg = checked.issues.map(i => i.message).join('; ')
-        throw new Error(`@kayjs/content: invalid frontmatter in "${absFile}": ${msg}`)
+        throw new Error(`@prunelle/content: invalid frontmatter in "${absFile}": ${msg}`)
       }
       data = checked.value
     }

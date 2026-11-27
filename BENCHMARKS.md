@@ -1,28 +1,28 @@
-# Kay v1 vs Kay v2 — Real-App Benchmarks
+# Prunelle v1 vs Prunelle v2 — Real-App Benchmarks
 
 All benchmarks below were run interleaved on the same host (Linux x64, Bun `1.4.5`) against identical databases/content with clean cache handling and recorded host load averages.
 
 ---
 
-## 1. Interactive Full-Stack App — `polaris` (`orbit` bookmarks + SQLite + `@kayjs/ui` + `@kayjs/mcp` + `--compile`)
+## 1. Interactive Full-Stack App — `polaris` (`orbit` bookmarks + SQLite + `@prunelle/ui` + `@prunelle/mcp` + `--compile`)
 
 - **Date:** 2026-11-24
-- **Base (v1):** `orbit@ad21c7f` (Kay `1.112.2` + Elysia `1.4.31`)
-- **After (v2):** `orbit-v2@5b67ddf` on `kayjs@56e0c2c` / `v2.0.0-alpha.7` (no Elysia, native `Bun.serve`)
-- **Dataset:** 100 seeded bookmarks across 8 folders in SQLite (`@kaynooo/pg-orm`), compiled standalone binary with `KAY_PROXY_KEY` and `KAY_SECRET` enabled (matching production)
+- **Base (v1):** `orbit@ad21c7f` (Prunelle `1.112.2` + Elysia `1.4.31`)
+- **After (v2):** `orbit-v2@5b67ddf` on `prunelle@56e0c2c` / `v2.0.0-alpha.7` (no Elysia, native `Bun.serve`)
+- **Dataset:** 100 seeded bookmarks across 8 folders in SQLite (`@kaynooo/pg-orm`), compiled standalone binary with `PRUNELLE_PROXY_KEY` and `PRUNELLE_SECRET` enabled (matching production)
 - **Host load average:** `0.74` → `1.10`
-- **Issue:** `kaynooo/kayjs#3523`
+- **Issue:** `kaynooo/prunelle#3523`
 
 | Metric | Before (v1 `ad21c7f`) | After (v2 `56e0c2c`) | Delta |
 | --- | ---: | ---: | ---: |
-| Cold `kay build` wall | 2,796.7 ms | **167.9 ms** | **-94.0% (16.7x)** |
-| Cold `kay build` CPU | 7,046.6 ms | **362.1 ms** | **-94.9%** |
-| Cold `kay build` Peak RSS | 484.8 MiB | **154.9 MiB** | **-68.0%** |
-| Warm `kay build` wall (median of 3) | 1,715.4 ms | **239.1 ms** | **-86.1% (7.2x)** |
-| Warm `kay build` CPU (median of 3) | 3,994.1 ms | **460.0 ms** | **-88.5%** |
-| Warm `kay build` Peak RSS (median of 3) | 440.6 MiB | **218.2 MiB** | **-50.5%** |
-| `kay build --compile` wall | 2,903.8 ms | **465.6 ms** | **-84.0% (6.2x)** |
-| `kay build --compile` CPU | 6,342.5 ms | **828.0 ms** | **-86.9%** |
+| Cold `prunelle build` wall | 2,796.7 ms | **167.9 ms** | **-94.0% (16.7x)** |
+| Cold `prunelle build` CPU | 7,046.6 ms | **362.1 ms** | **-94.9%** |
+| Cold `prunelle build` Peak RSS | 484.8 MiB | **154.9 MiB** | **-68.0%** |
+| Warm `prunelle build` wall (median of 3) | 1,715.4 ms | **239.1 ms** | **-86.1% (7.2x)** |
+| Warm `prunelle build` CPU (median of 3) | 3,994.1 ms | **460.0 ms** | **-88.5%** |
+| Warm `prunelle build` Peak RSS (median of 3) | 440.6 MiB | **218.2 MiB** | **-50.5%** |
+| `prunelle build --compile` wall | 2,903.8 ms | **465.6 ms** | **-84.0% (6.2x)** |
+| `prunelle build --compile` CPU | 6,342.5 ms | **828.0 ms** | **-86.9%** |
 | Standalone binary size | 125.63 MiB | **104.77 MiB** | **-16.6%** |
 | Cold boot to first 200 OK (median) | 98.9 ms | **72.5 ms** | **-26.7%** |
 | Idle `RssAnon` (median) | 39.4 MiB | **25.6 MiB** | **-35.0%** |
@@ -39,8 +39,8 @@ All benchmarks below were run interleaved on the same host (Linux x64, Bun `1.4.
 ## 2. Static Content Site — `devlog` (`https://log.kaynooo.fr/`, Markdown + Shiki + AVIF/WebP images + `--static`)
 
 - **Date:** 2026-11-24
-- **Base (v1):** `devlog@bbe5842` (Kay `1.104`)
-- **After (v2):** `devlog@21b7dc3` (Kay `2.0.0-alpha.6`, `@kayjs/content` + `@kayjs/images` + `@kayjs/tailwind` + `@kayjs/seo`)
+- **Base (v1):** `devlog@bbe5842` (Prunelle `1.104`)
+- **After (v2):** `devlog@21b7dc3` (Prunelle `2.0.0-alpha.6`, `@prunelle/content` + `@prunelle/images` + `@prunelle/tailwind` + `@prunelle/seo`)
 - **Host load average:** `2.14` → `1.96`
 
 | Metric | Before (v1 `bbe5842`) | After (v2 `21b7dc3`) | Delta |

@@ -1,0 +1,14 @@
+// Prunelle v2 public Plugin API & config helpers.
+// Strict architectural rule: every non-core capability (@prunelle/tailwind, @prunelle/spa, @prunelle/i18n, etc.)
+// is built strictly through these public hooks - never hardcoded in @prunelle/core.
+
+export { defineConfig, definePlugin, pickRuntimeConfig, resolveServerConfig } from './config'
+export { createAppContext, getAppContext, runWithAppContext } from './context'
+export type { AppRuntimeContext, CreateAppContextOptions } from './context'
+export { loadConfig } from './load'
+export { resolvePlugins } from './order'
+export { CONTENT_IMAGE_RESOLVER_SERVICE, I18N_CONFIG_SERVICE, serviceKey } from './services'
+export type { ActiveI18nConfig, ContentImageResolver, ContentImageResult, ServiceKey } from './services'
+export type { ComplianceConfig, ComplianceRule } from '../compiler/compliance'
+export type { ConsentConfig } from '../server/consent'
+export type { BuildPluginContext, BuildPluginTarget, CheckPluginContext, DocumentHeadContext, FinalizeBuildContext, PrunelleConfig, PrunellePlugin, MiddlewareOptions, PluginRouteOptions, RequiresPluginContext, ServerErrorInfo, ServerPluginAPI, ServerRuntimeConfig } from './types'

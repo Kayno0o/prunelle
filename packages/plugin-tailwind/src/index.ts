@@ -1,14 +1,14 @@
-// @kayjs/tailwind — opt-in CSS & Tailwind v4 plugin using KayPlugin.bunPlugins + KayPlugin.css.
+// @prunelle/tailwind — opt-in CSS & Tailwind v4 plugin using PrunellePlugin.bunPlugins + PrunellePlugin.css.
 // Auto-loads `bun-plugin-tailwind` from the app root when `bunPlugin` is omitted.
 
 import type { BunPlugin } from 'bun'
-import type { KayPlugin } from '@kayjs/kay/config'
+import type { PrunellePlugin } from 'prunelle/config'
 import { createRequire } from 'node:module'
 import { join } from 'node:path'
-import { definePlugin, serviceKey } from '@kayjs/kay/config'
+import { definePlugin, serviceKey } from 'prunelle/config'
 
-const UI_KUI_LAYER_SERVICE = serviceKey<boolean>('kay.ui.kuiLayer')
-// Declares @layer kui after Tailwind's base Preflight and before utilities so utilities override @kayjs/ui without Preflight wiping component styles.
+const UI_KUI_LAYER_SERVICE = serviceKey<boolean>('prunelle.ui.kuiLayer')
+// Declares @layer kui after Tailwind's base Preflight and before utilities so utilities override @prunelle/ui without Preflight wiping component styles.
 const KUI_LAYER_ORDER_TAG = '<style>@layer properties,theme,base,kui,components,utilities;</style>'
 
 export interface TailwindPluginOptions {
@@ -18,7 +18,7 @@ export interface TailwindPluginOptions {
   bunPlugin?: BunPlugin | undefined
 }
 
-const MISSING_PLUGIN_MESSAGE = '@kayjs/tailwind: "bun-plugin-tailwind" could not be resolved; CSS will not be processed by Tailwind. Install it with `bun add -d bun-plugin-tailwind` or pass tailwind({ bunPlugin }).'
+const MISSING_PLUGIN_MESSAGE = '@prunelle/tailwind: "bun-plugin-tailwind" could not be resolved; CSS will not be processed by Tailwind. Install it with `bun add -d bun-plugin-tailwind` or pass tailwind({ bunPlugin }).'
 
 function loadDefaultTailwindPlugin(root: string): BunPlugin | undefined {
   for (const base of [join(root, 'package.json'), import.meta.url]) {
@@ -36,12 +36,12 @@ function loadDefaultTailwindPlugin(root: string): BunPlugin | undefined {
   return undefined
 }
 
-export function tailwind(options: TailwindPluginOptions = {}): KayPlugin {
+export function tailwind(options: TailwindPluginOptions = {}): PrunellePlugin {
   let warnedMissing = false
 
   return definePlugin({
-    name: '@kayjs/tailwind',
-    after: ['@kayjs/ui'],
+    name: '@prunelle/tailwind',
+    after: ['@prunelle/ui'],
     css: [options.css ?? 'src/app.css'],
     build(ctx) {
       if (ctx.inject(UI_KUI_LAYER_SERVICE) === true)

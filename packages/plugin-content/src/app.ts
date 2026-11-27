@@ -1,8 +1,8 @@
-// The app a collection renders for. Collections are read from route modules, not through the plugin, so each read asks kay which app the current request or build belongs to.
+// The app a collection renders for. Collections are read from route modules, not through the plugin, so each read asks prunelle which app the current request or build belongs to.
 
-import type { ContentImageResolver } from '@kayjs/kay/config'
-import { CONTENT_IMAGE_RESOLVER_SERVICE, I18N_CONFIG_SERVICE } from '@kayjs/kay/config'
-import { getAppContext } from '@kayjs/kay/internal/server'
+import type { ContentImageResolver } from 'prunelle/config'
+import { CONTENT_IMAGE_RESOLVER_SERVICE, I18N_CONFIG_SERVICE } from 'prunelle/config'
+import { getAppContext } from 'prunelle/internal/server'
 
 export const currentApp = {
   root: (): string | undefined => getAppContext()?.root,

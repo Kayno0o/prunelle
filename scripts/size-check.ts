@@ -80,8 +80,8 @@ interface OxcParserModule {
   visitorKeys: Record<string, readonly string[]>
 }
 
-const requireFromKay = createRequire(new URL('../packages/kay/package.json', import.meta.url))
-const { parseSync, visitorKeys } = requireFromKay('oxc-parser') as OxcParserModule
+const requireFromPrunelle = createRequire(new URL('../packages/prunelle/package.json', import.meta.url))
+const { parseSync, visitorKeys } = requireFromPrunelle('oxc-parser') as OxcParserModule
 
 const ROOT = resolve(import.meta.dir, '..')
 const DEFAULT_RATCHET = join(import.meta.dir, 'size-ratchet.json')

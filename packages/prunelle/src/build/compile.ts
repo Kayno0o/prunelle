@@ -1,0 +1,127 @@
+// Single-executable standalone compiler (`prunelle build --compile [outfile]`)
+// Embeds routes, plugins, prerendered HTML, and native zero-copy assets via `with { type: "file" }`.
+
+import type { BunPlugin } from 'bun'
+import type { BuildManifest } from './index'
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { formatBunBuildLogs } from './files'
+import { SERVER_ENTRY_FILE } from './server-entry'
+
+export interface CompileExecutableOptions {
+  root: string
+  outDir: string
+  clientDir: string
+  manifest: BuildManifest
+  assetPrefix: string
+  site?: string | undefined
+  outfile: string
+  resolvePrunelleSpecifier: (specifier: string) => string | undefined
+  bunPlugins?: BunPlugin[] | undefined
+}
+
+export async function compileExecutable(opts: CompileExecutableOptions): Promise<void> {
+  const { root, outDir, clientDir, manifest, assetPrefix, site, outfile, resolvePrunelleSpecifier, bunPlugins = [] } = opts
+  const entryPath = join(outDir, '__compile_entry.ts')
+  const prodEnvPath = join(outDir, '__compile_prod_env.ts')
+  // Evaluated first via ESM static import order so `prunelle.config.ts` and route modules see NODE_ENV=production!
+  writeFileSync(prodEnvPath, `const _envKey = 'NODE_ENV';\nprocess.env[_envKey] ??= 'production';\n`)
+  const entryJs = join(outDir, 'server', SERVER_ENTRY_FILE)
+  const lifecycle = join(import.meta.dir, '../server/lifecycle.ts')
+  const imports: string[] = [`import ${JSON.stringify(prodEnvPath)};`, `import { createApp, prunelleConfig } from ${JSON.stringify(entryJs)};`, `import { handleSignals } from ${JSON.stringify(lifecycle)};`]
+
+  // Embed client assets, public files and prerendered pages natively via `with { type: "file" }` (0 base64, 0 startup decode!), each with the sidecars the build compressed it into.
+  let fileIdx = 0
+  const embed = (entries: string[], rel: string, abs: string): void => {
+    for (const ext of ['', '.br', '.gz']) {
+      if (ext === '' || existsSync(`${abs}${ext}`)) {
+        const v = `_f${fileIdx++}`
+        imports.push(`import ${v} from ${JSON.stringify(`${abs}${ext}`)} with { type: "file" };`)
+        entries.push(`${JSON.stringify(`${rel}${ext}`)}: ${v}`)
+      }
+    }
+  }
+  const embeddedAssets: string[] = []
+  for (const rel of [...manifest.assets, ...(manifest.carriedAssets ?? [])]) {
+    const abs = join(clientDir, rel)
+    if (existsSync(abs))
+      embed(embeddedAssets, rel, abs)
+  }
+  const embeddedPublic: string[] = []
+  const embeddedPublicEtags: string[] = []
+  for (const rel of manifest.publicFiles) {
+    const abs = join(outDir, 'public', rel)
+    if (!existsSync(abs))
+      continue
+    embed(embeddedPublic, rel, abs)
+    embeddedPublicEtags.push(`${JSON.stringify(rel)}: ${JSON.stringify(`W/"${Bun.hash(readFileSync(abs)).toString(36)}"`)}`)
+  }
+  const embeddedPrerenderedFiles: string[] = []
+  const embeddedPrerenderedEtags: string[] = []
+  for (const r of manifest.routes) {
+    if (r.prerendered) {
+      for (const [, relHtml] of Object.entries(r.prerendered)) {
+        const abs = join(outDir, relHtml)
+        if (!existsSync(abs))
+          continue
+        embed(embeddedPrerenderedFiles, relHtml, abs)
+        // An embedded file has no mtime to version it by.
+        embeddedPrerenderedEtags.push(`${JSON.stringify(relHtml)}: ${JSON.stringify(`W/"${Bun.hash(readFileSync(abs)).toString(36)}"`)}`)
+      }
+    }
+  }
+
+  const siteProp = site !== undefined ? ` site: ${JSON.stringify(site)},` : ''
+  const code = [
+    ...imports,
+    `const manifest = ${JSON.stringify(manifest)};`,
+    `const assets = { ${embeddedAssets.join(', ')} };`,
+    `const publicAssets = { ${embeddedPublic.join(', ')} };`,
+    `const publicEtags = { ${embeddedPublicEtags.join(', ')} };`,
+    `const prerenderedFiles = { ${embeddedPrerenderedFiles.join(', ')} };`,
+    `const prerenderedEtags = { ${embeddedPrerenderedEtags.join(', ')} };`,
+    `const port = Number(process.env.PORT || prunelleConfig.port || 3000);`,
+    `const hostname = process.env.HOST || undefined;`,
+    `const formatHost = (h: string) => h.includes(':') && !h.startsWith('[') ? \`[\${h}]\` : h;`,
+    `if (Bun.argv.includes('--health')) { const rawHost = !hostname || hostname === '0.0.0.0' || hostname === '::' ? '127.0.0.1' : hostname; const r = await fetch(\`http://\${formatHost(rawHost)}:\${port}/\`).catch(() => null); process.exit(r && r.status < 500 ? 0 : 1); }`,
+    `const app = await createApp({ assetPrefix: ${JSON.stringify(assetPrefix)},${siteProp} manifest, assets, publicAssets, publicEtags, prerenderedFiles, prerenderedEtags });`,
+    `const server = app.serve(port, hostname);`,
+    `handleSignals(app, server);`,
+    `console.log(\`prunelle server listening on http://\${formatHost(hostname ?? 'localhost')}:\${server.port}\`);`,
+  ].join('\n')
+
+  writeFileSync(entryPath, code)
+  try {
+    const prunelleResolvePlugin: BunPlugin = {
+      name: 'prunelle-compile-resolve',
+      setup(b) {
+        b.onResolve({ filter: /^prunelle(?:\/.*)?$/ }, (args) => {
+          const resolved = resolvePrunelleSpecifier(args.path)
+          return resolved !== undefined ? { path: resolved } : undefined
+        })
+      },
+    }
+    let res: Awaited<ReturnType<typeof Bun.build>>
+    try {
+      res = await Bun.build({
+        entrypoints: [entryPath],
+        compile: { outfile },
+        minify: true,
+        plugins: [prunelleResolvePlugin, ...bunPlugins],
+      })
+    }
+    catch (err) {
+      if (err instanceof AggregateError && err.errors.length > 0)
+        throw new Error(`prunelle build: --compile failed:\n${formatBunBuildLogs(err.errors, root)}`)
+      throw err
+    }
+    if (!res.success) {
+      const msgs = formatBunBuildLogs(res.logs, root)
+      throw new Error(`prunelle build: --compile failed:\n${msgs}`)
+    }
+  }
+  finally {
+    rmSync(entryPath, { force: true })
+    rmSync(prodEnvPath, { force: true })
+  }
+}

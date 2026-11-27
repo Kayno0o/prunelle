@@ -1,12 +1,12 @@
-// OG shareCard() generator for @kayjs/images:
+// OG shareCard() generator for @prunelle/images:
 // Renders a crisp 1200x630 SVG social card and rasterizes asynchronously to PNG via `rsvg-convert` or `magick`
-// (cached by content hash in `.kay-cache/images/` at build time, or served from memory at runtime for --compile).
+// (cached by content hash in `.prunelle-cache/images/` at build time, or served from memory at runtime for --compile).
 
 import { existsSync, mkdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { isInside, serviceKey } from '@kayjs/kay/config'
-import { getAppContext } from '@kayjs/kay/internal/server'
-import { escAttr } from '@kayjs/kay/server'
+import { isInside, serviceKey } from 'prunelle/config'
+import { getAppContext } from 'prunelle/internal/server'
+import { escAttr } from 'prunelle/server'
 import {
   computeEtag,
   hasMagick,
@@ -24,7 +24,7 @@ export interface ShareCardDefaults {
   site?: string | undefined
   /** Output public directory where `og/*.png` is written (default: `dist/public`). */
   publicDir?: string | undefined
-  /** Disk cache directory (default: `.kay-cache/images`). */
+  /** Disk cache directory (default: `.prunelle-cache/images`). */
   cacheDir?: string | undefined
   background?: string | undefined
   color?: string | undefined
@@ -46,7 +46,7 @@ export interface ShareCardInput {
   accent?: string | undefined
 }
 
-export const SHARE_CARD_CONFIG_SERVICE = serviceKey<ShareCardDefaults>('kay.images.shareCardConfig')
+export const SHARE_CARD_CONFIG_SERVICE = serviceKey<ShareCardDefaults>('prunelle.images.shareCardConfig')
 
 let standaloneCardConfig: ShareCardDefaults | undefined
 
@@ -219,7 +219,7 @@ export function shareCard(input: ShareCardInput, overrides?: ShareCardDefaults):
       return `${site}/og/${fileName}`
     }
 
-    const cacheDir = resolve(cfg.cacheDir ?? '.kay-cache/images')
+    const cacheDir = resolve(cfg.cacheDir ?? '.prunelle-cache/images')
     const cachedPng = join(cacheDir, `og-${fileName}`)
     if (existsSync(cachedPng)) {
       writeFileSync(outPath, readFileSync(cachedPng))

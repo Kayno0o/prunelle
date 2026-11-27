@@ -1,15 +1,15 @@
 {
   "id": "01-static-blog-i18n",
   "title": "Localized Static Blog (0 KB JS)",
-  "description": "Localized English/French Markdown blog with @kayjs/content, @kayjs/i18n, Standard Schema frontmatter, RSS feed, and prerendered posts shipping 0 KB client JS.",
+  "description": "Localized English/French Markdown blog with @prunelle/content, @prunelle/i18n, Standard Schema frontmatter, RSS feed, and prerendered posts shipping 0 KB client JS.",
   "template": "blog",
   "maxJs": "0kb",
   "packages": [
-    "@kayjs/kay",
-    "@kayjs/content",
-    "@kayjs/i18n",
-    "@kayjs/seo",
-    "@kayjs/ui"
+    "prunelle",
+    "@prunelle/content",
+    "@prunelle/i18n",
+    "@prunelle/seo",
+    "@prunelle/ui"
   ],
   "tags": [
     "content",

@@ -1,6 +1,6 @@
 // The polite live region a swap announces itself in, shared by `spa()` and `regions()`.
 
-export const ANNOUNCER_ID = '__kay-spa-announcer'
+export const ANNOUNCER_ID = '__pru-spa-announcer'
 
 function applySrOnlyStyle(el: HTMLElement): void {
   const s = el.style

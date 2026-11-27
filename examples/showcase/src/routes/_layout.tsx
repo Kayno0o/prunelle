@@ -1,13 +1,13 @@
-import type { LayoutProps } from '@kayjs/kay'
-import { Head } from '@kayjs/kay'
-import { Toaster } from '@kayjs/ui'
+import type { LayoutProps } from 'prunelle'
+import { Head } from 'prunelle'
+import { Toaster } from '@prunelle/ui'
 import { GrammarSwitcher } from '../components/GrammarSwitcher'
 
 export default function Layout({ children, locals }: LayoutProps) {
   return (
     <>
       <Head>
-        <title>Kay v2 — @kayjs/ui Grammar Switcher & @kayjs/auth Showcase</title>
+        <title>Prunelle v2 — @prunelle/ui Grammar Switcher & @prunelle/auth Showcase</title>
         <link id="kui-grammar" rel="stylesheet" href="/grammars/editorial.css" />
         <style>{`
           html { background: var(--ui-paper, #fff); transition: background 180ms ease; }
@@ -19,7 +19,7 @@ export default function Layout({ children, locals }: LayoutProps) {
       <div class="shell">
         <header class="topbar" data-layout="split">
           <div data-layout="cluster">
-            <strong>Kay v2 UI</strong>
+            <strong>Prunelle v2 UI</strong>
             <GrammarSwitcher initial="editorial" />
           </div>
           <nav data-layout="cluster">

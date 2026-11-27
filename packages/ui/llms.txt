@@ -1,22 +1,22 @@
-# @kayjs/ui Reference
+# @prunelle/ui Reference
 
 > Platform-first headless UI primitives and pure CSS `@layer kui` Style Grammars (`0 KB` JS for static primitives; islands only for interactive widgets).
 
 ## Imports
 
-- `@kayjs/ui`:
+- `@prunelle/ui`:
   - Static layout primitives (`0 KB` JS): `Stack`, `Cluster`, `Grid`, `Sidebar`, `Split`
   - Static & native-platform primitives (`0 KB` JS): `Button`, `Card`, `CardHeader`, `CardBody`, `CardFooter`, `Badge`, `Notice`, `Field`, `FieldContext`, `useFieldContext`, `Checkbox`, `Switch`, `RadioGroup`, `Accordion`, `AccordionItem`, `Popover`, `Dialog`, `Drawer` (opened by `commandfor`/`command` buttons and closed by Esc or a backdrop click, with no JS; `ui()` adds a fallback that only a browser without invoker commands, `closedby` or anchor positioning loads)
   - Interactive island primitives: `ControlledDialog`, `ControlledDrawer`, `Tabs`, `Menu`, `Select`, `CommandPalette`, `DataTable`, `Toaster`
   - Headless signal behaviors & helpers: `createDialog`, `createTabs`, `createDataTable`, `toast`, `handleListKeyDown`, `findFirstEnabledIndex`, `findLastEnabledIndex`, `findNextEnabledIndex`, `isDialogBackdropClick`, `syncDialogOpen`, `nextUiId`
-- `@kayjs/ui/plugin`: `ui(options?)`, `GRAMMAR_NAMES`, `grammarCssPath`, `renderGrammarCss`, `ejectGrammar`
-- CSS subpaths: `@kayjs/ui/bare.css`, `@kayjs/ui/grammars/{editorial,workshop,console,soft,orbit}.css`
+- `@prunelle/ui/plugin`: `ui(options?)`, `GRAMMAR_NAMES`, `grammarCssPath`, `renderGrammarCss`, `ejectGrammar`
+- CSS subpaths: `@prunelle/ui/bare.css`, `@prunelle/ui/grammars/{editorial,workshop,console,soft,orbit}.css`
 
-## Plugin Setup (`kay.config.ts`)
+## Plugin Setup (`prunelle.config.ts`)
 
 ```ts
-import { defineConfig } from '@kayjs/kay/config'
-import { ui } from '@kayjs/ui/plugin'
+import { defineConfig } from 'prunelle/config'
+import { ui } from '@prunelle/ui/plugin'
 
 export default defineConfig({
   plugins: [ui({ grammar: 'editorial' })],
@@ -25,7 +25,7 @@ export default defineConfig({
 
 - `grammar`: `'editorial'` (default) | `'workshop'` | `'console'` | `'soft'` | `'orbit'` | `'bare'` | `false` (skip injecting CSS when importing your own).
 - `emitGrammars`: `boolean | GrammarName[] | { dir?: string, grammars?: GrammarName[] }` — emits standalone CSS files to `/<dir>/<name>.css` (default `grammars/<name>.css`) for runtime theme switching.
-- CLI: `kay ui-eject <grammar> [dest]` copies a self-contained CSS grammar (with `bare.css` inlined) into your app (default `editorial` → `src/styles/ui.css`).
+- CLI: `prunelle ui-eject <grammar> [dest]` copies a self-contained CSS grammar (with `bare.css` inlined) into your app (default `editorial` → `src/styles/ui.css`).
 
 ## Key Props & Types
 
@@ -47,7 +47,7 @@ export default defineConfig({
 ## Example
 
 ```tsx
-import { Button, Card, CardBody, Field, Stack } from '@kayjs/ui'
+import { Button, Card, CardBody, Field, Stack } from '@prunelle/ui'
 import { createPost } from '../actions/posts'
 
 export default function NewPostForm({ error }: { error?: string }) {

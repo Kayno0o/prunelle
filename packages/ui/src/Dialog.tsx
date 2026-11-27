@@ -1,10 +1,10 @@
-/** @jsxImportSource @kayjs/kay */
+/** @jsxImportSource prunelle */
 // Native `<dialog>` primitives shared by Dialog and Drawer: top layer, Esc and backdrop close, ::backdrop and focus return come from the browser.
 // `Dialog` and `Drawer` open from their trigger's `command`, with no JS; `ControlledDialog` and `ControlledDrawer` also follow an `open` signal, as an island.
 
-import type { KayChild, Signal } from '@kayjs/kay'
+import type { PrunelleChild, Signal } from 'prunelle'
 import type { ButtonVariant } from './static'
-import { effect } from '@kayjs/kay'
+import { effect } from 'prunelle'
 import { nextUiId, syncDialogOpen } from './behaviors'
 
 export interface DialogProps {
@@ -17,7 +17,7 @@ export interface DialogProps {
   closeLabel?: string | undefined
   /** A Dialog ships no JS: to open or close it from code, use `ControlledDialog` (or `ControlledDrawer`) with this signal. */
   open?: undefined
-  children?: KayChild | undefined
+  children?: PrunelleChild | undefined
 }
 
 export interface DrawerProps extends DialogProps {

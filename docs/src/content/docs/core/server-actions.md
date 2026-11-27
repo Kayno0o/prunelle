@@ -5,15 +5,15 @@ section: core
 order: 4
 ---
 
-Define server mutations once with `action(schema, handler)` from `@kayjs/kay/server`. It accepts any [Standard Schema](https://standardschema.dev) validator (Zod, Valibot, ArkType, TypeBox, or custom).
+Define server mutations once with `action(schema, handler)` from `prunelle/server`. It accepts any [Standard Schema](https://standardschema.dev) validator (Zod, Valibot, ArkType, TypeBox, or custom).
 
 ## Defining an action
 
-Declare every action as a **top-level named export** so Kay can assign it a stable endpoint URL and strip its server code from client bundles:
+Declare every action as a **top-level named export** so Prunelle can assign it a stable endpoint URL and strip its server code from client bundles:
 
 ```ts
 // src/actions/preferences.ts
-import { action } from '@kayjs/kay/server'
+import { action } from 'prunelle/server'
 import { z } from 'zod'
 
 export const savePreferences = action(
@@ -39,7 +39,7 @@ Inside the handler, `ctx` provides `request`, `url`, `params`, `cookies`, `local
 Pass the action directly to `<form action={savePreferences} method="post">`:
 
 ```tsx
-import { getActionError } from '@kayjs/kay/server'
+import { getActionError } from 'prunelle/server'
 import { savePreferences } from '../actions/preferences'
 
 export default function SettingsPage({ locals }: { locals: Record<string, unknown> }) {
@@ -60,17 +60,17 @@ export default function SettingsPage({ locals }: { locals: Record<string, unknow
 
 No client JavaScript is shipped. Form fields are parsed, validated, and executed on the server.
 
-- **Array fields**: A field your schema declares as an array always arrives as one — including a checkbox group with zero or one box checked, or a multi-select with a single choice. When a non-JSON form submit fails with a top-level array or missing-field mismatch, Kay retries validation once with those fields wrapped as arrays, so keep async schema refinements side-effect free if the same form also contains array fields.
-- **Validation error flash**: When a plain HTML form fails validation, Kay stores `fieldErrors` and safe submitted `values` in a short-lived `HttpOnly` cookie and responds with a `303` redirect back to the trusted `Referer`. Read and clear it on the next render with `getActionError(locals)`.
+- **Array fields**: A field your schema declares as an array always arrives as one — including a checkbox group with zero or one box checked, or a multi-select with a single choice. When a non-JSON form submit fails with a top-level array or missing-field mismatch, Prunelle retries validation once with those fields wrapped as arrays, so keep async schema refinements side-effect free if the same form also contains array fields.
+- **Validation error flash**: When a plain HTML form fails validation, Prunelle stores `fieldErrors` and safe submitted `values` in a short-lived `HttpOnly` cookie and responds with a `303` redirect back to the trusted `Referer`. Read and clear it on the next render with `getActionError(locals)`.
 - **Sensitive fields**: Password, token, secret, card, and similar fields are stripped from flashed values automatically. Pass `{ flashFields: ['project', 'target'] }` as the third argument to `action()` to specify an explicit allowlist.
 - **Rate limit**: `action(schema, handler, { rateLimit: { max: 3, windowMs: 60_000 } })` lets one client submit three times a minute, such as a contact form that sends a mail each time. The next form submit comes back to its page with the error `Too many requests` and what was typed, like a validation failure. A call from an island resolves to `{ ok: false, status: 429, error: 'Too many requests' }`, and the response carries `Retry-After`. A client is its address as `trustProxy` reads it; `key: ctx => ctx.locals.user?.id` counts by account, and `undefined` falls back to the address. A call from server code is not counted.
 
 ## 2. Typed RPC from islands
 
-Import and call the exact same export from an interactive island. Kay strips all server code and replaces it with a tiny RPC stub in the client bundle:
+Import and call the exact same export from an interactive island. Prunelle strips all server code and replaces it with a tiny RPC stub in the client bundle:
 
 ```tsx
-import { signal } from '@kayjs/kay'
+import { signal } from 'prunelle'
 import { savePreferences } from '../actions/preferences'
 
 export function QuickSave() {
@@ -91,7 +91,7 @@ A route, a `load()`, a middleware or another action can call an action directly.
 
 ```ts
 // src/routes/api/notes.ts
-import type { RequestContext } from '@kayjs/kay/server'
+import type { RequestContext } from 'prunelle/server'
 import { addNote } from '../../actions/notes'
 
 export async function POST(ctx: RequestContext) {
@@ -112,5 +112,5 @@ Every action `POST` runs in this order:
 4. **Schema validation & handler**.
 
 <Callout title="Behind a reverse proxy" tone="info">
-Set `trustProxy: true` (or the hop count, such as `2` behind a CDN + nginx) in `kay.config.ts` so CSRF origin checks honor `X-Forwarded-Proto` and `X-Forwarded-Host`. See [Configuration & Security](/docs/core/configuration-and-security).
+Set `trustProxy: true` (or the hop count, such as `2` behind a CDN + nginx) in `prunelle.config.ts` so CSRF origin checks honor `X-Forwarded-Proto` and `X-Forwarded-Host`. See [Configuration & Security](/docs/core/configuration-and-security).
 </Callout>

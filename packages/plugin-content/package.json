@@ -1,7 +1,7 @@
 {
-  "name": "@kayjs/content",
+  "name": "@prunelle/content",
   "version": "2.0.0-beta.8",
-  "description": "Zero-dependency Bun.markdown collections, YAML frontmatter, TOC, and RSS plugin for Kay v2",
+  "description": "Zero-dependency Bun.markdown collections, YAML frontmatter, TOC, and RSS plugin for Prunelle v2",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
@@ -17,10 +17,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Kayno0o/kayjs",
+    "url": "https://github.com/Kayno0o/prunelle",
     "directory": "packages/plugin-content"
   },
   "peerDependencies": {
-    "@kayjs/kay": "^2.0.0-beta.8"
+    "prunelle": "^2.0.0-beta.8"
   }
 }

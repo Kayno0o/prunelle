@@ -1,13 +1,13 @@
 # Task 01: Localized Static Blog (0 KB JS)
 
-Build a bilingual (`en` and `fr`) static blog using `@kayjs/content` and `@kayjs/i18n` that ships **0 KB of client JavaScript** (`--max-js 0kb`).
+Build a bilingual (`en` and `fr`) static blog using `@prunelle/content` and `@prunelle/i18n` that ships **0 KB of client JavaScript** (`--max-js 0kb`).
 
 ## Requirements
 
-1. **Configuration (`kay.config.ts`)**:
+1. **Configuration (`prunelle.config.ts`)**:
    - Configure `site: 'https://example.com'`.
-   - Register `@kayjs/i18n` with `locales: ['en', 'fr']`, `defaultLocale: 'en'`, and complete translation dictionaries (`messages`) for both `en` and `fr` (e.g. site title, intro, "Read more", "Back to blog") so `kay check` passes with zero missing translation keys.
-   - Register `@kayjs/content` with an RSS feed at `/rss.xml` (`linkPrefix: '/blog'`).
+   - Register `@prunelle/i18n` with `locales: ['en', 'fr']`, `defaultLocale: 'en'`, and complete translation dictionaries (`messages`) for both `en` and `fr` (e.g. site title, intro, "Read more", "Back to blog") so `prunelle check` passes with zero missing translation keys.
+   - Register `@prunelle/content` with an RSS feed at `/rss.xml` (`linkPrefix: '/blog'`).
 
 2. **Content Collection (`src/posts.ts` & `src/content/posts/`)**:
    - Define a localized collection with `defineCollection({ dir: 'src/content/posts', localized: true, defaultLocale: 'en', schema })`.
@@ -19,6 +19,6 @@ Build a bilingual (`en` and `fr`) static blog using `@kayjs/content` and `@kayjs
    - `src/routes/blog/[slug].tsx`: Renders the matching localized post (`posts.get(params.slug, locale)`), returning `notFound()` when missing. Export `export const prerender = true` and `export function paths()` returning the post URLs (`posts.paths('/blog', 'en')`).
 
 4. **Verification**:
-   - `kay check` passes with 0 errors.
-   - `kay build --analyze --max-js 0kb` succeeds with **0 B** eager JS on every route.
+   - `prunelle check` passes with 0 errors.
+   - `prunelle build --analyze --max-js 0kb` succeeds with **0 B** eager JS on every route.
    - `GET /` serves `<html lang="en">`, `GET /fr` serves `<html lang="fr">`, `GET /rss.xml` serves valid RSS XML, and `GET /blog/nonexistent` returns `404`.

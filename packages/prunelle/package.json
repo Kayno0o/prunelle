@@ -1,0 +1,55 @@
+{
+  "name": "prunelle",
+  "version": "2.0.0-beta.8",
+  "description": "Bun-native TSX web framework with zero-directive automatic islands, fine-grained signals, and single-binary deploys",
+  "license": "MIT",
+  "homepage": "https://prunelle.kaynooo.fr",
+  "type": "module",
+  "sideEffects": false,
+  "bin": {
+    "prunelle": "./src/cli/index.ts"
+  },
+  "files": [
+    "src",
+    "templates",
+    "llms.txt"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./server": "./src/server/public.ts",
+    "./config": "./src/plugins/public.ts",
+    "./test": "./src/test/index.ts",
+    "./build": "./src/build/index.ts",
+    "./jsx-runtime": "./src/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./src/jsx-runtime.ts",
+    "./internal/dom": "./src/dom/index.ts",
+    "./internal/dom-attrs": "./src/dom/attrs.ts",
+    "./internal/dom-claim": "./src/dom/claim.ts",
+    "./internal/dom-extras": "./src/dom/extras.ts",
+    "./internal/dom-loop": "./src/dom/loop.ts",
+    "./internal/action": "./src/dom/action.ts",
+    "./internal/island": "./src/dom/island.ts",
+    "./internal/ssr": "./src/ssr/index.ts",
+    "./internal/server": "./src/server/index.ts"
+  },
+  "engines": {
+    "bun": ">=1.4.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kayno0o/prunelle",
+    "directory": "packages/prunelle"
+  },
+  "dependencies": {
+    "@kaynooo/cli-kit": "^0.52.0",
+    "oxc-parser": "^0.155.0"
+  },
+  "peerDependencies": {
+    "playwright-core": "^1.64.0"
+  },
+  "peerDependenciesMeta": {
+    "playwright-core": {
+      "optional": true
+    }
+  }
+}

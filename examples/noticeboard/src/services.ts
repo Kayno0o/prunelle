@@ -1,9 +1,9 @@
-// Shared @kayjs/auth, @kayjs/mail, and @kayjs/live services for Noticeboard.
+// Shared @prunelle/auth, @prunelle/mail, and @prunelle/live services for Noticeboard.
 
 import type { PinnedNotice } from './db'
-import { createAuth } from '@kayjs/auth'
-import { createRooms } from '@kayjs/live'
-import { createMailer } from '@kayjs/mail'
+import { createAuth } from '@prunelle/auth'
+import { createRooms } from '@prunelle/live'
+import { createMailer } from '@prunelle/mail'
 import { authStore } from './db'
 
 export type BoardMessage =

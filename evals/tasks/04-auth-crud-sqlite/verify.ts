@@ -39,11 +39,11 @@ export async function verify({ dir, app }: VerifyContext): Promise<AssertionResu
   })
 
   await c.run('creating a note persists to SQLite and renders on GET /notes', async () => {
-    const actions = extractFormActions(notesHtml).filter(u => u.startsWith('/_kay/action/'))
-    assert(actions.length >= 1, `no /_kay/action/* form found on /notes (found: ${extractFormActions(notesHtml).join(', ') || 'none'})`)
+    const actions = extractFormActions(notesHtml).filter(u => u.startsWith('/_pru/action/'))
+    assert(actions.length >= 1, `no /_pru/action/* form found on /notes (found: ${extractFormActions(notesHtml).join(', ') || 'none'})`)
 
     const markerTitle = `Eval Note ${Date.now()}`
-    const markerBody = 'Persisted via bun:sqlite in kay v2 eval'
+    const markerBody = 'Persisted via bun:sqlite in prunelle v2 eval'
     let created = false
 
     for (const actionUrl of actions) {
@@ -72,11 +72,11 @@ export async function verify({ dir, app }: VerifyContext): Promise<AssertionResu
     assert(after.status === 302 || after.status === 303, `expected redirect after signout, got ${after.status}`)
   })
 
-  await c.run('uses sqliteAuthStore, auth.guard(), @kayjs/ui, bun:sqlite, and testApp tests', async () => {
+  await c.run('uses sqliteAuthStore, auth.guard(), @prunelle/ui, bun:sqlite, and testApp tests', async () => {
     const sources = [...readAppSourceFiles(dir).values()].join('\n')
-    assert(/\bsqliteAuthStore\b/.test(sources), 'missing sqliteAuthStore from @kayjs/auth/sqlite')
+    assert(/\bsqliteAuthStore\b/.test(sources), 'missing sqliteAuthStore from @prunelle/auth/sqlite')
     assert(/auth\.guard\s*\(/.test(sources), 'missing auth.guard() middleware')
-    assert(/@kayjs\/ui/.test(sources), 'missing @kayjs/ui import')
+    assert(/@prunelle\/ui/.test(sources), 'missing @prunelle/ui import')
     assert(/bun:sqlite/.test(sources), 'missing bun:sqlite usage')
 
     const testsDir = join(dir, 'tests')

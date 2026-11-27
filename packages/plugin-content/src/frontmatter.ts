@@ -21,7 +21,7 @@ export function parseFrontmatter(source: string): { data: Record<string, unknown
   return { data, body }
 }
 
-/** Finds the 1-based line number of a top-level frontmatter key for `kay check` diagnostics. */
+/** Finds the 1-based line number of a top-level frontmatter key for `prunelle check` diagnostics. */
 export function findFrontmatterFieldLine(rawSource: string, fieldPath: string | undefined): number {
   const normalized = rawSource.replace(/\r\n/g, '\n')
   if (!normalized.startsWith('---\n'))

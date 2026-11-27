@@ -1,15 +1,15 @@
 /// <reference path="./ambient.d.ts" />
-// The build side of @kayjs/icons: resolves `~icons/<set>/<name>` imports to inline SVG data at compile time, and adds `kay icons-find`.
-// The reference above types those imports in every app registering icons() in kay.config.ts.
+// The build side of @prunelle/icons: resolves `~icons/<set>/<name>` imports to inline SVG data at compile time, and adds `prunelle icons-find`.
+// The reference above types those imports in every app registering icons() in prunelle.config.ts.
 
 import type { BunPlugin } from 'bun'
-import type { KayPlugin } from '@kayjs/kay/config'
+import type { PrunellePlugin } from 'prunelle/config'
 import type { IconLookup } from './diagnose'
 import type { IconSet } from './types'
 import type { SvgDirSet } from './svg-dir'
 import { existsSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
-import { definePlugin } from '@kayjs/kay/config'
+import { definePlugin } from 'prunelle/config'
 import { iconData } from './icon-data'
 import { iconProblem } from './diagnose'
 import { iconsFind } from './find'
@@ -17,7 +17,7 @@ import { installedPrefixes, isSetPrefix, setFile } from './sets'
 import { readSvgDir } from './svg-dir'
 
 const ICON_SPEC_RE = /^~icons\/([^/]+)\/(.+)$/
-const SEARCH_ENTRY_RE = /^@kayjs\/icons\/search$/
+const SEARCH_ENTRY_RE = /^@prunelle\/icons\/search$/
 const ICON_IMPORT_RE = /\b(?:from|import)\s*\(?\s*(['"])(~icons\/[^/'"]+\/[^'"]+)\1/g
 const SELF_CLOSING_RE = /<([a-z][\w:-]*)([^<>]*?)\s*\/>/gi
 const LOCAL_DIR = 'src/icons'
@@ -65,7 +65,7 @@ function lineAndColumn(code: string, offset: number): string {
   return `${before.length}:${before.at(-1)!.length + 1}`
 }
 
-export function icons(options: IconsPluginOptions = {}): KayPlugin {
+export function icons(options: IconsPluginOptions = {}): PrunellePlugin {
   // The in-flight read of each set, so icons loaded in parallel parse their set once; a set not installed is looked for again next time.
   const cache = new Map<string, Promise<IconSet | undefined>>(Object.entries(options.sets ?? {}).map(([prefix, set]) => [prefix, Promise.resolve(set)]))
   const installedSet = (root: string, prefix: string): Promise<IconSet | undefined> => {
@@ -79,7 +79,7 @@ export function icons(options: IconsPluginOptions = {}): KayPlugin {
     }
     return set
   }
-  // Folder sets are read again by each build, so `kay dev` sees an edited file.
+  // Folder sets are read again by each build, so `prunelle dev` sees an edited file.
   const lookupIn = (root: string): PluginLookup => {
     const dirs = svgDirs(root, options.dirs)
     if (options.sets?.local !== undefined && options.dirs?.local === undefined)
@@ -109,18 +109,18 @@ export function icons(options: IconsPluginOptions = {}): KayPlugin {
   }
 
   return definePlugin({
-    name: '@kayjs/icons',
+    name: '@prunelle/icons',
     async check(ctx) {
       const lookup = lookupIn(ctx.root)
       for (const [prefix, dir] of Object.entries(options.dirs ?? {})) {
         if (!isSetPrefix(prefix))
-          ctx.error(`@kayjs/icons: "${prefix}" in icons({ dirs }) is not an icon set name: name it in lowercase words joined by dashes, such as brand.`)
+          ctx.error(`@prunelle/icons: "${prefix}" in icons({ dirs }) is not an icon set name: name it in lowercase words joined by dashes, such as brand.`)
         else if (!existsSync(lookup.dirs.get(prefix)!))
-          ctx.error(`@kayjs/icons: icons({ dirs }) reads the set "${prefix}" from ${dir}, which does not exist.`)
+          ctx.error(`@prunelle/icons: icons({ dirs }) reads the set "${prefix}" from ${dir}, which does not exist.`)
       }
       for (const prefix of lookup.dirs.keys()) {
         for (const [name, problem] of (await lookup.dirSet(prefix))?.problems ?? [])
-          ctx.error(`${relative(ctx.root, join(lookup.dirs.get(prefix)!, `${name}.svg`))}:1:1: error: @kayjs/icons: this file ${problem}.`)
+          ctx.error(`${relative(ctx.root, join(lookup.dirs.get(prefix)!, `${name}.svg`))}:1:1: error: @prunelle/icons: this file ${problem}.`)
       }
       for (const file of new Bun.Glob('src/**/*.{ts,tsx,mts}').scanSync({ cwd: ctx.root })) {
         const code = await Bun.file(join(ctx.root, file)).text()
@@ -135,18 +135,18 @@ export function icons(options: IconsPluginOptions = {}): KayPlugin {
             continue
           const problem = await iconProblem(prefix!, name!, '', lookup)
           if (problem !== undefined)
-            ctx.error(`${file}:${lineAndColumn(code, found.index + found[0].length - found[2]!.length - 2)}: error: @kayjs/icons: ${problem}`)
+            ctx.error(`${file}:${lineAndColumn(code, found.index + found[0].length - found[2]!.length - 2)}: error: @prunelle/icons: ${problem}`)
         }
       }
     },
     watchPaths: root => [...lookupIn(root).dirs.values()],
     bunPlugins: ({ root, target }): BunPlugin[] => [{
-      name: 'kayjs-icons',
+      name: 'prunelle-icons',
       setup(b) {
         const lookup = lookupIn(root)
         if (target === 'client') {
           b.onResolve({ filter: SEARCH_ENTRY_RE }, (args) => {
-            console.warn(`@kayjs/icons: ${relative(root, args.importer)} imports @kayjs/icons/search into an island, which ships its 1.7 MB word table to the browser. Search on the server instead, in a route or an action.`)
+            console.warn(`@prunelle/icons: ${relative(root, args.importer)} imports @prunelle/icons/search into an island, which ships its 1.7 MB word table to the browser. Search on the server instead, in a route or an action.`)
             return undefined
           })
         }
@@ -155,18 +155,18 @@ export function icons(options: IconsPluginOptions = {}): KayPlugin {
         b.onResolve({ filter: ICON_SPEC_RE }, (args) => {
           if (!importers.has(args.path))
             importers.set(args.path, relative(root, args.importer))
-          return { path: args.path, namespace: 'kay-icon' }
+          return { path: args.path, namespace: 'prunelle-icon' }
         })
 
-        b.onLoad({ filter: /.*/, namespace: 'kay-icon' }, async (args) => {
+        b.onLoad({ filter: /.*/, namespace: 'prunelle-icon' }, async (args) => {
           const [, prefix, name] = ICON_SPEC_RE.exec(args.path)!
           const set = await lookup.set(prefix!)
           const data = set === undefined ? undefined : iconData(set, name!)
           if (data === undefined) {
             const broken = await fileProblem(lookup, root, prefix!, name!)
             if (broken !== undefined)
-              throw new Error(`@kayjs/icons: ${broken.file}, imported by ${importers.get(args.path)}, ${broken.problem}.`)
-            throw new Error(`@kayjs/icons: ${await iconProblem(prefix!, name!, `, imported by ${importers.get(args.path)}`, lookup)}`)
+              throw new Error(`@prunelle/icons: ${broken.file}, imported by ${importers.get(args.path)}, ${broken.problem}.`)
+            throw new Error(`@prunelle/icons: ${await iconProblem(prefix!, name!, `, imported by ${importers.get(args.path)}`, lookup)}`)
           }
 
           return {

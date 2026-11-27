@@ -1,10 +1,10 @@
-import type { FirstLoad, KayPlugin, Locate } from '@kayjs/kay/config'
-import { brotliSize, distLocator, firstLoadUrls, measureFirstLoad } from '@kayjs/kay/config'
+import type { FirstLoad, PrunellePlugin, Locate } from 'prunelle/config'
+import { brotliSize, distLocator, firstLoadUrls, measureFirstLoad } from 'prunelle/config'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import { brotliCompress, constants as zlibConstants } from 'node:zlib'
 
-// The draft pass only places the line, so a fast quality does; the final one is measured as kay's build serves it, cached across builds.
+// The draft pass only places the line, so a fast quality does; the final one is measured as prunelle's build serves it, cached across builds.
 const DRAFT_OPTS = { params: { [zlibConstants.BROTLI_PARAM_QUALITY]: 6 } }
 const SLOT_RE = /<span\b[^>]*\bdata-page-weight(?:="")?[^>]*><\/span>/
 const SCRIPT_RE = /<script\b([^>]*)>/g
@@ -18,8 +18,8 @@ const draftSize = async (html: string): Promise<number> => (await brotliAsync(ht
 
 const kb = (bytes: number): string => `${(bytes / 1024).toFixed(1)} KB`
 
-// The footer shows what a first visit downloads, measured by kay's own first-load figure, and how much of it the hashed /_kay/ files a browser keeps for the next page make up.
-export function pageWeight(): KayPlugin {
+// The footer shows what a first visit downloads, measured by prunelle's own first-load figure, and how much of it the hashed /_pru/ files a browser keeps for the next page make up.
+export function pageWeight(): PrunellePlugin {
   let locate: Locate | undefined
   let cacheable = (_url: string): boolean => false
 

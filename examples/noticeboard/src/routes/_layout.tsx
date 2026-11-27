@@ -1,13 +1,13 @@
-import type { LayoutProps } from '@kayjs/kay'
-import { Button, Cluster, Toaster } from '@kayjs/ui'
-import { Head } from '@kayjs/kay'
+import type { LayoutProps } from 'prunelle'
+import { Button, Cluster, Toaster } from '@prunelle/ui'
+import { Head } from 'prunelle'
 
 export default function Layout({ children, locals }: LayoutProps) {
   const user = locals.user
   return (
     <>
       <Head>
-        <title>Noticeboard — Kay v2</title>
+        <title>Noticeboard — Prunelle v2</title>
         <style>{`
           body { margin: 0; background: var(--ui-paper); color: var(--ui-ink); font-family: var(--ui-font-body); }
           .nb-header { border-bottom: 1px solid var(--ui-line); padding: 0.9rem 1.25rem; }

@@ -1,6 +1,6 @@
 // Session resolution, sliding renewal, lazy/async locals binding, and sign-in/sign-out session lifecycle.
 
-import type { KayLocals, RequestContext, TrustProxy } from '@kayjs/kay/server'
+import type { PrunelleLocals, RequestContext, TrustProxy } from 'prunelle/server'
 import type { AuthSession, AuthStore, AuthUser, PublicUser } from './store'
 import { randomToken, sha256Hex } from './crypto'
 import { formatSessionIp, resolveClientIp } from './http'
@@ -51,8 +51,8 @@ export interface SessionManager<TUser extends AuthUser = AuthUser> {
   createSessionForUser(userId: string, ctx: RequestContext): Promise<AuthSession>
   signOut(ctx: RequestContext): Promise<void>
   setResolvedUser(ctx: RequestContext, pub: PublicUser<TUser>): void
-  getUser(ctx: { locals: KayLocals }): PublicUser<TUser> | undefined
-  getSession(ctx: { locals: KayLocals }): AuthSession | undefined
+  getUser(ctx: { locals: PrunelleLocals }): PublicUser<TUser> | undefined
+  getSession(ctx: { locals: PrunelleLocals }): AuthSession | undefined
   sweepRenewedAt(): void
 }
 
@@ -81,7 +81,7 @@ export function createSessionManager<TUser extends AuthUser = AuthUser>(deps: Se
     })
   }
 
-  function defineLocal(locals: KayLocals, key: 'user' | 'session', value: unknown): void {
+  function defineLocal(locals: PrunelleLocals, key: 'user' | 'session', value: unknown): void {
     if (value === undefined) {
       delete locals[key]
       return
@@ -103,7 +103,7 @@ export function createSessionManager<TUser extends AuthUser = AuthUser>(deps: Se
     defineLocal(ctx.locals, 'session', session)
   }
 
-  function clearLazyLocals(locals: KayLocals): void {
+  function clearLazyLocals(locals: PrunelleLocals): void {
     resolvedUsers.delete(locals)
     delete locals.user
     delete locals.session

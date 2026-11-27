@@ -1,4 +1,4 @@
-/** @jsxImportSource @kayjs/kay */
+/** @jsxImportSource prunelle */
 // Interactive DataTable island powered by headless `createDataTable()` signals (sort, filter, select, paginate).
 
 import { createDataTable } from './table-state'

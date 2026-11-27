@@ -1,7 +1,7 @@
-// Single zero-config `bun:sqlite` database powering BOTH @kayjs/auth and notices.
+// Single zero-config `bun:sqlite` database powering BOTH @prunelle/auth and notices.
 
 import { Database } from 'bun:sqlite'
-import { sqliteAuthStore } from '@kayjs/auth/sqlite'
+import { sqliteAuthStore } from '@prunelle/auth/sqlite'
 
 export interface PinnedNotice {
   id: number
@@ -79,7 +79,7 @@ export function insertNotice(input: { authorId: string, author: string, title: s
 
 export function listMemberEmails(excludeUserId?: string): string[] {
   const rows = excludeUserId
-    ? db.query<{ email: string }, [string]>('SELECT email FROM kay_auth_users WHERE id != ?').all(excludeUserId)
-    : db.query<{ email: string }, []>('SELECT email FROM kay_auth_users').all()
+    ? db.query<{ email: string }, [string]>('SELECT email FROM prunelle_auth_users WHERE id != ?').all(excludeUserId)
+    : db.query<{ email: string }, []>('SELECT email FROM prunelle_auth_users').all()
   return rows.map(r => r.email)
 }

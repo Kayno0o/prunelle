@@ -1,12 +1,12 @@
-// @kayjs/spa regions() client: a link or GET form with data-kay-target swaps one <Region> of the page, fetched alone.
-// - a[data-kay-target] replaces the region; with data-kay-append the response is added to it and the clicked link goes (Load more)
-// - form[data-kay-target] swaps on submit; with data-kay-live also while typing: one history entry per typing burst
-// - [data-kay-sync="a b"] copies those query params of the current URL into links and fields outside the region
-// - form[method=post][data-kay-target] posts through fetch, follows the redirect and swaps the region with the page it lands on
+// @prunelle/spa regions() client: a link or GET form with data-pru-target swaps one <Region> of the page, fetched alone.
+// - a[data-pru-target] replaces the region; with data-pru-append the response is added to it and the clicked link goes (Load more)
+// - form[data-pru-target] swaps on submit; with data-pru-live also while typing: one history entry per typing burst
+// - [data-pru-sync="a b"] copies those query params of the current URL into links and fields outside the region
+// - form[method=post][data-pru-target] posts through fetch, follows the redirect and swaps the region with the page it lands on
 // - history push and back/forward re-fetch the region the entry changed; aria-busy while a fetch is slow
-// - a swap runs in a view transition (not under reduced motion), keeps the scroll of [data-kay-keep-scroll] elements, resets the region's own, and moves aria-current to the links that match the new URL
+// - a swap runs in a view transition (not under reduced motion), keeps the scroll of [data-pru-keep-scroll] elements, resets the region's own, and moves aria-current to the links that match the new URL
 // - a link to a #hash already on the page scrolls to it without a fetch; after a swap the page scrolls to the URL's hash
-// - prefetch on hover and focus inside [data-kay-prefetch], through the cache spa() shares
+// - prefetch on hover and focus inside [data-pru-prefetch], through the cache spa() shares
 
 import type { PrefetchEntry } from './prefetch'
 import type { EntryScroll } from './swap'
@@ -18,7 +18,7 @@ const BUSY_DELAY = 150
 const LIVE_DEBOUNCE = 200
 const BURST_PAUSE = 1000
 
-interface RegionState { __kayIdx: number, __kayDoc?: number | undefined, __kayRegion?: string | undefined }
+interface RegionState { __pruIdx: number, __pruDoc?: number | undefined, __pruRegion?: string | undefined }
 
 function safeGetAttribute(el: Element, name: string): string | null {
   return Element.prototype.getAttribute.call(el, name)
@@ -44,12 +44,12 @@ interface Swap {
 }
 
 function stateOf(state: unknown): RegionState | undefined {
-  return typeof state === 'object' && state !== null && typeof (state as RegionState).__kayIdx === 'number' ? state as RegionState : undefined
+  return typeof state === 'object' && state !== null && typeof (state as RegionState).__pruIdx === 'number' ? state as RegionState : undefined
 }
 
 const controllers = new Map<string, AbortController>()
-let idx = stateOf(typeof history === 'undefined' ? undefined : history.state)?.__kayIdx ?? 0
-let lastRegion = stateOf(typeof history === 'undefined' ? undefined : history.state)?.__kayRegion
+let idx = stateOf(typeof history === 'undefined' ? undefined : history.state)?.__pruIdx ?? 0
+let lastRegion = stateOf(typeof history === 'undefined' ? undefined : history.state)?.__pruRegion
 // The page and query the document shows: an entry that differs from it only in its hash needs no fetch.
 let shown = typeof location === 'undefined' ? '' : location.pathname + location.search
 let burstOpen = false
@@ -57,14 +57,14 @@ let burstTimer: ReturnType<typeof setTimeout> | undefined
 let liveTimer: ReturnType<typeof setTimeout> | undefined
 
 function findRegion(name: string): HTMLElement | null {
-  return document.querySelector<HTMLElement>(`[data-kay-region="${name.replace(/["\\]/g, '\\$&')}"]`)
+  return document.querySelector<HTMLElement>(`[data-pru-region="${name.replace(/["\\]/g, '\\$&')}"]`)
 }
 
 // A region's path from the outermost one around it: `results/sets` for `sets` inside `results`. The server renders through the outer ones.
 function pathOf(region: HTMLElement): string {
   const names: string[] = []
-  for (let el: Element | null = region; el !== null; el = el.parentElement?.closest('[data-kay-region]') ?? null)
-    names.unshift(el.getAttribute('data-kay-region')!)
+  for (let el: Element | null = region; el !== null; el = el.parentElement?.closest('[data-pru-region]') ?? null)
+    names.unshift(el.getAttribute('data-pru-region')!)
   return names.join('/')
 }
 
@@ -76,12 +76,12 @@ async function load(swap: Swap, region: string, signal: AbortSignal): Promise<Pr
     prefetchCache.delete(key)
     return ready
   }
-  const res = await fetch(fetchKeyOf(url), { headers: { 'x-kay-region': region }, signal, ...(post === undefined ? {} : { method: 'POST', body: post.body }) })
+  const res = await fetch(fetchKeyOf(url), { headers: { 'x-pru-region': region }, signal, ...(post === undefined ? {} : { method: 'POST', body: post.body }) })
   if (post !== undefined)
     swap.landed = res.url
   if (!res.ok || !(res.headers.get('content-type') ?? '').includes('text/html'))
     return undefined
-  return { html: await res.text(), url: res.url || fetchKeyOf(url), ts: Date.now(), region: res.headers.get('x-kay-region'), title: res.headers.get('x-kay-title') }
+  return { html: await res.text(), url: res.url || fetchKeyOf(url), ts: Date.now(), region: res.headers.get('x-pru-region'), title: res.headers.get('x-pru-title') }
 }
 
 // The region's inner HTML and the page title: the answer itself when the server sent the region alone, else the region cut out of a full page (a prerendered page, a proxy that dropped the header).
@@ -95,7 +95,7 @@ function contentOf(entry: PrefetchEntry, path: string): { content: DocumentFragm
     return { content: template.content, title: entry.title === null ? undefined : unescape.value }
   }
   const page = new DOMParser().parseFromString(entry.html, 'text/html')
-  const found = page.querySelector(`[data-kay-region="${path.split('/').at(-1)!.replace(/["\\]/g, '\\$&')}"]`)
+  const found = page.querySelector(`[data-pru-region="${path.split('/').at(-1)!.replace(/["\\]/g, '\\$&')}"]`)
   if (found === null)
     return undefined
   template.innerHTML = found.innerHTML
@@ -105,7 +105,7 @@ function contentOf(entry: PrefetchEntry, path: string): { content: DocumentFragm
 function record(url: URL, name: string, mode: 'push' | 'replace' | 'burst'): void {
   clearTimeout(burstTimer)
   // A replace inside the region the entry was made for keeps that region, so back and forward restore the whole of it.
-  const before = stateOf(history.state)?.__kayRegion
+  const before = stateOf(history.state)?.__pruRegion
   const around = mode === 'replace' && before !== undefined && before !== name && findRegion(before)?.contains(findRegion(name)) === true ? before : name
   let push = mode === 'push' || (mode === 'burst' && !burstOpen)
   if (mode === 'burst') {
@@ -122,12 +122,12 @@ function record(url: URL, name: string, mode: 'push' | 'replace' | 'burst'): voi
   const docId = getDocId()
   if (push) {
     // The entry left behind is stamped first, so back and forward can tell it from a page of another document.
-    history.replaceState({ ...prev, __kayDoc: docId, __kayIdx: idx }, '')
+    history.replaceState({ ...prev, __pruDoc: docId, __pruIdx: idx }, '')
     idx++
-    history.pushState({ __kayDoc: docId, __kayIdx: idx, __kayRegion: around }, '', next)
+    history.pushState({ __pruDoc: docId, __pruIdx: idx, __pruRegion: around }, '', next)
   }
   else {
-    history.replaceState({ ...prev, __kayDoc: docId, __kayIdx: idx, __kayRegion: around }, '', next)
+    history.replaceState({ ...prev, __pruDoc: docId, __pruIdx: idx, __pruRegion: around }, '', next)
   }
   lastRegion = around
   shown = url.pathname + url.search
@@ -141,15 +141,15 @@ function focusNode(el: Element | null | undefined): void {
   ;(el as HTMLElement).focus({ preventScroll: true })
 }
 
-// Links and fields the app marked data-kay-sync follow the URL the swap just set.
+// Links and fields the app marked data-pru-sync follow the URL the swap just set.
 function syncParams(): void {
   const params = new URL(location.href).searchParams
-  for (const el of document.querySelectorAll<HTMLElement>('[data-kay-sync]')) {
+  for (const el of document.querySelectorAll<HTMLElement>('[data-pru-sync]')) {
     if (el instanceof HTMLAnchorElement) {
       const url = new URL(el.href, location.href)
       if (url.origin !== location.origin)
         continue
-      for (const name of (el.getAttribute('data-kay-sync') ?? '').split(/\s+/).filter(Boolean)) {
+      for (const name of (el.getAttribute('data-pru-sync') ?? '').split(/\s+/).filter(Boolean)) {
         url.searchParams.delete(name)
         for (const value of params.getAll(name))
           url.searchParams.append(name, value)
@@ -202,11 +202,11 @@ async function apply(region: HTMLElement, found: { content: DocumentFragment, ti
     }
     else {
       // A fetch for a region about to be replaced must not land in the new one.
-      for (const inner of region.querySelectorAll('[data-kay-region]'))
-        controllers.get(inner.getAttribute('data-kay-region')!)?.abort()
+      for (const inner of region.querySelectorAll('[data-pru-region]'))
+        controllers.get(inner.getAttribute('data-pru-region')!)?.abort()
       region.replaceChildren(content)
       writeScrolls(kept)
-      if (swap.history !== 'none' && !region.hasAttribute('data-kay-keep-scroll'))
+      if (swap.history !== 'none' && !region.hasAttribute('data-pru-keep-scroll'))
         region.scrollTop = 0
     }
     if (title !== undefined)
@@ -222,7 +222,7 @@ async function apply(region: HTMLElement, found: { content: DocumentFragment, ti
     const label = region.getAttribute('aria-label')
     if (label !== null)
       announce(label)
-    window.dispatchEvent(new CustomEvent('kay:region', { detail: { name: swap.region, url: location.href } }))
+    window.dispatchEvent(new CustomEvent('pru:region', { detail: { name: swap.region, url: location.href } }))
   }, animate)
 }
 
@@ -279,7 +279,7 @@ async function navigate(swap: Swap): Promise<void> {
 /** Redraws region `name` from the server at the current address, with no history entry and focus left where it is; rejects when the page has no such region, the fetch fails or the answer lacks it. */
 export async function refreshRegion(name: string): Promise<void> {
   if (!await swapRegion({ url: new URL(location.href), region: name, history: 'none', fresh: true }))
-    throw new Error(`kay: region "${name}" could not be redrawn from ${location.href}: render a <Region name="${name}"> on this page, and check the server answers it.`)
+    throw new Error(`prunelle: region "${name}" could not be redrawn from ${location.href}: render a <Region name="${name}"> on this page, and check the server answers it.`)
 }
 
 function formMethod(form: HTMLFormElement, submitter?: HTMLElement | null): string {
@@ -312,12 +312,12 @@ function formUrl(form: HTMLFormElement, submitter?: HTMLElement | null): URL {
 function missingRegion(name: string, element: string): boolean {
   if (findRegion(name) !== null)
     return false
-  console.error(`kay: ${element} targets the region "${name}", and this page has no <Region name="${name}">: add it, or fix the name. The link loads the whole page instead.`)
+  console.error(`prunelle: ${element} targets the region "${name}", and this page has no <Region name="${name}">: add it, or fix the name. The link loads the whole page instead.`)
   return true
 }
 
 function linkOf(event: Event): HTMLAnchorElement | null {
-  return (event.target as Element | null)?.closest?.<HTMLAnchorElement>('a[href][data-kay-target]') ?? null
+  return (event.target as Element | null)?.closest?.<HTMLAnchorElement>('a[href][data-pru-target]') ?? null
 }
 
 if (typeof document !== 'undefined') {
@@ -328,8 +328,8 @@ if (typeof document !== 'undefined') {
     if (link === null || link.target !== '' || link.hasAttribute('download'))
       return
     const url = new URL(link.href, location.href)
-    const name = link.getAttribute('data-kay-target')!
-    const append = link.hasAttribute('data-kay-append')
+    const name = link.getAttribute('data-pru-target')!
+    const append = link.hasAttribute('data-pru-append')
     if (url.origin !== location.origin || missingRegion(name, `<a href="${link.getAttribute('href')}">`))
       return
     event.preventDefault()
@@ -346,7 +346,7 @@ if (typeof document !== 'undefined') {
     if (!(form instanceof HTMLFormElement))
       return
     const submitter = (event as SubmitEvent).submitter
-    const name = safeGetAttribute(form, 'data-kay-target')
+    const name = safeGetAttribute(form, 'data-pru-target')
     const method = formMethod(form, submitter)
     if (event.defaultPrevented || name === null || (method !== 'get' && method !== 'post') || missingRegion(name, '<form>'))
       return
@@ -359,12 +359,12 @@ if (typeof document !== 'undefined') {
   }, true)
 
   document.addEventListener('input', (event) => {
-    const form = (event.target as Element | null)?.closest?.<HTMLFormElement>('form[data-kay-live][data-kay-target]')
+    const form = (event.target as Element | null)?.closest?.<HTMLFormElement>('form[data-pru-live][data-pru-target]')
     if (form === null || form === undefined || formMethod(form) !== 'get')
       return
     clearTimeout(liveTimer)
     liveTimer = setTimeout(() => {
-      const name = safeGetAttribute(form, 'data-kay-target')!
+      const name = safeGetAttribute(form, 'data-pru-target')!
       if (!missingRegion(name, '<form>'))
         void navigate({ url: formUrl(form), region: name, history: 'burst' })
     }, LIVE_DEBOUNCE)
@@ -372,12 +372,12 @@ if (typeof document !== 'undefined') {
 
   const onIntent = (event: Event) => {
     const link = linkOf(event)
-    if (link === null || link.hasAttribute('data-no-prefetch') || link.closest('[data-kay-prefetch]') === null)
+    if (link === null || link.hasAttribute('data-no-prefetch') || link.closest('[data-pru-prefetch]') === null)
       return
     const url = new URL(link.href, location.href)
     if (url.origin === location.origin && `${url.pathname}${url.search}` !== `${location.pathname}${location.search}`)
       {
-      const region = findRegion(link.getAttribute('data-kay-target')!)
+      const region = findRegion(link.getAttribute('data-pru-target')!)
       if (region !== null)
         void prefetch(url.href, pathOf(region))
     }
@@ -386,11 +386,11 @@ if (typeof document !== 'undefined') {
   document.addEventListener('focusin', onIntent, { passive: true })
 
   // Keep region state aligned when spa() swaps to another document (including popstate back to a document with prior region entries).
-  window.addEventListener('kay:navigate', () => {
+  window.addEventListener('pru:navigate', () => {
     shown = location.pathname + location.search
     const st = stateOf(history.state)
-    idx = st?.__kayIdx ?? 0
-    lastRegion = st?.__kayRegion
+    idx = st?.__pruIdx ?? 0
+    lastRegion = st?.__pruRegion
     burstOpen = false
   })
   window.addEventListener('popstate', (event) => {
@@ -401,9 +401,9 @@ if (typeof document !== 'undefined') {
     shown = location.pathname + location.search
     if (state === undefined)
       return
-    const name = state.__kayIdx < idx ? lastRegion : state.__kayRegion
-    idx = state.__kayIdx
-    lastRegion = state.__kayRegion
+    const name = state.__pruIdx < idx ? lastRegion : state.__pruRegion
+    idx = state.__pruIdx
+    lastRegion = state.__pruRegion
     burstOpen = false
     const restore = entryScroll(event.state)
     if (name === undefined || sameDocument) {

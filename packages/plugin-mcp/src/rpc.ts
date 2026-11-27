@@ -1,9 +1,9 @@
 // JSON-RPC 2.0 & MCP Streamable HTTP (2025-03-26) dispatcher with bounded batch execution.
 
-import type { ActionContext, ActionResult, RequestContext, ServerAction, StandardSchemaV1 } from '@kayjs/kay/server'
+import type { ActionContext, ActionResult, RequestContext, ServerAction, StandardSchemaV1 } from 'prunelle/server'
 import type { McpPruneMode, McpToolResult } from './format'
 import type { JsonSchemaObject } from './schema'
-import { formatSchemaIssues, nodeEnv, validateSchema } from '@kayjs/kay/server'
+import { formatSchemaIssues, nodeEnv, validateSchema } from 'prunelle/server'
 import { applyOutputBudget, finalizeToolValue, formatFieldErrors, formatResponseResult } from './format'
 
 export const MCP_PROTOCOL_VERSION = '2025-03-26'

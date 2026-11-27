@@ -17,8 +17,8 @@ export async function verify({ dir, app, bundleReport }: VerifyContext): Promise
   })
 
   await c.run('route mounts an automatic island within 15 KB eager JS budget', async () => {
-    assert(/<kay-island\b/i.test(html), 'rendered HTML does not contain a <kay-island> mount')
-    assert(bundleReport !== undefined, 'missing BundleReport from kay build --analyze --json')
+    assert(/<pru-island\b/i.test(html), 'rendered HTML does not contain a <pru-island> mount')
+    assert(bundleReport !== undefined, 'missing BundleReport from prunelle build --analyze --json')
     const homeRoute = bundleReport.routes.find(r => r.path === '/') ?? bundleReport.routes[0]
     assert(homeRoute !== undefined, 'no routes in bundle report')
     assert(homeRoute.jsGzip > 0, 'expected non-zero client JS for interactive island')

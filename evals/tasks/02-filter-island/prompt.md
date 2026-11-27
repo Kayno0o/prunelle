@@ -10,7 +10,7 @@ Build a product catalog page at `/` that loads product data on the server with `
    - Include `<Head><title>Product Catalog</title></Head>` in the route (not inside the island).
 
 2. **Interactive Island (`src/components/ProductFilter.tsx`)**:
-   - Use `signal`, `computed`, and `useId` from `@kayjs/kay` (no client directives — Kay detects islands automatically).
+   - Use `signal`, `computed`, and `useId` from `prunelle` (no client directives — Prunelle detects islands automatically).
    - Provide accessible controls wired with `useId` (`<label for={...}>` + matching `id={...}`):
      - Text search input filtering by product name
      - Category `<select>` dropdown (`All` + each category)
@@ -20,6 +20,6 @@ Build a product catalog page at `/` that loads product data on the server with `
    - Display the count of matching products and an empty-state message when 0 match.
 
 3. **Verification**:
-   - `kay check` passes with 0 errors.
-   - `kay build --analyze --max-js 15kb` passes (eager JS gzipped `<= 15 KB`).
+   - `prunelle check` passes with 0 errors.
+   - `prunelle build --analyze --max-js 15kb` passes (eager JS gzipped `<= 15 KB`).
    - `GET /` renders all initial products in SSR HTML with accessible form controls and mounts the island.

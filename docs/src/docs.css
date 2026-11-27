@@ -1,4 +1,4 @@
-/* Kay v2 Docs stylesheet — layered cleanly over @kayjs/ui's Orbit Style Grammar. */
+/* Prunelle v2 Docs stylesheet — layered cleanly over @prunelle/ui's Orbit Style Grammar. */
 
 * { box-sizing: border-box; }
 
@@ -438,11 +438,11 @@ a:not([data-ui]) {
   color: var(--ui-muted);
 }
 .bench-table tr:last-child td { border-bottom: 0; }
-.bench-row-kay {
+.bench-row-prunelle {
   background: color-mix(in srgb, var(--ui-accent) 12%, transparent);
   font-weight: 600;
 }
-.bench-row-kay td:first-child { color: var(--ui-accent); }
+.bench-row-prunelle td:first-child { color: var(--ui-accent); }
 
 /* 3-Column Docs Shell */
 .docs-layout {

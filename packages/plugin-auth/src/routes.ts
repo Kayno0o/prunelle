@@ -1,8 +1,8 @@
 // Auth HTTP routes: /session, /signup, /verify-email, /signin, /signout, /magic-link, /magic-link/verify.
 
-import type { PluginRouteOptions, ServerPluginAPI } from '@kayjs/kay/config'
-import type { RequestContext } from '@kayjs/kay/server'
-import { safeRedirect, wantsJson } from '@kayjs/kay/server'
+import type { PluginRouteOptions, ServerPluginAPI } from 'prunelle/config'
+import type { RequestContext } from 'prunelle/server'
+import { safeRedirect, wantsJson } from 'prunelle/server'
 import type { CreateUserInput } from './index'
 
 import type { AuthLimits } from './http'
@@ -153,7 +153,7 @@ export function registerAuthRoutes<TUser extends AuthUser = AuthUser>(deps: Auth
     if (requireEmailVerification) {
       const linkOrigin = mailedLinkOrigin(ctx.url)
       if (hasMailTransport && linkOrigin === undefined) {
-        console.error(`[kay/auth] refusing to mail a verification link for host ${ctx.url.host}: set the auth \`site\` option to the public origin`)
+        console.error(`[prunelle/auth] refusing to mail a verification link for host ${ctx.url.host}: set the auth \`site\` option to the public origin`)
         return fail(ctx, 500, 'Verification links are not configured')
       }
 
@@ -253,7 +253,7 @@ export function registerAuthRoutes<TUser extends AuthUser = AuthUser>(deps: Auth
 
     const linkOrigin = mailedLinkOrigin(ctx.url)
     if (linkOrigin === undefined) {
-      console.error(`[kay/auth] refusing to mail a sign-in link for host ${ctx.url.host}: set the auth \`site\` option to the public origin`)
+      console.error(`[prunelle/auth] refusing to mail a sign-in link for host ${ctx.url.host}: set the auth \`site\` option to the public origin`)
       return fail(ctx, 500, 'Sign-in links are not configured')
     }
     await sendMagicLink(email, linkOrigin, body.redirect ?? body.next)

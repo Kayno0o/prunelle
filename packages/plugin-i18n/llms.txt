@@ -1,10 +1,10 @@
-# @kayjs/i18n Reference
+# @prunelle/i18n Reference
 
 > Locale URL rewriting, dictionary translation, `<html lang>`, automatic internal link prefixing, `hreflang` alternates, localized prerendering, `Intl` formatters, and missing-key checks.
 
 ## Imports
 
-- `@kayjs/i18n`: `i18n`, `stripLocalePrefix`, `localizePath`, `alternateLinks`, `formatDate`, `formatNumber`; type `I18nOptions`.
+- `@prunelle/i18n`: `i18n`, `stripLocalePrefix`, `localizePath`, `alternateLinks`, `formatDate`, `formatNumber`; type `I18nOptions`.
 
 ## Plugin Setup (`i18n(options)`)
 
@@ -12,7 +12,7 @@
 - `defaultLocale`: `string` (e.g. `'en'`).
 - `messages`: `Record<locale, Record<key, string>>` (optional; falls back to `defaultLocale`, then returns `key`).
 - `prefixDefault`: `boolean` (default `false`; when `true`, default locale is also prefixed as `/en/...`).
-- `site`: optional public origin (inherits `KayConfig.site`); when set, injects `<link rel="alternate" hreflang="...">` tags into `<head>`.
+- `site`: optional public origin (inherits `PrunelleConfig.site`); when set, injects `<link rel="alternate" hreflang="...">` tags into `<head>`.
 
 ## Mounted Routes, Rewriting & `ctx.locals`
 
@@ -24,9 +24,9 @@
 - Mounted route: `GET /_i18n/locales` → `{ locales, defaultLocale, current }`.
 - HTML & build integration:
   - Sets `<html lang={locale}>` and `hreflang` links in `head()`.
-  - Prefixes internal `<a href="/...">` for non-default locales (`data-no-localize` opts a link out, e.g. language switchers; skips `/_kay/`, `/_i18n/`, already-prefixed paths).
-  - Expands `prerenderPaths` across all configured locales and shares `I18N_CONFIG_SERVICE` with `@kayjs/seo` for multilingual `sitemap.xml`.
-- Checks & CLI: `kay check` fails on translation keys missing vs `defaultLocale`; `kay i18n-check` prints missing keys.
+  - Prefixes internal `<a href="/...">` for non-default locales (`data-no-localize` opts a link out, e.g. language switchers; skips `/_pru/`, `/_i18n/`, already-prefixed paths).
+  - Expands `prerenderPaths` across all configured locales and shares `I18N_CONFIG_SERVICE` with `@prunelle/seo` for multilingual `sitemap.xml`.
+- Checks & CLI: `prunelle check` fails on translation keys missing vs `defaultLocale`; `prunelle i18n-check` prints missing keys.
 
 ## Helpers
 
@@ -38,9 +38,9 @@
 ## Snippets
 
 ```ts
-// kay.config.ts
-import { i18n } from '@kayjs/i18n'
-import { defineConfig } from '@kayjs/kay/config'
+// prunelle.config.ts
+import { i18n } from '@prunelle/i18n'
+import { defineConfig } from 'prunelle/config'
 
 export default defineConfig({
   site: 'https://example.com',
@@ -50,7 +50,7 @@ export default defineConfig({
 
 ```tsx
 // src/routes/index.tsx
-import type { PageProps } from '@kayjs/kay'
+import type { PageProps } from 'prunelle'
 
 export default function Home({ locals }: PageProps) {
   return (

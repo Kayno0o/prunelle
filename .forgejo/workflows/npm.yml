@@ -63,7 +63,7 @@ jobs:
         run: |
           trap 'rm -f ~/.npmrc' EXIT
           echo "@kaynooo:registry=https://git.kaynooo.fr/api/packages/kaynooo/npm/" > ~/.npmrc
-          echo "@kayjs:registry=https://git.kaynooo.fr/api/packages/kaynooo/npm/" >> ~/.npmrc
+          echo "@prunelle:registry=https://git.kaynooo.fr/api/packages/kaynooo/npm/" >> ~/.npmrc
           echo "//git.kaynooo.fr/api/packages/kaynooo/npm/:_authToken=${PACKAGE_TOKEN}" >> ~/.npmrc
           sh scripts/publish-packages.sh https://git.kaynooo.fr/api/packages/kaynooo/npm/
         env:
@@ -80,7 +80,7 @@ jobs:
             export PATH="$HOME/.bun/bin:$PATH"
           fi
           trap 'rm -f ~/.npmrc' EXIT
-          echo "@kayjs:registry=https://registry.npmjs.org/" > ~/.npmrc
+          echo "@prunelle:registry=https://registry.npmjs.org/" > ~/.npmrc
           echo "//registry.npmjs.org/:_authToken=${NPM_STAGE_TOKEN}" >> ~/.npmrc
           sh scripts/publish-packages.sh --stage https://registry.npmjs.org/
         env:

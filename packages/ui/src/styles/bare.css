@@ -1,4 +1,4 @@
-/* @kayjs/ui bare floor: behavior, layout primitives, accessibility & top-layer positioning only.
+/* @prunelle/ui bare floor: behavior, layout primitives, accessibility & top-layer positioning only.
  * Everything sits inside @layer kui so Tailwind utilities and user CSS always win without !important. */
 
 @layer kui {

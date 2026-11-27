@@ -1,4 +1,4 @@
-import { signal } from '@kayjs/kay'
+import { signal } from 'prunelle'
 
 const GRAMMARS = [
   { id: 'orbit', label: 'Orbit', note: 'Starry sky, 1px hairlines, amber accent, cockpit states' },
@@ -53,7 +53,7 @@ export function GrammarDemo() {
       </div>
       <p style="margin:0;font-family:var(--ui-font-mono);font-size:0.78rem;color:var(--ui-muted)">
         Active grammar: <strong style="color:var(--ui-accent)">{active.value}</strong> — eject with{' '}
-        <code>kay ui-eject {active.value}</code>
+        <code>prunelle ui-eject {active.value}</code>
       </p>
     </div>
   )

@@ -18,8 +18,8 @@ import {
   Stack,
   Switch,
   Tabs,
-} from '@kayjs/ui'
-import { Head } from '@kayjs/kay'
+} from '@prunelle/ui'
+import { Head } from 'prunelle'
 import { GrammarDemo } from '../components/GrammarDemo'
 
 export const prerender = true
@@ -29,21 +29,21 @@ export default function GrammarsPage() {
     <main class="docs-container" style="padding-top:2.5rem;padding-bottom:4rem">
       <Head>
         <title>UI Style Grammars</title>
-        <meta name="description" content="Switch @kayjs/ui between Orbit, Editorial, Workshop, Console, Soft, and Bare in pure CSS with zero JS styling runtime." />
+        <meta name="description" content="Switch @prunelle/ui between Orbit, Editorial, Workshop, Console, Soft, and Bare in pure CSS with zero JS styling runtime." />
       </Head>
 
       <Stack gap="2rem">
         <div>
           <div class="docs-eyebrow">
             <span class="docs-eyebrow-dot" />
-            @kayjs/ui · Pure CSS @layer kui
+            @prunelle/ui · Pure CSS @layer kui
           </div>
           <h1 style="margin:0 0 0.65rem;font-family:var(--ui-font-display);font-size:clamp(2rem,3.5vw,2.75rem);line-height:1.12">
             Same DOM. Five structurally different apps.
           </h1>
           <p class="docs-lead" style="margin-bottom:1.25rem">
             Switch the active CSS Grammar below without touching a single component or shipping a JS recipe engine.
-            Every grammar is a single self-contained file you can eject and own with <code>kay ui-eject</code>.
+            Every grammar is a single self-contained file you can eject and own with <code>prunelle ui-eject</code>.
           </p>
           <GrammarDemo />
         </div>
@@ -94,9 +94,9 @@ export default function GrammarsPage() {
                   <Menu
                     label="Actions Menu"
                     items={[
-                      { id: 'eject', label: 'kay ui-eject orbit' },
-                      { id: 'build', label: 'kay build --static' },
-                      { id: 'compile', label: 'kay build --compile' },
+                      { id: 'eject', label: 'prunelle ui-eject orbit' },
+                      { id: 'build', label: 'prunelle build --static' },
+                      { id: 'compile', label: 'prunelle build --compile' },
                     ]}
                   />
                   <Select
@@ -116,7 +116,7 @@ export default function GrammarsPage() {
                   defaultValue="css"
                   items={[
                     { id: 'css', label: 'Pure CSS', content: 'Every grammar is a single ~3–4 KB brotli CSS file with native light-dark() support.' },
-                    { id: 'eject', label: 'One-File Eject', content: 'Run `kay ui-eject orbit` to copy the entire grammar into your repo and customize freely.' },
+                    { id: 'eject', label: 'One-File Eject', content: 'Run `prunelle ui-eject orbit` to copy the entire grammar into your repo and customize freely.' },
                   ]}
                 />
                 <Accordion>

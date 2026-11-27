@@ -1,5 +1,5 @@
-import { Button, Notice, Stack } from '@kayjs/ui'
-import { Head } from '@kayjs/kay'
+import { Button, Notice, Stack } from '@prunelle/ui'
+import { Head } from 'prunelle'
 
 export default function NotFoundPage() {
   return (

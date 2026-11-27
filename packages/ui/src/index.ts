@@ -1,4 +1,4 @@
-// @kayjs/ui — Platform-first headless primitives + pure CSS Style Grammars.
+// @prunelle/ui — Platform-first headless primitives + pure CSS Style Grammars.
 // Zero JS recipes, zero Tailwind lock-in, zero custom compiler syntax.
 
 export {

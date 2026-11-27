@@ -1,7 +1,7 @@
-// In-memory runtime image store, non-blocking Bun.spawn encoders, and build-phase task coordination for @kayjs/images.
+// In-memory runtime image store, non-blocking Bun.spawn encoders, and build-phase task coordination for @prunelle/images.
 
-import type { ServerPluginAPI } from '@kayjs/kay/config'
-import { serviceKey } from '@kayjs/kay/config'
+import type { ServerPluginAPI } from 'prunelle/config'
+import { serviceKey } from 'prunelle/config'
 import { runMagick } from './pipeline'
 
 export interface RuntimeImagePayload {
@@ -23,7 +23,7 @@ export interface RuntimeImageStore {
   serve(pathname: string, request: Request): Promise<Response | undefined>
 }
 
-export const RUNTIME_IMAGE_STORE_SERVICE = serviceKey<RuntimeImageStore>('kay.images.runtimeStore')
+export const RUNTIME_IMAGE_STORE_SERVICE = serviceKey<RuntimeImageStore>('prunelle.images.runtimeStore')
 
 const IMAGE_MIME: Record<string, string> = {
   '.png': 'image/png',
@@ -136,13 +136,13 @@ export function registerRuntimeImageMiddleware(api: ServerPluginAPI, store: Runt
   api.use(serveRuntime, { scope: '/img' })
 }
 
-// Build-phase coordination shared across native and bundled copies of @kayjs/images in the same process.
+// Build-phase coordination shared across native and bundled copies of @prunelle/images in the same process.
 interface BuildPhaseState {
   activeOutDirs: Set<string>
   tasks: Map<string, Promise<void>[]>
 }
 
-const BUILD_STATE_KEY = Symbol.for('kay.images.buildState')
+const BUILD_STATE_KEY = Symbol.for('pru.images.buildState')
 
 function buildState(): BuildPhaseState {
   const g = globalThis as Record<symbol, BuildPhaseState | undefined>

@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Bumps every package under packages/*/package.json (plus peerDependencies.kay, bun.lock and docs/bun.lock) in lockstep, then commits and creates annotated tag v<next>.
+// Bumps every package under packages/*/package.json (plus peerDependencies.prunelle, bun.lock and docs/bun.lock) in lockstep, then commits and creates annotated tag v<next>.
 // Usage: bun scripts/version.ts <alpha|beta|rc|patch|minor|major|X.Y.Z[-pre]> [--dry-run]
 
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -46,7 +46,7 @@ function nextVersion(current: string, target: string): string {
   throw new Error(`Unknown release level: ${target}`)
 }
 
-const corePkgPath = 'packages/kay/package.json'
+const corePkgPath = 'packages/prunelle/package.json'
 const corePkg = JSON.parse(readFileSync(corePkgPath, 'utf8')) as { version: string }
 const next = nextVersion(corePkg.version, level)
 const tag = `v${next}`
@@ -68,8 +68,8 @@ for (const p of manifests) {
   }
   pkg.version = next
   if (pkg.peerDependencies) {
-    if ('@kayjs/kay' in pkg.peerDependencies)
-      pkg.peerDependencies['@kayjs/kay'] = `^${next}`
+    if ('prunelle' in pkg.peerDependencies)
+      pkg.peerDependencies['prunelle'] = `^${next}`
   }
   writeFileSync(p, `${JSON.stringify(pkg, null, 2)}\n`)
 }
@@ -85,6 +85,6 @@ run(['bun', 'install', '--silent'])
 run(['bun', 'install', '--silent', '--cwd', 'docs'])
 run(['git', 'add', ...manifests, 'bun.lock', 'docs/bun.lock'])
 run(['git', 'commit', '-m', `chore(release): ${tag}`])
-run(['git', 'tag', '-a', tag, '-m', `Kay ${tag}`])
+run(['git', 'tag', '-a', tag, '-m', `Prunelle ${tag}`])
 
 console.log(tag)

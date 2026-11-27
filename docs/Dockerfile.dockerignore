@@ -2,8 +2,8 @@
 node_modules
 docs/node_modules
 docs/dist
-docs/.kay-dev
-docs/.kay-cache
+docs/.prunelle-dev
+docs/.prunelle-cache
 bench-sites
 examples
 bench-app

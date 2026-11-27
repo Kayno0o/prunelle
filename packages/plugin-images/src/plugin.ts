@@ -1,16 +1,16 @@
-// @kayjs/images — Build-time AVIF/WebP responsive image optimization with content-hashed disk cache.
-// Built strictly on the public KayPlugin API (bunPlugins + build(ctx).emitAsset).
+// @prunelle/images — Build-time AVIF/WebP responsive image optimization with content-hashed disk cache.
+// Built strictly on the public PrunellePlugin API (bunPlugins + build(ctx).emitAsset).
 
 import type { BunPlugin } from 'bun'
-import type { KayPlugin } from '@kayjs/kay/config'
+import type { PrunellePlugin } from 'prunelle/config'
 import type { ShareCardDefaults } from './card'
 import type { ImageAsset } from './helpers'
 import type { CachedImageMeta, VariantPipelineConfig } from './pipeline'
 import type { RuntimeImageStore } from './runtime'
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, extname, join, resolve } from 'node:path'
-import { CONTENT_IMAGE_RESOLVER_SERVICE, definePlugin, isInside } from '@kayjs/kay/config'
-import { getAppContext } from '@kayjs/kay/internal/server'
+import { CONTENT_IMAGE_RESOLVER_SERVICE, definePlugin, isInside } from 'prunelle/config'
+import { getAppContext } from 'prunelle/internal/server'
 import { SHARE_CARD_CONFIG_SERVICE } from './card'
 import { readImageDimensions } from './dimensions'
 import {
@@ -52,13 +52,13 @@ export interface ImagesPluginOptions {
   pruneCache?: boolean | undefined
   /** Optional defaults for build-time `shareCard()` OG image generation. */
   card?: ShareCardDefaults | undefined
-  /** Default `sizes` attribute for relative images auto-optimized inside `@kayjs/content` Markdown. */
+  /** Default `sizes` attribute for relative images auto-optimized inside `@prunelle/content` Markdown. */
   markdownSizes?: string | undefined
 }
 
 const DEFAULT_WIDTHS = [320, 640, 960, 1280, 1920]
 const DEFAULT_FORMATS: ('avif' | 'webp')[] = ['avif', 'webp']
-const MISSING_MAGICK_MESSAGE = '@kayjs/images: ImageMagick ("magick") was not found on PATH; AVIF/WebP optimization is disabled. Install ImageMagick to enable responsive image optimization.'
+const MISSING_MAGICK_MESSAGE = '@prunelle/images: ImageMagick ("magick") was not found on PATH; AVIF/WebP optimization is disabled. Install ImageMagick to enable responsive image optimization.'
 
 interface PersistedImagesConfig {
   cacheDirRel: string
@@ -70,12 +70,12 @@ interface PersistedImagesConfig {
   card?: ShareCardDefaults | undefined
 }
 
-export function images(options: ImagesPluginOptions = {}): KayPlugin {
+export function images(options: ImagesPluginOptions = {}): PrunellePlugin {
   const widths = (options.widths ?? DEFAULT_WIDTHS).slice().sort((a, b) => a - b)
   const formats = options.formats ?? DEFAULT_FORMATS
   const quality = options.quality ?? 80
   const avifQuality = options.avifQuality ?? 55
-  const cacheDirRel = options.cacheDir ?? '.kay-cache/images'
+  const cacheDirRel = options.cacheDir ?? '.prunelle-cache/images'
   const pruneCache = options.pruneCache ?? true
 
   const emittedAssets = new Map<string, Uint8Array>()
@@ -91,7 +91,7 @@ export function images(options: ImagesPluginOptions = {}): KayPlugin {
   }
 
   return definePlugin({
-    name: '@kayjs/images',
+    name: '@prunelle/images',
     check(ctx) {
       if (!hasMagick())
         ctx.error(MISSING_MAGICK_MESSAGE)
@@ -106,7 +106,7 @@ export function images(options: ImagesPluginOptions = {}): KayPlugin {
         warnMissingMagickOnce()
 
       return [{
-        name: 'kayjs-images',
+        name: 'prunelle-images',
         setup(b) {
           b.onLoad({ filter: /\.(?:png|jpe?g|webp|avif)$/i }, async (args) => {
             if (args.path.includes('/node_modules/'))
@@ -124,7 +124,7 @@ export function images(options: ImagesPluginOptions = {}): KayPlugin {
             if (!magickAvailable) {
               const dims = readImageDimensions(rawBytes)
               if (dims === undefined)
-                throw new Error(`@kayjs/images: could not determine dimensions for "${args.path}" (ImageMagick is unavailable and binary header could not be parsed)`)
+                throw new Error(`@prunelle/images: could not determine dimensions for "${args.path}" (ImageMagick is unavailable and binary header could not be parsed)`)
               return emitRaw(dims.width, dims.height)
             }
 
@@ -137,7 +137,7 @@ export function images(options: ImagesPluginOptions = {}): KayPlugin {
             if (meta === undefined) {
               const dims = readImageDimensions(rawBytes) ?? await identifyImageAsync(args.path)
               if (dims === undefined)
-                throw new Error(`@kayjs/images: could not determine dimensions for "${args.path}"`)
+                throw new Error(`@prunelle/images: could not determine dimensions for "${args.path}"`)
 
               const jobs = planVariantJobs(dims, stem, hash, cacheRoot, pipelineCfg)
               const encoded = await encodeVariants(args.path, jobs)
@@ -298,7 +298,7 @@ function optimizeForRuntime(
 export function optimizeImageFile(absPath: string, options: OptimizeImageFileOptions = {}): ImageAsset {
   const ext = extname(absPath).toLowerCase()
   if (!ALLOWED_IMAGE_EXTS.has(ext))
-    throw new Error(`@kayjs/images: unsupported image extension "${ext || '(none)'}" for "${absPath}"`)
+    throw new Error(`@prunelle/images: unsupported image extension "${ext || '(none)'}" for "${absPath}"`)
 
   const pipelineCfg: VariantPipelineConfig = {
     widths: (options.widths ?? [640, 1280]).slice().sort((a, b) => a - b),
@@ -311,10 +311,10 @@ export function optimizeImageFile(absPath: string, options: OptimizeImageFileOpt
   const rawBytes = new Uint8Array(readFileSync(absPath))
   const dims = readImageDimensions(rawBytes)
   if (dims === undefined)
-    throw new Error(`@kayjs/images: could not determine dimensions for "${absPath}"`)
+    throw new Error(`@prunelle/images: could not determine dimensions for "${absPath}"`)
 
   const { hash, stem, rawFileName } = computeImageKey(absPath, rawBytes, pipelineCfg)
-  const cacheRoot = resolve(options.cacheDir ?? '.kay-cache/images')
+  const cacheRoot = resolve(options.cacheDir ?? '.prunelle-cache/images')
   const inBuild = appCtx !== undefined && isBuildPhase(appCtx.outDir)
 
   // Runtime server mode (including --compile): never write to dist/public or block on Bun.spawnSync.
@@ -374,7 +374,7 @@ export interface MarkdownImageResolverOptions extends OptimizeImageFileOptions {
   root?: string | undefined
 }
 
-/** Creates a `@kayjs/content` `resolveImage` function backed by `optimizeImageFile()`. Automatically wired by `images()`. */
+/** Creates a `@prunelle/content` `resolveImage` function backed by `optimizeImageFile()`. Automatically wired by `images()`. */
 export function createMarkdownImageResolver(options: MarkdownImageResolverOptions = {}) {
   const sizes = options.sizes ?? '(min-width: 48rem) 42rem, 100vw'
   return (src: string, file: string | undefined) => {
@@ -386,9 +386,9 @@ export function createMarkdownImageResolver(options: MarkdownImageResolverOption
       boundary = resolve(options.root)
     }
     else {
-      const kayRoot = getAppContext()?.root
-      boundary = (typeof kayRoot === 'string' && kayRoot !== '' && isInside(resolve(kayRoot), absFile))
-        ? resolve(kayRoot)
+      const prunelleRoot = getAppContext()?.root
+      boundary = (typeof prunelleRoot === 'string' && prunelleRoot !== '' && isInside(resolve(prunelleRoot), absFile))
+        ? resolve(prunelleRoot)
         : dirname(absFile)
     }
 

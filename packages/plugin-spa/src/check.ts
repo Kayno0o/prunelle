@@ -1,9 +1,9 @@
-// `kay check` for regions(): a data-kay-target written as a string that names no <Region> in the app's src/.
+// `prunelle check` for regions(): a data-pru-target written as a string that names no <Region> in the app's src/.
 
-import type { CheckPluginContext } from '@kayjs/kay/config'
+import type { CheckPluginContext } from 'prunelle/config'
 import { join, relative } from 'node:path'
 
-const TARGET_RE = /data-kay-target=["']([^"'{}]+)["']/g
+const TARGET_RE = /data-pru-target=["']([^"'{}]+)["']/g
 const REGION_RE = /<Region\b[^>]*?\bname=(?:["']([^"'{}]+)["']|\{)/g
 
 export async function checkRegionTargets(ctx: CheckPluginContext): Promise<void> {
@@ -26,6 +26,6 @@ export async function checkRegionTargets(ctx: CheckPluginContext): Promise<void>
     return
   for (const { file, name } of targets) {
     if (!regions.has(name))
-      ctx.error(`[regions] ${file}: data-kay-target="${name}" names no <Region name="${name}"> in src/: add the region, or fix the name`)
+      ctx.error(`[regions] ${file}: data-pru-target="${name}" names no <Region name="${name}"> in src/: add the region, or fix the name`)
   }
 }

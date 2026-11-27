@@ -1,7 +1,7 @@
-// RSS 2.0 XML feed generation and ETag matching for @kayjs/content.
+// RSS 2.0 XML feed generation and ETag matching for @prunelle/content.
 
 import type { Collection, ContentEntry } from './collection'
-import { escAttr } from '@kayjs/kay/server'
+import { escAttr } from 'prunelle/server'
 import { currentApp } from './app'
 
 export interface RssFeedConfig<TData = Record<string, unknown>> {
@@ -9,7 +9,7 @@ export interface RssFeedConfig<TData = Record<string, unknown>> {
   path?: string | undefined
   title: string
   description: string
-  /** Public site origin; defaults to `KayConfig.site` when registered via `content()`. */
+  /** Public site origin; defaults to `PrunelleConfig.site` when registered via `content()`. */
   site?: string | undefined
   collection: Collection<TData>
   locale?: string | undefined

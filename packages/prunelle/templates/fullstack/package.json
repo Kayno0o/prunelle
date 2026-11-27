@@ -1,0 +1,19 @@
+{
+  "name": "__APP_NAME__",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "prunelle dev",
+    "build": "prunelle build",
+    "start": "prunelle start",
+    "check": "prunelle check",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "prunelle": "__PRUNELLE_VERSION__"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "name": "kay-v2-monorepo",
+  "name": "prunelle-monorepo",
   "private": true,
   "workspaces": [
     "packages/*"
@@ -9,15 +9,15 @@
     "check:size": "bun scripts/size-check.ts",
     "check:guardrails": "bun scripts/guardrails-check.ts",
     "check:dup": "bun scripts/dup-check.ts",
-    "test": "bun test packages/kay/tests",
+    "test": "bun test packages/prunelle/tests",
     "bench": "bun bench-app/bench.ts",
     "bench:server": "bun bench-app/server-bench.ts",
     "bench:weight": "bun scripts/bundle-weight.ts",
-    "verify": "bun check --no-script && bun run check:size && bun run check:guardrails && bun run check:dup && bun test packages/kay/tests && bun bench-app/build.ts"
+    "verify": "bun check --no-script && bun run check:size && bun run check:guardrails && bun run check:dup && bun test packages/prunelle/tests && bun bench-app/build.ts"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^21.0.4",
-    "@kayjs/kay": "link:./packages/kay",
+    "prunelle": "link:./packages/prunelle",
     "@kaynooo/cli-kit": "^0.52.0",
     "@types/bun": "^1.4.4",
     "happy-dom": "^21.0.4",

@@ -1,31 +1,31 @@
-# @kayjs/spa Reference
+# @prunelle/spa Reference
 
 > Opt-in in-place navigation: `regions()` swaps individual `<Region>` fragments from the server, and `spa()` swaps whole pages with `[data-persist]` islands (`0 B` when uninstalled).
 
 ## Imports
 
-- `@kayjs/spa`: `spa()`, `regions()` (both return `KayPlugin` for `kay.config.ts`).
-- `@kayjs/spa/regions`: `refreshRegion(name: string): Promise<void>` (redraws `<Region name>` from the current URL without touching history or focus; skips prefetch cache; rejects if region is missing or fetch fails).
-- `@kayjs/spa/client`: `prefetch(url: string, region?: string)` (populates the shared 8-entry / 15s prefetch cache; respects `Save-Data`).
+- `@prunelle/spa`: `spa()`, `regions()` (both return `PrunellePlugin` for `prunelle.config.ts`).
+- `@prunelle/spa/regions`: `refreshRegion(name: string): Promise<void>` (redraws `<Region name>` from the current URL without touching history or focus; skips prefetch cache; rejects if region is missing or fetch fails).
+- `@prunelle/spa/client`: `prefetch(url: string, region?: string)` (populates the shared 8-entry / 15s prefetch cache; respects `Save-Data`).
 
 ## Partial Swaps (`regions()`)
 
-Pair `regions()` in `kay.config.ts` with `<Region name="pane" as="section" ...attrs>` from `@kayjs/kay` (server-only):
+Pair `regions()` in `prunelle.config.ts` with `<Region name="pane" as="section" ...attrs>` from `prunelle` (server-only):
 
-- `<a href="/items?p=2" data-kay-target="results">`: sends `x-kay-region: results` (or `outer/inner` for nested regions), swaps inner HTML, updates `document.title` from `x-kay-title`, pushes history, manages focus & `aria-label` announcement, sets `aria-busy="true"` after 150 ms.
-- `data-kay-append` on a targeted `<a>`: appends response HTML, removes clicked link (Load more), replaces history entry.
-- `<form method="get" data-kay-target="results">`: swaps on submit; add `data-kay-live` to also swap while typing (200 ms debounce, one history entry per typing burst).
-- `data-kay-sync="q tag"` on a link or input/select: keeps query params or field values outside the region in sync after every swap.
-- `[data-kay-prefetch]` ancestor: prefetches targeted links on hover/focus (`data-no-prefetch` opts a link out).
-- `<form method="post" data-kay-target="results">`: posts through `fetch`, follows the redirect and swaps the region from the final page; without JS it posts normally. `data-kay-live` is refused on it.
+- `<a href="/items?p=2" data-pru-target="results">`: sends `x-pru-region: results` (or `outer/inner` for nested regions), swaps inner HTML, updates `document.title` from `x-pru-title`, pushes history, manages focus & `aria-label` announcement, sets `aria-busy="true"` after 150 ms.
+- `data-pru-append` on a targeted `<a>`: appends response HTML, removes clicked link (Load more), replaces history entry.
+- `<form method="get" data-pru-target="results">`: swaps on submit; add `data-pru-live` to also swap while typing (200 ms debounce, one history entry per typing burst).
+- `data-pru-sync="q tag"` on a link or input/select: keeps query params or field values outside the region in sync after every swap.
+- `[data-pru-prefetch]` ancestor: prefetches targeted links on hover/focus (`data-no-prefetch` opts a link out).
+- `<form method="post" data-pru-target="results">`: posts through `fetch`, follows the redirect and swaps the region from the final page; without JS it posts normally. `data-pru-live` is refused on it.
 - Empty fields are dropped from the URL of a GET form.
 - Swaps run in `document.startViewTransition` where supported, and not under `prefers-reduced-motion: reduce`. `append`, `refreshRegion()` and live typing swap without one.
-- Each history entry remembers the window's scroll and the scrolled regions' scroll, and back/forward restores both. A pushed swap leaves the window's scroll alone and resets the region's own scroll, unless the region carries `data-kay-keep-scroll`.
+- Each history entry remembers the window's scroll and the scrolled regions' scroll, and back/forward restores both. A pushed swap leaves the window's scroll alone and resets the region's own scroll, unless the region carries `data-pru-keep-scroll`.
 - After a swap, links whose `href` matches the new URL get `aria-current="page"`, others lose it.
 - A `#hash` link to an element already on the page scrolls to it with no fetch; after a swap the page scrolls to the URL's hash.
 - The regions client loads only on routes whose tree renders a `<Region>`: every other page ships none of it (plugin field `regionClientEntry`).
-- Dispatches `window` event `kay:region` with `{ detail: { name, url } }`. `kay check` verifies every `data-kay-target` matches a `<Region>` in `src/`.
-- `data-kay-keep-scroll="<key>"` on any element: its scroll offset survives region swaps and `spa()` swaps, and is kept per history entry.
+- Dispatches `window` event `pru:region` with `{ detail: { name, url } }`. `prunelle check` verifies every `data-pru-target` matches a `<Region>` in `src/`.
+- `data-pru-keep-scroll="<key>"` on any element: its scroll offset survives region swaps and `spa()` swaps, and is kept per history entry.
 
 ## Default: MPA plus `regions()`
 
@@ -33,16 +33,16 @@ Most apps want plain page loads (with the browser's cross-document view transiti
 
 ## Full-Page SPA Navigation (`spa()`)
 
-- Intercepts same-origin `<a>` clicks, diffs `<head>` stylesheets (zero-FOUC, in the order the next page serves them, every attribute kept) and meta/title/lang, preserves `[data-persist]` islands alive across navigations, focuses `<main>`/`<h1>`, and dispatches `kay:navigate`.
-- Sets `history.scrollRestoration = 'manual'` and restores the saved window and `data-kay-keep-scroll` offsets once on back/forward. Runs the swap in a view transition unless the user prefers reduced motion. Loads the regions client of a page it swaps to.
-- Attributes: `data-no-spa` opts a link out; `[data-kay-prefetch]` enables hover/focus prefetch; `[data-persist]` preserves an island DOM subtree.
+- Intercepts same-origin `<a>` clicks, diffs `<head>` stylesheets (zero-FOUC, in the order the next page serves them, every attribute kept) and meta/title/lang, preserves `[data-persist]` islands alive across navigations, focuses `<main>`/`<h1>`, and dispatches `pru:navigate`.
+- Sets `history.scrollRestoration = 'manual'` and restores the saved window and `data-pru-keep-scroll` offsets once on back/forward. Runs the swap in a view transition unless the user prefers reduced motion. Loads the regions client of a page it swaps to.
+- Attributes: `data-no-spa` opts a link out; `[data-pru-prefetch]` enables hover/focus prefetch; `[data-persist]` preserves an island DOM subtree.
 
 ## Snippets
 
 ```ts
-// kay.config.ts
-import { defineConfig } from '@kayjs/kay/config'
-import { regions, spa } from '@kayjs/spa'
+// prunelle.config.ts
+import { defineConfig } from 'prunelle/config'
+import { regions, spa } from '@prunelle/spa'
 
 export default defineConfig({
   plugins: [regions(), spa()],
@@ -51,15 +51,15 @@ export default defineConfig({
 
 ```tsx
 // src/routes/search.tsx
-import { Region } from '@kayjs/kay'
-import type { PageProps } from '@kayjs/kay'
+import { Region } from 'prunelle'
+import type { PageProps } from 'prunelle'
 
 export default function Search({ url }: PageProps) {
   const q = url.searchParams.get('q') ?? ''
   return (
     <>
-      <form method="get" data-kay-target="results" data-kay-live>
-        <input name="q" value={q} data-kay-sync />
+      <form method="get" data-pru-target="results" data-pru-live>
+        <input name="q" value={q} data-pru-sync />
       </form>
       <Region name="results" aria-label="Search results">
         <p>Results for {q}</p>

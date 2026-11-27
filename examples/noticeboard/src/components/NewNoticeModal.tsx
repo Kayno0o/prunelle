@@ -1,5 +1,5 @@
-import { Button, Cluster, ControlledDialog, Field, Notice, Stack, toast } from '@kayjs/ui'
-import { signal, useAction } from '@kayjs/kay'
+import { Button, Cluster, ControlledDialog, Field, Notice, Stack, toast } from '@prunelle/ui'
+import { signal, useAction } from 'prunelle'
 import { pinNotice } from '../actions/notices'
 
 export function NewNoticeModal() {

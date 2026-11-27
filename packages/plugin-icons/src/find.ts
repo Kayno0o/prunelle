@@ -1,9 +1,9 @@
-// `kay icons-find <words> [--set <prefix>] [--limit <n>]`: prints the `~icons/<set>/<name>` imports matching the words, so an agent imports icons that exist.
+// `prunelle icons-find <words> [--set <prefix>] [--limit <n>]`: prints the `~icons/<set>/<name>` imports matching the words, so an agent imports icons that exist.
 
 import type { IconLookup } from './diagnose'
 
 const FOUND_PER_SET = 10
-const USAGE = 'Usage: kay icons-find <words> [--set <prefix>] [--limit <n>]'
+const USAGE = 'Usage: prunelle icons-find <words> [--set <prefix>] [--limit <n>]'
 
 function fail(message: string): never {
   console.error(message)

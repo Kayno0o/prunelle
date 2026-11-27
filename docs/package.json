@@ -1,20 +1,20 @@
 {
-  "name": "kay-docs",
+  "name": "prunelle-docs",
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "kay dev",
-    "build": "kay build --static",
-    "start": "kay start",
-    "check": "kay check"
+    "dev": "prunelle dev",
+    "build": "prunelle build --static",
+    "start": "prunelle start",
+    "check": "prunelle check"
   },
   "dependencies": {
-    "@kayjs/kay": "file:../packages/kay",
-    "@kayjs/content": "file:../packages/plugin-content",
-    "@kayjs/icons": "file:../packages/plugin-icons",
-    "@kayjs/images": "file:../packages/plugin-images",
-    "@kayjs/seo": "file:../packages/plugin-seo",
-    "@kayjs/ui": "file:../packages/ui",
+    "prunelle": "file:../packages/prunelle",
+    "@prunelle/content": "file:../packages/plugin-content",
+    "@prunelle/icons": "file:../packages/plugin-icons",
+    "@prunelle/images": "file:../packages/plugin-images",
+    "@prunelle/seo": "file:../packages/plugin-seo",
+    "@prunelle/ui": "file:../packages/ui",
     "@fontsource/chakra-petch": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
     "@shikijs/core": "^4.6.0",

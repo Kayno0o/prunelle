@@ -1,10 +1,10 @@
-/** @jsxImportSource @kayjs/kay */
+/** @jsxImportSource prunelle */
 // Zero-JS static & native-platform primitives (`0 KB` client JS!).
 // Emit only semantic `data-ui`, `data-part`, `data-variant`, `data-tone`, `data-layout` attributes.
 
-import type { Context, Html, KayChild } from '@kayjs/kay'
+import type { Context, Html, PrunelleChild } from 'prunelle'
 import type { FieldControlWiring } from './field-context'
-import { provideContext } from '@kayjs/kay'
+import { provideContext } from 'prunelle'
 import { FIELD_CONTEXT_ID } from './field-context'
 
 export type { FieldControlWiring } from './field-context'
@@ -16,7 +16,7 @@ export const FieldContext: Context<FieldControlWiring | undefined> = {
   Provider(props) {
     return provideContext(FieldContext, props.value, () => {
       const c = props.children
-      return typeof c === 'function' ? (c as () => KayChild)() : c
+      return typeof c === 'function' ? (c as () => PrunelleChild)() : c
     })
   },
 }
@@ -31,7 +31,7 @@ export type Size = 'sm' | 'md' | 'lg'
 
 interface BoxProps {
   class?: string | undefined
-  children?: KayChild | undefined
+  children?: PrunelleChild | undefined
   [attr: string]: unknown
 }
 
@@ -43,7 +43,7 @@ export interface ButtonProps {
   type?: 'button' | 'submit' | 'reset' | undefined
   disabled?: boolean | undefined
   class?: string | undefined
-  children?: KayChild | undefined
+  children?: PrunelleChild | undefined
   [attr: string]: unknown
 }
 
@@ -85,7 +85,7 @@ export interface FieldProps {
   error?: string | undefined
   required?: boolean | undefined
   class?: string | undefined
-  children?: KayChild | undefined
+  children?: PrunelleChild | undefined
 }
 
 function mergeTokenAttr(existing: string | null | undefined, addition: string): string {
@@ -199,16 +199,16 @@ function findFieldControlInNode(node: Node): Element | null {
   return node.nodeType === 11 ? (node as DocumentFragment).querySelector(CTRL_SEL) : null
 }
 
-const RAW_HTML_BRAND = Symbol.for('kay.html')
+const RAW_HTML_BRAND = Symbol.for('pru.html')
 
 function wireFieldChildren(
-  children: KayChild,
+  children: PrunelleChild,
   wiring: FieldControlWiring,
   err: string | undefined,
   hint: string | undefined,
   onControl: (el: Element) => void,
   state: { done: boolean } = { done: false },
-): KayChild {
+): PrunelleChild {
   if (state.done || children == null || typeof children !== 'object')
     return children
   if (Array.isArray(children))

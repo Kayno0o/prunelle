@@ -1,18 +1,18 @@
 ---
-title: "@kayjs/auth"
+title: "@prunelle/auth"
 description: Zero-dependency Bun-native authentication — Argon2id passwords, hashed sessions, email verification, magic links, OAuth 2.0 + PKCE, route guards, RGPD helpers, and SQLite.
 section: plugins
 order: 2
 ---
 
-`@kayjs/auth` ships a complete authentication layer with **zero external dependencies**, built natively on `Bun.password` (Argon2id), Web Crypto, and `bun:sqlite`.
+`@prunelle/auth` ships a complete authentication layer with **zero external dependencies**, built natively on `Bun.password` (Argon2id), Web Crypto, and `bun:sqlite`.
 
 ## Setup
 
 ```ts
 // src/auth.ts
-import { createAuth, github } from '@kayjs/auth'
-import { sqliteAuthStore } from '@kayjs/auth/sqlite'
+import { createAuth, github } from '@prunelle/auth'
+import { sqliteAuthStore } from '@prunelle/auth/sqlite'
 import { mail } from './mail'
 
 export const auth = createAuth({
@@ -34,12 +34,12 @@ export const auth = createAuth({
 - **`site`**: The public origin of the app. Mailed sign-in/verification links and OAuth callbacks are built from it, never from the request's `Host` header, which the client controls. Without it, mailed links only work on loopback hosts (`localhost` / `127.0.0.1`), and other hosts receive `500`.
 - **`minPasswordLength`**: Defaults to `12` (aligned with CNIL recommendations).
 - **`requireEmailVerification`**: Defaults to `true`. `POST /auth/signup` creates an unverified account, mails a one-time verification link (`kind: 'verify-email'`), and returns `202 { ok: true, verificationRequired: true }` without opening a session cookie. `POST /auth/signin` refuses unverified accounts with `403`. Set `requireEmailVerification: false` explicitly only if you intentionally allow unverified password sessions (for example, local development without mail).
-- **`trustProxy`**: Defaults to `false`. Rate limiting keys on `ctx.ip` (populated by Kay's server) plus the normalized email address on email-bearing endpoints, and covers sign-up, sign-in, magic-link, verification, and OAuth endpoints. Forwarded headers are ignored unless `trustProxy` is set: `true` trusts one proxy, a number trusts that many hops, and only the entry those hops wrote counts.
+- **`trustProxy`**: Defaults to `false`. Rate limiting keys on `ctx.ip` (populated by Prunelle's server) plus the normalized email address on email-bearing endpoints, and covers sign-up, sign-in, magic-link, verification, and OAuth endpoints. Forwarded headers are ignored unless `trustProxy` is set: `true` trusts one proxy, a number trusts that many hops, and only the entry those hops wrote counts.
 
-The object `createAuth()` returns is also the plugin. Register it in `kay.config.ts`:
+The object `createAuth()` returns is also the plugin. Register it in `prunelle.config.ts`:
 
 ```ts
-import { defineConfig } from '@kayjs/kay/config'
+import { defineConfig } from 'prunelle/config'
 import { auth } from './src/auth'
 
 export default defineConfig({
@@ -56,7 +56,7 @@ export default defineConfig({
 | `POST /auth/signin` | Timing-safe Argon2id verify, rejects unverified accounts (`403`) when verification is required, IP + email rate limiting (`429`) |
 | `POST /auth/signout` | Revokes hashed session + clears cookie |
 | `GET /auth/session` | Returns current public user JSON |
-| `POST /auth/magic-link` & `GET` / `POST /auth/magic-link/verify` | One-time email login via `@kayjs/mail`. Like verification, the link opens a page whose button `POST`s the token and signs in. The first sign-in by link verifies the address and drops any password, sessions and provider links set before it |
+| `POST /auth/magic-link` & `GET` / `POST /auth/magic-link/verify` | One-time email login via `@prunelle/mail`. Like verification, the link opens a page whose button `POST`s the token and signs in. The first sign-in by link verifies the address and drops any password, sessions and provider links set before it |
 | `GET /auth/oauth/:provider` & callback | OAuth 2.0 + PKCE (`S256`) with HMAC-signed state (`github`, `discord`, `google`, or custom `oauthProvider`), rate limited |
 
 ## Protecting routes & actions

@@ -1,7 +1,7 @@
 // Headless DataTable behavior (O(1) selection, clamped pagination, leak-free row signal eviction).
 
-import type { ReadonlySignal, Signal } from '@kayjs/kay'
-import { computed, signal } from '@kayjs/kay'
+import type { ReadonlySignal, Signal } from 'prunelle'
+import { computed, signal } from 'prunelle'
 
 export interface DataTableOptions<T> {
   rows: () => readonly T[]

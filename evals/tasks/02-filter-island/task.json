@@ -5,7 +5,7 @@
   "template": "minimal",
   "maxJs": "15kb",
   "packages": [
-    "@kayjs/kay"
+    "prunelle"
   ],
   "tags": [
     "island",
