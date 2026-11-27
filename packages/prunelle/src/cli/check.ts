@@ -256,8 +256,12 @@ export async function checkProject(rootDir: string, options: { skipTypecheck?: b
   const load = (file: string): ModuleAnalysis | undefined =>
     loadCheckedModule(file, root, analyses, sources, unparsable, errors, warnings, compliance, site)
 
-  for (const file of files)
-    load(file)
+  // Then every module they import, as `prunelle build` loads them: a workspace package's components plan islands too (#34).
+  const pending = [...files]
+  for (let i = 0; i < pending.length; i++) {
+    if (load(pending[i]!) !== undefined)
+      pending.push(...graph.localDeps(pending[i]!).filter(dep => !analyses.has(dep)))
+  }
 
   // Exact route discovery matching `prunelle build` (`walkRoutes` skips `_components/` dirs, `.d.ts`, `.test.ts`)
   const routeFiles = existsSync(routesDir) ? walkRoutes(routesDir).sort() : []

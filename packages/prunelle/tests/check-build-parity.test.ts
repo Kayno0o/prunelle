@@ -233,6 +233,22 @@ describe('prunelle check and prunelle build decide islands per component (#3587)
     ])
     await expect(build({ root: dir, minify: false })).rejects.toThrow('src/ui/Panel.tsx:3:52: error: prunelle build: cannot pass function prop "onDone" from a server component into island <Clicker>. Define the handler inside the island or pass serializable data.')
   })
+
+  it('finds an island a workspace package renders two imports below the page (#34)', async () => {
+    const dir = appWith('prunelle-workspace-island-', {
+      'shell/package.json': '{ "name": "@x/shell", "type": "module", "exports": { "./layout": "./src/Layout.tsx" } }\n',
+      'shell/src/Layout.tsx': 'import { TopBar } from \'./TopBar\'\nexport function Layout() { return <div><TopBar /></div> }\n',
+      'shell/src/TopBar.tsx': 'import { Switch } from \'./Switch\'\nexport function TopBar() { return <header><Switch $hydrate="idle" /></header> }\n',
+      'shell/src/Switch.tsx': 'import { signal } from \'prunelle\'\nexport function Switch() { const on = signal(false); return <button type="button" onClick={() => on.value = !on.value}>{on.value ? \'on\' : \'off\'}</button> }\n',
+      'prunelle.config.ts': 'export default { compliance: { legalNotice: false } }\n',
+      'src/routes/index.tsx': 'import { Layout } from \'@x/shell/layout\'\nexport default function Home() { return <main><Layout /></main> }\n',
+    })
+    mkdirSync(join(dir, 'node_modules/@x'))
+    symlinkSync('../../shell', join(dir, 'node_modules/@x/shell'))
+    expect(await checkProject(dir, { skipTypecheck: true })).toMatchObject({ errors: [], warnings: [] })
+    const manifest = await build({ root: dir, minify: false })
+    expect(Object.keys(manifest.islands).map(key => key.slice(dir.length))).toEqual(['/shell/src/Switch.tsx#Switch'])
+  })
 })
 
 describe('a dynamic route that cannot be prerendered without paths() (#3657)', () => {
