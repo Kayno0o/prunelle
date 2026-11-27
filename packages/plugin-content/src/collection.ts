@@ -118,7 +118,7 @@ export interface CollectionOptions<TData = Record<string, unknown>> {
   trusted?: boolean | undefined
   /** Lazy renderer loader (`async () => ({ highlight, components })`) so config/index/RSS never load Shiki or TSX components. */
   render?: (() => CollectionRenderConfig | Promise<CollectionRenderConfig>) | undefined
-  /** Include entries with `draft: true` (default: false). */
+  /** Include entries with `draft: true` (default: `true` in dev, `false` in production/build). */
   includeDrafts?: boolean | undefined
   /** Custom comparator for `all()` (defaults to newest `date` first, then alphabetical `slug`). */
   sort?: ((a: ContentEntry<TData>, b: ContentEntry<TData>) => number) | undefined
@@ -282,11 +282,15 @@ export async function discoverAppCollections(root: string): Promise<void> {
   }
 }
 
+function isDraft(data: unknown): boolean {
+  return (data as Record<string, unknown>).draft === true
+}
+
 export function defineCollection<TData>(options: CollectionOptionsWithSchema<TData>): Collection<TData>
 export function defineCollection(options: CollectionOptionsWithoutSchema): Collection<Record<string, unknown>>
 export function defineCollection<TData = Record<string, unknown>>(options: CollectionOptions<TData>): Collection<TData> {
   const getDir = () => resolveCollectionDir(options.dir)
-  const includeDrafts = options.includeDrafts ?? false
+  const allowsDrafts = (): boolean => options.includeDrafts ?? isDevMode()
   const localized = options.localized ?? false
   const getDefaultLocale = (): string =>
     options.defaultLocale ?? currentApp.defaultLocale() ?? 'en'
@@ -343,7 +347,7 @@ export function defineCollection<TData = Record<string, unknown>>(options: Colle
     return pendingRenderOpts
   }
 
-  const cache = new Map<string, { mtimeMs: number, entry: ContentEntry<TData> | null }>()
+  const cache = new Map<string, { mtimeMs: number, entry: ContentEntry<TData> }>()
   const allCache = new Map<string, ContentEntry<TData>[]>()
   const slugCache = new Map<string, Map<string, ContentEntry<TData>>>()
   let cacheVersion = 0
@@ -352,15 +356,18 @@ export function defineCollection<TData = Record<string, unknown>>(options: Colle
     return currentApp.dev() ?? (process.env.PRUNELLE_DEV === '1')
   }
 
+  const visible = (entry: ContentEntry<TData>): ContentEntry<TData> | null =>
+    !allowsDrafts() && isDraft(entry.data) ? null : entry
+
   function loadFile(absFile: string, baseDir: string, entryLocale?: string): ContentEntry<TData> | null {
     const dev = isDevMode()
     const cached = cache.get(absFile)
     if (!dev && cached !== undefined)
-      return cached.entry
+      return visible(cached.entry)
 
     const mtimeMs = statSync(absFile).mtimeMs
     if (cached !== undefined && cached.mtimeMs === mtimeMs)
-      return cached.entry
+      return visible(cached.entry)
 
     const rawSource = readFileSync(absFile, 'utf8')
     const { data: rawData, body } = parseFrontmatter(rawSource)
@@ -384,11 +391,6 @@ export function defineCollection<TData = Record<string, unknown>>(options: Colle
     }
     else {
       data = rawData as TData
-    }
-
-    if (!includeDrafts && (data as Record<string, unknown>).draft === true) {
-      cache.set(absFile, { mtimeMs, entry: null })
-      return null
     }
 
     const wordCount = body.trim().split(/\s+/).filter(Boolean).length
@@ -423,7 +425,7 @@ export function defineCollection<TData = Record<string, unknown>>(options: Colle
       render: renderAsync,
     }
     cache.set(absFile, { mtimeMs, entry })
-    return entry
+    return visible(entry)
   }
 
   // Slugs and locales usually come from URL params: a path built from them must stay inside the collection folder.

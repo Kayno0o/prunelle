@@ -2,10 +2,11 @@ import { afterAll, describe, expect, it } from 'bun:test'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { content, defineCollection, parseFrontmatter, renderMarkdown } from '../../plugin-content/src/index'
+import { content, defineCollection, parseFrontmatter, renderMarkdown, renderRss } from '../../plugin-content/src/index'
 import { alternateLinks, formatDate, formatNumber, i18n, localizePath } from '../../plugin-i18n/src/index'
 import { images, shareCard } from '../../plugin-images/src/index'
 import { build } from '../src/build/index'
+import { devServer } from '../src/dev/index'
 import { testApp } from '../src/test/index'
 
 const tempDirs: string[] = []
@@ -525,6 +526,294 @@ date: 2026-11-24
     const plugin = content()
     const watched = typeof plugin.watchPaths === 'function' ? plugin.watchPaths(dir) : []
     expect(watched).toContain(join(dir, 'src/content/posts'))
+  })
+
+  it('#47: includes drafts by default in dev and testApp({ dev: true }), hides them in build/RSS and with includeDrafts: false', async () => {
+    const dir = makeTemp('prunelle-content-drafts-')
+    const contentDir = join(dir, 'content/posts')
+    mkdirSync(contentDir, { recursive: true })
+    mkdirSync(join(dir, 'src/routes/blog'), { recursive: true })
+    mkdirSync(join(dir, 'src/routes/strict'), { recursive: true })
+    mkdirSync(join(dir, 'src/routes/always'), { recursive: true })
+
+    writeFileSync(join(contentDir, 'published.md'), `---
+title: Published Post
+date: 2026-11-20
+---
+Live content.
+`)
+    writeFileSync(join(contentDir, 'wip.md'), `---
+title: Draft Post
+date: 2026-11-25
+draft: true
+---
+Work in progress.
+`)
+
+    const contentPkg = join(import.meta.dir, '../../plugin-content/src/index.ts')
+    writeFileSync(join(dir, 'src/posts.ts'), `
+      import { defineCollection } from ${JSON.stringify(contentPkg)}
+      export const posts = defineCollection<{ title: string, date: string, draft?: boolean }>({
+        dir: ${JSON.stringify(contentDir)},
+      })
+      export const strictPosts = defineCollection<{ title: string, date: string, draft?: boolean }>({
+        dir: ${JSON.stringify(contentDir)},
+        includeDrafts: false,
+      })
+      export const alwaysDraftPosts = defineCollection<{ title: string, date: string, draft?: boolean }>({
+        dir: ${JSON.stringify(contentDir)},
+        includeDrafts: true,
+      })
+    `)
+
+    writeFileSync(join(dir, 'src/routes/blog/index.tsx'), `
+      import { posts } from '../../posts'
+      export default function BlogIndex() {
+        return <ul>{posts.all().map(p => <li>{p.data.title}</li>)}</ul>
+      }
+    `)
+    writeFileSync(join(dir, 'src/routes/blog/[slug].tsx'), `
+      import { notFound } from 'prunelle/server'
+      import { posts } from '../../posts'
+      export const prerender = true
+      export function paths() { return posts.paths('/blog') }
+      export function load({ params }: { params: { slug: string } }) {
+        const post = posts.get(params.slug)
+        if (!post) return notFound()
+        return { title: post.data.title, html: post.html }
+      }
+      export default function BlogPost({ data }: { data: { title: string, html: string } }) {
+        return <article><h1>{data.title}</h1><div innerHTML={data.html} /></article>
+      }
+    `)
+    writeFileSync(join(dir, 'src/routes/strict/index.tsx'), `
+      import { strictPosts } from '../../posts'
+      export default function StrictIndex() {
+        return <ul>{strictPosts.all().map(p => <li>{p.data.title}</li>)}</ul>
+      }
+    `)
+    writeFileSync(join(dir, 'src/routes/strict/[slug].tsx'), `
+      import { notFound } from 'prunelle/server'
+      import { strictPosts } from '../../posts'
+      export const prerender = true
+      export function paths() { return strictPosts.paths('/strict') }
+      export function load({ params }: { params: { slug: string } }) {
+        const post = strictPosts.get(params.slug)
+        if (!post) return notFound()
+        return { title: post.data.title }
+      }
+      export default function StrictPost({ data }: { data: { title: string } }) {
+        return <h1>{data.title}</h1>
+      }
+    `)
+    writeFileSync(join(dir, 'src/routes/always/index.tsx'), `
+      import { alwaysDraftPosts } from '../../posts'
+      export default function AlwaysIndex() {
+        return <ul>{alwaysDraftPosts.all().map(p => <li>{p.data.title}</li>)}</ul>
+      }
+    `)
+    writeFileSync(join(dir, 'prunelle.config.ts'), `
+      import { content } from ${JSON.stringify(contentPkg)}
+      import { posts } from './src/posts'
+      export default {
+        site: 'https://prunelle.dev',
+        plugins: [
+          content({
+            feeds: [{
+              path: '/rss.xml',
+              title: 'Draft Test Blog',
+              description: 'Feed',
+              linkPrefix: '/blog',
+              collection: posts,
+            }],
+          }),
+        ],
+      }
+    `)
+
+    // 1. prunelle dev lists & serves drafts by default, omits them from RSS, and honors includeDrafts: false
+    const dev = await devServer({ root: dir, port: 0 })
+    try {
+      const listHtml = await (await fetch(`${dev.url}/blog`)).text()
+      expect(listHtml).toContain('Published Post')
+      expect(listHtml).toContain('Draft Post')
+
+      const draftRes = await fetch(`${dev.url}/blog/wip`)
+      expect(draftRes.status).toBe(200)
+      expect(await draftRes.text()).toContain('Draft Post')
+
+      const devRss = await (await fetch(`${dev.url}/rss.xml`)).text()
+      expect(devRss).toContain('<title>Published Post</title>')
+      expect(devRss).not.toContain('Draft Post')
+
+      const strictList = await (await fetch(`${dev.url}/strict`)).text()
+      expect(strictList).toContain('Published Post')
+      expect(strictList).not.toContain('Draft Post')
+      expect((await fetch(`${dev.url}/strict/wip`)).status).toBe(404)
+    }
+    finally {
+      await dev.stop()
+    }
+
+    // 2. testApp({ dev: true }) lists & serves drafts by default, omits from RSS, honors includeDrafts: false
+    const devApp = await testApp({ root: dir, dev: true })
+    const devAppList = await (await devApp.get('/blog')).text()
+    expect(devAppList).toContain('Published Post')
+    expect(devAppList).toContain('Draft Post')
+    const devAppDraft = await devApp.get('/blog/wip')
+    expect(devAppDraft.status).toBe(200)
+    expect(await devAppDraft.text()).toContain('Draft Post')
+    const devAppRss = await (await devApp.get('/rss.xml')).text()
+    expect(devAppRss).toContain('<title>Published Post</title>')
+    expect(devAppRss).not.toContain('Draft Post')
+    expect(await (await devApp.get('/strict')).text()).not.toContain('Draft Post')
+    expect((await devApp.get('/strict/wip')).status).toBe(404)
+
+    // 3. Production testApp({ dev: false }) hides drafts by default, still honors explicit includeDrafts: true
+    const prodApp = await testApp({ root: dir, dev: false })
+    const prodList = await (await prodApp.get('/blog')).text()
+    expect(prodList).toContain('Published Post')
+    expect(prodList).not.toContain('Draft Post')
+    expect((await prodApp.get('/blog/wip')).status).toBe(404)
+    const prodRss = await (await prodApp.get('/rss.xml')).text()
+    expect(prodRss).toContain('<title>Published Post</title>')
+    expect(prodRss).not.toContain('Draft Post')
+    const alwaysList = await (await prodApp.get('/always')).text()
+    expect(alwaysList).toContain('Published Post')
+    expect(alwaysList).toContain('Draft Post')
+
+    // 4. prunelle build leaves drafts out of static output and emitted RSS
+    await build({ root: dir, static: true })
+    expect(existsSync(join(dir, 'dist/blog/published/index.html'))).toBe(true)
+    expect(existsSync(join(dir, 'dist/blog/wip/index.html'))).toBe(false)
+    const builtRss = readFileSync(join(dir, 'dist/rss.xml'), 'utf8')
+    expect(builtRss).toContain('<title>Published Post</title>')
+    expect(builtRss).not.toContain('Draft Post')
+
+    // 5. renderRss directly omits draft entries even when the collection has includeDrafts: true
+    const directWithDrafts = defineCollection({ dir: contentDir, includeDrafts: true })
+    expect(directWithDrafts.all().map(p => p.slug)).toContain('wip')
+    const directRss = renderRss({
+      title: 'Direct',
+      description: 'Feed',
+      site: 'https://prunelle.dev',
+      linkPrefix: '/blog',
+      collection: directWithDrafts,
+    })
+    expect(directRss).toContain('<title>Published Post</title>')
+    expect(directRss).not.toContain('Draft Post')
+  })
+
+  it('#48: serves localized /fr/rss.xml separately from /rss.xml on a running server with @prunellejs/i18n', async () => {
+    const dir = makeTemp('prunelle-content-rss-i18n-')
+    const enDir = join(dir, 'content/posts/en')
+    const frDir = join(dir, 'content/posts/fr')
+    mkdirSync(enDir, { recursive: true })
+    mkdirSync(frDir, { recursive: true })
+    mkdirSync(join(dir, 'src/routes'), { recursive: true })
+
+    writeFileSync(join(enDir, 'hello.md'), `---
+title: Hello English
+date: 2026-11-20
+description: English summary
+---
+English body.
+`)
+    writeFileSync(join(frDir, 'hello.md'), `---
+title: Bonjour Francais
+date: 2026-11-20
+description: Resume francais
+---
+Contenu francais.
+`)
+    writeFileSync(join(dir, 'src/routes/index.tsx'), 'export default function Home() { return <h1>Home</h1> }\n')
+
+    const posts = defineCollection({
+      dir: join(dir, 'content/posts'),
+      localized: true,
+      defaultLocale: 'en',
+    })
+
+    // 1. Both /rss.xml (en) and /fr/rss.xml (fr) registered with i18n active
+    const app = await testApp({
+      root: dir,
+      site: 'https://example.com',
+      plugins: [
+        i18n({ locales: ['en', 'fr'], defaultLocale: 'en', site: 'https://example.com' }),
+        content({
+          feeds: [
+            {
+              path: '/rss.xml',
+              title: 'Blog EN',
+              description: 'English feed',
+              linkPrefix: '/posts',
+              locale: 'en',
+              collection: posts,
+            },
+            {
+              path: '/fr/rss.xml',
+              title: 'Blog FR',
+              description: 'Flux francais',
+              linkPrefix: '/fr/posts',
+              locale: 'fr',
+              collection: posts,
+            },
+          ],
+        }),
+      ],
+    })
+
+    const frRes = await app.get('/fr/rss.xml')
+    expect(frRes.status).toBe(200)
+    expect(frRes.headers.get('content-type')).toContain('application/rss+xml')
+    const frXml = await frRes.text()
+    expect(frXml).toContain('<description>Flux francais</description>')
+    expect(frXml).toContain('<title>Bonjour Francais</title>')
+    expect(frXml).toContain('<link>https://example.com/fr/posts/hello</link>')
+    expect(frXml).not.toContain('Hello English')
+    expect(frXml).not.toContain('English feed')
+
+    const enRes = await app.get('/rss.xml')
+    expect(enRes.status).toBe(200)
+    const enXml = await enRes.text()
+    expect(enXml).toContain('<description>English feed</description>')
+    expect(enXml).toContain('<title>Hello English</title>')
+    expect(enXml).toContain('<link>https://example.com/posts/hello</link>')
+    expect(enXml).not.toContain('Bonjour Francais')
+    expect(enXml).not.toContain('Flux francais')
+
+    // Wrong method on the raw-matched localized plugin route still returns 405
+    const badMethod = await app.post('/fr/rss.xml')
+    expect(badMethod.status).toBe(405)
+
+    // Unprefixed plugin routes (e.g. /_i18n/locales) still work under /fr/ via rewrite fallback
+    const localesRes = await app.get('/fr/_i18n/locales')
+    expect(localesRes.status).toBe(200)
+    expect(await localesRes.json()).toEqual({ locales: ['en', 'fr'], defaultLocale: 'en', current: 'fr' })
+
+    // 2. Single feed with no locale prefix while i18n is enabled
+    const singleFeedApp = await testApp({
+      root: dir,
+      site: 'https://example.com',
+      plugins: [
+        i18n({ locales: ['en', 'fr'], defaultLocale: 'en', site: 'https://example.com' }),
+        content({
+          feeds: [{
+            path: '/rss.xml',
+            title: 'Single Blog',
+            description: 'Single feed',
+            linkPrefix: '/posts',
+            locale: 'en',
+            collection: posts,
+          }],
+        }),
+      ],
+    })
+    const singleRes = await singleFeedApp.get('/rss.xml')
+    expect(singleRes.status).toBe(200)
+    const singleXml = await singleRes.text()
+    expect(singleXml).toContain('<description>Single feed</description>')
+    expect(singleXml).toContain('<title>Hello English</title>')
   })
 })
 

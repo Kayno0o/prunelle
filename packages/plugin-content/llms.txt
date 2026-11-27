@@ -12,7 +12,7 @@
 - `schema`: optional Standard Schema v1 (`Zod`, `Valibot`, `ArkType`, custom) validating frontmatter synchronously into `entry.data`.
 - `localized`: `true` reads `<dir>/<locale>/<slug>.md`; `defaultLocale` defaults to `'en'`.
 - `render`: lazy async factory `async () => ({ highlight, components, headingLinks, resolveImage, trusted })` so index pages, config, and RSS never import Shiki or TSX components until `await entry.render()` runs.
-- Direct options (also accepted at top level): `highlight(code, lang)`, `components` (MDX-lite TSX components usable inside Markdown), `headingLinks` (`true` wraps `h2`–`h6` in `#id` anchor links), `resolveImage` (auto-wired with `@prunellejs/images`; pass `false` to disable), `trusted` (default `false`; HTML is sanitized unless `true`), `includeDrafts` (`false`), `sort(a, b)` (default newest `date` first, then `slug`).
+- Direct options (also accepted at top level): `highlight(code, lang)`, `components` (MDX-lite TSX components usable inside Markdown), `headingLinks` (`true` wraps `h2`–`h6` in `#id` anchor links), `resolveImage` (auto-wired with `@prunellejs/images`; pass `false` to disable), `trusted` (default `false`; HTML is sanitized unless `true`), `includeDrafts` (defaults to `true` in `prunelle dev` / `testApp({ dev: true })` and `false` in `prunelle build` / production; pass `false` to hide drafts in dev too; RSS feeds always leave drafts out), `sort(a, b)` (default newest `date` first, then `slug`).
 
 ## Collection & Entry API
 

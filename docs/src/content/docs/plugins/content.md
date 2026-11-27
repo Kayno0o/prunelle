@@ -39,7 +39,7 @@ When `@prunellejs/images` is enabled in `prunelle.config.ts`, relative Markdown 
 
 ## Fast lazy rendering & O(1) lookup
 
-- `posts.all(locale)` and `posts.paths('/posts', locale)` parse frontmatter only (skipping `draft: true` files before Markdown/Shiki runs).
+- `posts.all(locale)` and `posts.paths('/posts', locale)` parse frontmatter only (entries with `draft: true` are shown by default in `prunelle dev` and `testApp({ dev: true })`, and omitted from `prunelle build` and RSS feeds; pass `includeDrafts: false` to hide drafts in dev too).
 - `entry.html` and `entry.headings` render lazily and memoize on first access.
 - `posts.get(slug, locale)` resolves `<dir>/<slug>.md` directly in O(1) without scanning every other file in the directory.
 

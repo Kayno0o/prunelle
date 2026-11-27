@@ -6,7 +6,7 @@
     "packages/plugin-auth/src/session.ts::createSessionManager": 249,
     "packages/plugin-auth/src/sqlite.ts::sqliteAuthStore": 186,
     "packages/plugin-auth/src/store.ts::memoryAuthStore": 159,
-    "packages/plugin-content/src/collection.ts::defineCollection": 231,
+    "packages/plugin-content/src/collection.ts::defineCollection": 229,
     "packages/plugin-content/src/components.ts::parseLiteralValue": 240,
     "packages/plugin-mcp/src/rpc.ts::createRpcDispatcher": 191,
     "packages/prunelle/src/build/bundle.ts::buildClient": 164,

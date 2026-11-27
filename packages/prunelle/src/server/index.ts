@@ -13,6 +13,7 @@ import type { NotifyError } from './errors'
 import type { EmbeddedServerConfig, PrunelleApp, PrunelleServer, Middleware, RequestContext } from './http'
 import type { RateLimiter, RateLimitStore } from './rate-limit'
 import type { LoadedMiddlewareModule } from './page'
+import type { ServerPluginHost } from './plugin-host'
 import type { RequestPath } from './request-path'
 import type { CompiledRoute } from './route-table'
 import type { FastHandler } from './routing'
@@ -80,6 +81,11 @@ function lookupPrerendered<T>(map: ReadonlyMap<string, T>, staticPath: string | 
     return undefined
   const normPath = staticPath.length > 1 && staticPath.endsWith('/') ? staticPath.slice(0, -1) : staticPath
   return map.get(staticPath) ?? map.get(normPath)
+}
+
+function matchPluginRoute(pluginRouter: ServerPluginHost['router'], requestPath: RequestPath, effective: RequestPath) {
+  const rawMatch = effective !== requestPath ? takesEncoded(pluginRouter.match(requestPath), requestPath) : undefined
+  return rawMatch ?? takesEncoded(pluginRouter.match(effective), effective)
 }
 
 async function renderRouteBody(route: CompiledRoute, data: unknown, pageProps: Record<string, unknown>, ctx: RequestContext): Promise<string> {
@@ -503,7 +509,7 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
 
       // Custom plugin routes run behind path-matched plugin middlewares so ctx.locals is available without cross-scope leaks.
       const method = request.method.toUpperCase()
-      const pluginMatch = takesEncoded(pluginRouter.match(effective), effective)
+      const pluginMatch = matchPluginRoute(pluginRouter, requestPath, effective)
       const directPluginDef = pluginMatch?.data.get(method) ?? pluginMatch?.data.get('ALL')
       const headFallbackPluginDef = directPluginDef === undefined && method === 'HEAD' ? pluginMatch?.data.get('GET') : undefined
       const routeDef = directPluginDef ?? headFallbackPluginDef

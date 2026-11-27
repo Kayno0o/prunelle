@@ -49,7 +49,9 @@ function formatPubDate(value: string | Date | undefined): string {
 export function renderRss<TData>(feed: RssFeedConfig<TData>): string {
   const site = (feed.site ?? currentApp.site() ?? '').replace(/\/$/, '')
   const prefix = (feed.linkPrefix ?? '').replace(/\/$/, '')
-  const items = feed.collection.all(feed.locale).map((entry) => {
+  const items = feed.collection.all(feed.locale)
+    .filter(entry => (entry.data as Record<string, unknown>).draft !== true)
+    .map((entry) => {
     const rawData = entry.data as Record<string, unknown>
     const mapped = feed.mapItem
       ? feed.mapItem(entry)
