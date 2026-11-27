@@ -204,14 +204,17 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
     expect(await checkProject(dir, { skipTypecheck: true })).toMatchObject({ ok: true, errors: [] })
   })
 
-  it('upgrades each package a bun workspace lists, from its root', () => {
+  it('upgrades each package a bun workspace lists, from its root, again once on prunelle', () => {
     const kayDeps = (field: string) => `${JSON.stringify({ name: 'member', [field]: { '@kayjs/kay': '^2.0.0-beta.8' } })}\n`
     const legacy = `${JSON.stringify({ name: 'legacy', scripts: { dev: 'kay dev' }, dependencies: { kay: 'npm:@kayjs/kay@~1.112.2' } })}\n`
     const dir = appWith({
-      'package.json': `${JSON.stringify({ name: 'mono', private: true, workspaces: ['apps/**', 'shell/', 'legacy', 'plain'] })}\n`,
+      'package.json': `${JSON.stringify({ name: 'mono', private: true, workspaces: ['apps/**', 'shell/', 'legacy', 'plain', 'done'] })}\n`,
       'legacy/package.json': legacy,
-      'plain/package.json': `${JSON.stringify({ name: 'plain', devDependencies: { '@types/bun': '^1.4.4' } })}\n`,
-
+      // A package named like prunelle is not prunelle.
+      'plain/package.json': `${JSON.stringify({ name: 'plain', devDependencies: { '@types/bun': '^1.4.4', 'prunelle-lint': '^1.0.0' } })}\n`,
+      // Moved by an earlier upgrade that left its agent instructions behind (#42).
+      'done/package.json': `${JSON.stringify({ name: 'done', dependencies: { prunelle: `^${pkg.version}` } })}\n`,
+      'done/AGENTS.md': 'Read `node_modules/@kayjs/kay/llms.txt`.\n',
       'plain/compose.yaml': '# Not in .env.example, which kay check would refuse.\n',
       'legacy/kay.config.ts': 'export default {}\n',
       'tsconfig.json': '{ "compilerOptions": { "jsxImportSource": "@kayjs/kay" } }\n',
@@ -223,7 +226,7 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
       'tools/package.json': kayDeps('dependencies'),
     })
     expect(upgradeProject(dir)).toEqual({
-      changed: ['apps/web/kay.config.ts -> prunelle.config.ts', 'apps/web/package.json', 'apps/web/src/index.ts', 'shell/package.json', 'tsconfig.json'],
+      changed: ['apps/web/kay.config.ts -> prunelle.config.ts', 'apps/web/package.json', 'apps/web/src/index.ts', 'done/AGENTS.md', 'shell/package.json', 'tsconfig.json'],
       manual: ['apps/web/src/index.ts:1: prunelle does not export gone.', 'legacy/package.json:1: kay: npm:@kayjs/kay@~1.112.2 is kay v1: prunelle upgrade moves kay v2 apps, so this one is left as it is.'],
     })
     expect(read(dir, 'legacy/package.json')).toBe(legacy)
