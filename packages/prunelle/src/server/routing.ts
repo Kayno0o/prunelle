@@ -10,9 +10,11 @@ import type { NormalizedConsentConfig } from './consent'
 import type { CookieStore } from './cookies'
 import type { HtmlHeaders } from './document'
 import type { NotifyError } from './errors'
-import type { Middleware, RequestContext } from './http'
+import type { DevTiming, RequestIdResolver } from './health'
+import type { DeniedInfo, Middleware, RequestContext } from './http'
 import type { PrunelleLocals } from './index'
 import type { LoadedLayoutModule, LoadedMiddlewareModule, LoadedPageModule } from './page'
+import type { ParamMatcherMap } from './param-matchers'
 import type { RequestPath } from './request-path'
 import type { TrustProxy } from './security'
 import { createRenderContext, runWithRenderContext } from '../ssr/context'
@@ -20,18 +22,24 @@ import { raw, renderDocument, ssrChild, ssrIsland } from '../ssr/index'
 import { keepScrollTag } from '../ssr/navigation'
 import { compressedHtmlResponse, maybeCompressResponse } from './compress'
 import { headTagStyleHashes, mergeStyleHashes } from './document'
-import { isNotFound, makeRequestContext } from './http'
+import { createTiming, endTimer, finishRenderTiming, formatServerTiming, resolveFallbackRequestId, startTimer } from './health'
+import { acceptsHtml, getDeniedInfo, isNotFound, makeRequestContext } from './http'
 import { pickPageIslandProps } from './page'
+import { BUILTIN_PARAM_MATCHERS } from './param-matchers'
 import { withRegionVary } from './region'
 import { pathPrefix } from './request-path'
 import { Router } from './router'
 import { styleHashesOf } from './security'
 
 const MIDDLEWARE_BASENAME_RE = /(?:^|\/)_middleware\.js$/
+const ROUTE_GROUP_RE = /^\([^/()]+\)$/
+const OPTIONAL_PARAM_SEG_RE = /^\[\[([^\[\]]+)\]\]$/
+const CATCH_ALL_SEG_RE = /^\[\.\.\.([^\[\]]+)\]$/
+const PARAM_SEG_RE = /^\[([^\[\]]+)\]$/
 const CATCH_ALL_BRACKET_RE = /\[\.\.\.([^\]]+)\]/g
 const PARAM_BRACKET_RE = /\[([^\]]+)\]/g
 
-export type FastHandler = (req: Request, remoteIp?: string, url?: URL) => Response | Promise<Response>
+export type FastHandler = (req: Request, remoteIp?: string, url?: URL, requestId?: string) => Response | Promise<Response>
 
 
 export function methodNotAllowed(allow: string): Response {
@@ -50,10 +58,26 @@ function dirnamePrefix(file: string): string {
   return slash === -1 ? '' : file.slice(0, slash + 1)
 }
 
+function convertDirSegment(seg: string): string {
+  const opt = OPTIONAL_PARAM_SEG_RE.exec(seg)
+  if (opt !== null)
+    return `:${opt[1]}?`
+  const catchAll = CATCH_ALL_SEG_RE.exec(seg)
+  if (catchAll !== null)
+    return `*${catchAll[1]}`
+  const param = PARAM_SEG_RE.exec(seg)
+  if (param !== null)
+    return `:${param[1]}`
+  return seg.replace(CATCH_ALL_BRACKET_RE, '*$1').replace(PARAM_BRACKET_RE, ':$1')
+}
+
 function dirToRoutePattern(relDir: string): string {
   if (relDir === '')
     return '/'
-  return `/${relDir.replace(CATCH_ALL_BRACKET_RE, '*$1').replace(PARAM_BRACKET_RE, ':$1')}`
+  const parts = relDir.split('/').filter(p => p !== '' && !ROUTE_GROUP_RE.test(p))
+  if (parts.length === 0)
+    return '/'
+  return `/${parts.map(convertDirSegment).join('/')}`
 }
 
 /** Infers the compiled module prefix for files under `routesDir` (e.g. `'server/'` or `'server/src/routes/'`). */
@@ -66,9 +90,17 @@ export function inferRoutesServerPrefix(manifest: BuildManifest): string {
     const fileParts = route.file.split('/')
     const pathSegs = route.path === '/' ? [] : route.path.replace(/^\/|\/$/g, '').split('/')
     const isIndex = fileParts[fileParts.length - 1] === 'index.js'
-    const routePartCount = pathSegs.length + (isIndex ? 1 : 0)
-    if (routePartCount <= fileParts.length) {
-      const prefixParts = fileParts.slice(0, fileParts.length - routePartCount)
+    let remaining = pathSegs.length + (isIndex ? 1 : 0)
+    let idx = fileParts.length
+    while (idx > 0 && remaining > 0) {
+      idx--
+      if (!ROUTE_GROUP_RE.test(fileParts[idx]!))
+        remaining--
+    }
+    while (idx > 0 && ROUTE_GROUP_RE.test(fileParts[idx - 1]!))
+      idx--
+    if (remaining === 0) {
+      const prefixParts = fileParts.slice(0, idx)
       return prefixParts.length === 0 ? '' : `${prefixParts.join('/')}/`
     }
   }
@@ -107,6 +139,7 @@ export function createAncestorMiddlewareLookup(
   manifest: BuildManifest,
   modules: Record<string, unknown>,
   routesPrefix: string,
+  paramMatchers: ParamMatcherMap = BUILTIN_PARAM_MATCHERS,
 ): (path: RequestPath) => AncestorMiddlewareMatch | undefined {
   const byPattern = new Map<string, Middleware[]>()
   const seenModules = new Set<string>()
@@ -122,6 +155,9 @@ export function createAncestorMiddlewareLookup(
       return
     const rel = modKey.slice(routesPrefix.length)
     const relDir = rel.replace(MIDDLEWARE_BASENAME_RE, '')
+    // A `(group)` middleware only applies to routes/actions inside that group, never to unrelated unmatched URLs.
+    if (relDir !== '' && relDir.split('/').some(p => ROUTE_GROUP_RE.test(p)))
+      return
     const pattern = dirToRoutePattern(relDir)
     let list = byPattern.get(pattern)
     if (list === undefined) {
@@ -147,7 +183,7 @@ export function createAncestorMiddlewareLookup(
   if (byPattern.size === 0)
     return () => undefined
 
-  const dirRouter = new Router<Middleware[]>()
+  const dirRouter = new Router<Middleware[]>(paramMatchers)
   for (const [pattern, list] of byPattern)
     dirRouter.add(pattern, list)
 
@@ -182,34 +218,21 @@ export interface FastStaticPageOptions {
   htmlHeaders: HtmlHeaders
   compressCache: CompressionCache | undefined
   actions: ActionRegistry
-  buildNotFoundResponse: (url?: URL, req?: Request, ctx?: RequestContext) => Promise<Response>
-  renderError: (error: unknown, cookieStore: CookieStore | undefined, url: URL, request: Request, ctx?: RequestContext) => Promise<Response>
+  buildNotFoundResponse: (url?: URL, req?: Request, ctx?: RequestContext, routeFile?: string) => Promise<Response>
+  renderError: (error: unknown, cookieStore: CookieStore | undefined, url: URL, request: Request, ctx?: RequestContext, routeFile?: string) => Promise<Response>
+  renderDenied?: ((denied: DeniedInfo, url: URL, req: Request, ctx?: RequestContext, routeFile?: string) => Promise<Response>) | undefined
   notifyError: NotifyError
-  finish: (res: Response, request: Request, cookieStore?: CookieStore) => Response
+  finish: (res: Response, request: Request, cookieStore?: CookieStore, requestId?: string, serverTiming?: string) => Response
   withHsts: (res: Response, request: Request) => Response
+  dev?: boolean | undefined
+  resolveRequestId?: RequestIdResolver | undefined
 }
 
 /** Builds the zero-overhead static-path page handler, keeping `actions.run()` active through load, render, and 404 fallback. */
 export function createFastStaticPageHandler(options: FastStaticPageOptions): FastHandler {
-  const {
-    entry,
-    mod,
-    layouts,
-    doc,
-    reviveScript,
-    hasIslands,
-    hasLoad,
-    trustProxy,
-    consent,
-    htmlHeaders,
-    compressCache,
-    actions,
-    buildNotFoundResponse,
-    renderError,
-    notifyError,
-    finish,
-    withHsts,
-  } = options
+  const { entry, mod, layouts, doc, reviveScript, hasIslands, hasLoad, trustProxy, consent, htmlHeaders, compressCache, actions, buildNotFoundResponse, renderError, renderDenied, notifyError, finish, withHsts } = options
+  const isDev = options.dev === true
+  const getRequestId: RequestIdResolver = options.resolveRequestId ?? (req => resolveFallbackRequestId(req, trustProxy))
 
   const eagerChunks = entry.eagerIslandChunks ?? entry.islandChunks
   const shellAround = (preloadChunks: string[]): [string, string] => {
@@ -223,42 +246,46 @@ export function createFastStaticPageHandler(options: FastStaticPageOptions): Fas
   const singleLayout = layouts.length === 1 ? layouts[0]! : undefined
 
   const fail = (error: unknown, request: Request, url: URL, cookieStore?: CookieStore, ctx?: RequestContext): Promise<Response> => {
-    notifyError(error, request, 'route')
-    return renderError(error, cookieStore, url, request, ctx)
+    notifyError(error, request, 'route', ctx?.requestId)
+    return renderError(error, cookieStore, url, request, ctx, entry.file)
   }
-  const respondHtml = (body: string, request: Request, rctx: RenderContext, cookieStore?: CookieStore): Response => {
+  const respondHtml = (body: string, request: Request, rctx: RenderContext, cookieStore: CookieStore, ctx: RequestContext, timing?: DevTiming): Response => {
     const html = (rctx.revives ? revivingPrefix : docPrefix) + body + keepScrollTag(body) + docSuffix
     const styleHashes = mergeStyleHashes(headStyleHashes, styleHashesOf(rctx.inlineStyles))
     const headers = withRegionVary(htmlHeaders(hasIslands, false, true, styleHashes), rctx.regionNames.size > 0)
     const res = compressedHtmlResponse(html, 200, headers, request, compressCache, !hasLoad)
-    return cookieStore?.hasChanges ? finish(res, request, cookieStore) : withHsts(res, request)
+    res.headers.set('x-request-id', ctx.requestId)
+    const st = timing !== undefined ? finishRenderTiming(timing) : undefined
+    if (st !== undefined)
+      res.headers.set('server-timing', st)
+    return cookieStore.hasChanges ? finish(res, request, cookieStore, ctx.requestId, st) : withHsts(res, request)
   }
   const layoutProps = (inner: string, url: URL, locals: PrunelleLocals) => ({ children: raw(inner), url, params: {}, locals })
 
-  const finishSingleLayout = async (wrapped: Promise<Html | string>, request: Request, url: URL, rctx: RenderContext, cookieStore?: CookieStore, ctx?: RequestContext): Promise<Response> => {
+  const finishSingleLayout = async (wrapped: Promise<Html | string>, request: Request, url: URL, rctx: RenderContext, cookieStore: CookieStore, ctx: RequestContext, timing?: DevTiming): Promise<Response> => {
     try {
-      return respondHtml(ssrChild(await wrapped as Html), request, rctx, cookieStore)
+      return respondHtml(ssrChild(await wrapped as Html), request, rctx, cookieStore, ctx, timing)
     }
     catch (error) {
       return fail(error, request, url, cookieStore, ctx)
     }
   }
 
-  const wrapLayouts = (inner: string, request: Request, url: URL, locals: PrunelleLocals, rctx: RenderContext, cookieStore?: CookieStore, ctx?: RequestContext): Response | Promise<Response> => {
+  const wrapLayouts = (inner: string, request: Request, url: URL, locals: PrunelleLocals, rctx: RenderContext, cookieStore: CookieStore, ctx: RequestContext, timing?: DevTiming): Response | Promise<Response> => {
     if (layouts.length === 0)
-      return respondHtml(inner, request, rctx, cookieStore)
+      return respondHtml(inner, request, rctx, cookieStore, ctx, timing)
     if (singleLayout !== undefined) {
       const wrapped = singleLayout.default(layoutProps(inner, url, locals))
       if (wrapped instanceof Promise)
-        return finishSingleLayout(wrapped, request, url, rctx, cookieStore, ctx)
-      return respondHtml(ssrChild(wrapped as Html), request, rctx, cookieStore)
+        return finishSingleLayout(wrapped, request, url, rctx, cookieStore, ctx, timing)
+      return respondHtml(ssrChild(wrapped as Html), request, rctx, cookieStore, ctx, timing)
     }
     return (async () => {
       try {
         let cur = inner
         for (let i = layouts.length - 1; i >= 0; i--)
           cur = ssrChild(await layouts[i]!.default(layoutProps(cur, url, locals)) as Html)
-        return respondHtml(cur, request, rctx, cookieStore)
+        return respondHtml(cur, request, rctx, cookieStore, ctx, timing)
       }
       catch (error) {
         return fail(error, request, url, cookieStore, ctx)
@@ -266,16 +293,18 @@ export function createFastStaticPageHandler(options: FastStaticPageOptions): Fas
     })()
   }
 
-  const finishAsyncPage = async (rendered: Promise<Html | string>, request: Request, url: URL, locals: PrunelleLocals, rctx: RenderContext, cookieStore?: CookieStore, ctx?: RequestContext): Promise<Response> => {
+  const finishAsyncPage = async (rendered: Promise<Html | string>, request: Request, url: URL, locals: PrunelleLocals, rctx: RenderContext, cookieStore: CookieStore, ctx: RequestContext, timing?: DevTiming): Promise<Response> => {
     try {
-      return await wrapLayouts(ssrChild(await rendered as Html), request, url, locals, rctx, cookieStore, ctx)
+      return await wrapLayouts(ssrChild(await rendered as Html), request, url, locals, rctx, cookieStore, ctx, timing)
     }
     catch (error) {
       return fail(error, request, url, cookieStore, ctx)
     }
   }
 
-  const renderPage = (data: unknown, request: Request, url: URL, locals: PrunelleLocals, rctx: RenderContext, cookieStore?: CookieStore, ctx?: RequestContext): Response | Promise<Response> => {
+  const renderPage = (data: unknown, request: Request, url: URL, locals: PrunelleLocals, rctx: RenderContext, cookieStore: CookieStore, ctx: RequestContext, timing?: DevTiming): Response | Promise<Response> => {
+    if (timing !== undefined)
+      timing.render = performance.now()
     const pageProps: Record<string, unknown> = { params: {}, locals, url, ...(data !== undefined ? { data } : {}) }
     if (entry.isIsland && entry.islandChunk !== undefined) {
       return wrapLayouts(ssrIsland(
@@ -285,47 +314,56 @@ export function createFastStaticPageHandler(options: FastStaticPageOptions): Fas
         entry.islandHydrate as HydrateStrategy | undefined,
         true,
         mod.default!.name,
-      ), request, url, locals, rctx, cookieStore, ctx)
+      ), request, url, locals, rctx, cookieStore, ctx, timing)
     }
     const rendered = mod.default!(pageProps)
     if (rendered instanceof Promise)
-      return finishAsyncPage(rendered, request, url, locals, rctx, cookieStore, ctx)
-    return wrapLayouts(ssrChild(rendered as Html), request, url, locals, rctx, cookieStore, ctx)
+      return finishAsyncPage(rendered, request, url, locals, rctx, cookieStore, ctx, timing)
+    return wrapLayouts(ssrChild(rendered as Html), request, url, locals, rctx, cookieStore, ctx, timing)
   }
 
-  return (request, remoteIp, url = new URL(request.url)) => {
-    const { ctx, cookieStore } = makeRequestContext(request, {}, { trustProxy, remoteIp, url, consent })
+  return (request, remoteIp, url = new URL(request.url), requestId?: string) => {
+    const reqId = requestId ?? getRequestId(request)
+    const timing = createTiming(isDev)
+    const { ctx, cookieStore } = makeRequestContext(request, {}, { trustProxy, remoteIp, url, consent, requestId: reqId })
     if (request.method === 'HEAD' && typeof mod.HEAD === 'function') {
       return actions.run(ctx, async () => {
         try {
-          return finish(await mod.HEAD!(ctx), request, cookieStore)
+          return finish(await mod.HEAD!(ctx), request, cookieStore, reqId, formatServerTiming(timing))
         }
         catch (error) {
           return fail(error, request, url, cookieStore, ctx)
         }
       })
     }
-    const rctx = createRenderContext(undefined, undefined, ctx.consent, error => notifyError(error, request, 'route'))
+    const rctx = createRenderContext(undefined, undefined, ctx.consent, error => notifyError(error, request, 'route', reqId))
     try {
       if (!hasLoad)
-        return actions.run(ctx, () => runWithRenderContext(rctx, () => renderPage(undefined, request, url, ctx.locals, rctx, cookieStore, ctx)))
+        return actions.run(ctx, () => runWithRenderContext(rctx, () => renderPage(undefined, request, url, ctx.locals, rctx, cookieStore, ctx, timing)))
 
       return actions.run(ctx, async () => {
         let loaded: unknown
+        const loadStart = startTimer(timing)
         try {
           loaded = await mod.load!(ctx)
         }
         catch (error) {
           if (isNotFound(error))
-            return finish(await maybeCompressResponse(await buildNotFoundResponse(url, request, ctx), request, compressCache), request, cookieStore)
+            return finish(await maybeCompressResponse(await buildNotFoundResponse(url, request, ctx, entry.file), request, compressCache), request, cookieStore, reqId, formatServerTiming(timing))
           return fail(error, request, url, cookieStore, ctx)
         }
+        endTimer(timing, 'load', loadStart)
         if (isNotFound(loaded))
-          return finish(await maybeCompressResponse(await buildNotFoundResponse(url, request, ctx), request, compressCache), request, cookieStore)
-        if (loaded instanceof Response)
-          return finish(await maybeCompressResponse(loaded, request, compressCache), request, cookieStore)
+          return finish(await maybeCompressResponse(await buildNotFoundResponse(url, request, ctx, entry.file), request, compressCache), request, cookieStore, reqId, formatServerTiming(timing))
+        if (loaded instanceof Response) {
+          const denied = getDeniedInfo(loaded)
+          const out = denied !== undefined && renderDenied !== undefined && acceptsHtml(request)
+            ? await renderDenied(denied, url, request, ctx, entry.file)
+            : loaded
+          return finish(await maybeCompressResponse(out, request, compressCache), request, cookieStore, reqId, formatServerTiming(timing))
+        }
         try {
-          return await runWithRenderContext(rctx, () => renderPage(loaded, request, url, ctx.locals, rctx, cookieStore, ctx))
+          return await runWithRenderContext(rctx, () => renderPage(loaded, request, url, ctx.locals, rctx, cookieStore, ctx, timing))
         }
         catch (error) {
           return fail(error, request, url, cookieStore, ctx)

@@ -2,10 +2,12 @@
 
 import type { createAssets, ServedFile } from './assets'
 import type { NotifyError } from './errors'
+import type { RequestIdResolver } from './health'
 import type { PrunelleServer } from './http'
 import type { RequestPath } from './request-path'
 import type { FastHandler } from './routing'
 import { ACTION_ERROR_COOKIE } from './action'
+import { withRequestId } from './health'
 import { hasRegionHeader } from './region'
 import { literalPath } from './request-path'
 import { toBunRouteKey } from './routing'
@@ -15,6 +17,9 @@ export interface ServeHandlerSources {
   fastPrerenderedMap: ReadonlyMap<string, ServedFile>
   fastStaticPages: ReadonlyMap<string, FastHandler>
   pluginRouter: { match: (path: RequestPath) => unknown }
+  healthPath?: string | undefined
+  healthHandler?: ((request: Request, requestId?: string) => Response | Promise<Response>) | undefined
+  resolveRequestId?: RequestIdResolver | undefined
   /** Answers through the app's whole pipeline, with the request's timeout turned off by `disableTimeout` for a long-lived stream. */
   runRequest: (req: Request, remoteIp: string | undefined, disableTimeout: () => void) => Promise<Response>
   runFast: (handler: FastHandler, req: Request, remoteIp: string | undefined) => Response | Promise<Response>
@@ -31,9 +36,13 @@ export const hasActionErrorCookie = (request: Request): boolean => (request.head
 export const isPlainRead = (request: Request): boolean => isRead(request) && !hasActionErrorCookie(request) && !hasRegionHeader(request)
 
 export function serveHandlers(server: () => PrunelleServer | undefined, sources: ServeHandlerSources) {
-  const { files, fastPrerenderedMap, fastStaticPages, pluginRouter, runRequest, runFast, notifyError, serverError, fileGone } = sources
+  const { files, fastPrerenderedMap, fastStaticPages, pluginRouter, healthPath, healthHandler, resolveRequestId, runRequest, runFast, notifyError, serverError, fileGone } = sources
   const ipOf = (req: Request) => server()?.requestIP(req)?.address
   const fetchReq = (req: Request) => runRequest(req, ipOf(req), () => server()?.timeout(req, 0))
+  const serveFile = (req: Request, file: ServedFile): Promise<Response> =>
+    resolveRequestId === undefined
+      ? files.serveFile(req, file)
+      : files.serveFile(req, file).then(res => withRequestId(res, resolveRequestId(req)))
 
   const routes: Record<string, (req: Request) => Response | Promise<Response>> = {}
   const registerServeRoute = (path: string, handler: (req: Request) => Response | Promise<Response>): void => {
@@ -42,16 +51,19 @@ export function serveHandlers(server: () => PrunelleServer | undefined, sources:
       routes[key] = handler
   }
 
+  if (healthPath !== undefined && healthHandler !== undefined)
+    registerServeRoute(healthPath, req => healthHandler(req))
+
   for (const [path, asset] of files.assetMap)
-    registerServeRoute(path, req => isRead(req) ? files.serveFile(req, asset) : fetchReq(req))
+    registerServeRoute(path, req => isRead(req) ? serveFile(req, asset) : fetchReq(req))
 
   for (const [path, pub] of files.publicMap) {
     if (pluginRouter.match(literalPath(path)) === undefined)
-      registerServeRoute(path, req => isRead(req) ? files.serveFile(req, pub) : fetchReq(req))
+      registerServeRoute(path, req => isRead(req) ? serveFile(req, pub) : fetchReq(req))
   }
 
   for (const [path, pre] of fastPrerenderedMap)
-    registerServeRoute(path, req => isPlainRead(req) ? files.serveFile(req, pre) : fetchReq(req))
+    registerServeRoute(path, req => isPlainRead(req) ? serveFile(req, pre) : fetchReq(req))
 
   for (const [path, handler] of fastStaticPages)
     registerServeRoute(path, req => isPlainRead(req) ? runFast(handler, req, ipOf(req)) : fetchReq(req))
@@ -60,10 +72,12 @@ export function serveHandlers(server: () => PrunelleServer | undefined, sources:
     routes,
     fetch: fetchReq,
     error(err: Error) {
+      const fallbackReq = new Request('http://localhost/')
+      const reqId = resolveRequestId?.(fallbackReq)
       if ('code' in err && err.code === 'ENOENT')
-        return fileGone()
-      notifyError(err, new Request('http://localhost/'), 'route')
-      return serverError()
+        return reqId !== undefined ? withRequestId(fileGone(), reqId) : fileGone()
+      notifyError(err, fallbackReq, 'route', reqId)
+      return reqId !== undefined ? withRequestId(serverError(), reqId) : serverError()
     },
   }
 }

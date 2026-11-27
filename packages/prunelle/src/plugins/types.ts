@@ -4,11 +4,14 @@ import type { BunPlugin } from 'bun'
 import type { RouteManifestEntry } from '../build/index'
 import type { ComplianceConfig } from '../compiler/compliance'
 import type { ConsentConfig } from '../server/consent'
+import type { HealthCheckConfig, HealthCheckFn, HealthCheckResult } from '../server/health'
 import type { Middleware, RequestContext } from '../server/index'
 import type { RateLimit, RateLimiter } from '../server/rate-limit'
 import type { SecurityHeadersOptions, TrustProxy } from '../server/security'
 import type { NavigationConfig } from '../ssr/navigation'
 import type { ServiceKey } from './services'
+
+export type { HealthCheckConfig, HealthCheckFn, HealthCheckResult }
 
 export type BuildPluginTarget = 'client' | 'server' | 'compile'
 
@@ -131,6 +134,8 @@ export interface ServerPluginAPI {
   inject<T>(key: ServiceKey<T>): T | undefined
   /** Read persisted build data from `manifest.pluginData` (defaults to the current plugin's name). */
   getBuildData<T = Record<string, unknown>>(pluginName?: string): T | undefined
+  /** Register a named health check evaluated on `GET ${assetPrefix}/health`. */
+  healthCheck(name: string, fn: HealthCheckFn): void
   /** Register a shutdown cleanup callback run when `app.dispose()` is called (dev reloads, tests, graceful exit). */
   onShutdown(fn: () => void | Promise<void>): void
 }
@@ -139,6 +144,7 @@ export interface ServerErrorInfo {
   error: unknown
   request: Request
   source: 'route' | 'action' | 'plugin'
+  requestId?: string | undefined
 }
 
 export interface DocumentHeadContext {
@@ -220,6 +226,8 @@ export interface ServerRuntimeConfig {
   /** CNIL/RGPD consent categories, cookie name, retention, and POST endpoint. */
   consent?: ConsentConfig | undefined
   compress?: boolean | undefined
+  /** Health check function or named check map evaluated on `GET ${assetPrefix}/health`. */
+  healthCheck?: HealthCheckConfig | undefined
   onError?: ((info: ServerErrorInfo) => void) | undefined
   plugins?: PrunellePlugin[] | undefined
 }

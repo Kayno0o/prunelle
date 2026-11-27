@@ -4,10 +4,12 @@ import type { BuildManifest, RouteManifestEntry } from '../build/index'
 import type { DocumentOptions } from '../ssr/index'
 import type { Middleware } from './http'
 import type { LoadedLayoutModule, LoadedMiddlewareModule, LoadedPageModule } from './page'
+import type { ParamMatcherMap } from './param-matchers'
 import type { RequestKind } from './plugin-host'
 import type { FastHandler, FastStaticPageOptions } from './routing'
 import { headTagStyleHashes } from './document'
 import { mergedHeadTags } from './page'
+import { BUILTIN_PARAM_MATCHERS } from './param-matchers'
 import { Router } from './router'
 import { createFastStaticPageHandler } from './routing'
 
@@ -44,6 +46,7 @@ type SharedFastOptions = Omit<FastStaticPageOptions, 'entry' | 'mod' | 'layouts'
 export interface RouteTableOptions {
   manifest: BuildManifest
   modules: Record<string, unknown>
+  paramMatchers?: ParamMatcherMap | undefined
   lang: string
   alwaysLoadRuntime: boolean
   navigation: DocumentOptions['navigation']
@@ -54,8 +57,8 @@ export interface RouteTableOptions {
 }
 
 export function compileRouteTable(options: RouteTableOptions): { router: Router<CompiledRoute>, fastStaticPages: Map<string, FastHandler> } {
-  const { manifest, modules, lang, alwaysLoadRuntime, navigation, middlewaresFor, pluginIntercepts, fast } = options
-  const router = new Router<CompiledRoute>()
+  const { manifest, modules, paramMatchers, lang, alwaysLoadRuntime, navigation, middlewaresFor, pluginIntercepts, fast } = options
+  const router = new Router<CompiledRoute>(paramMatchers ?? BUILTIN_PARAM_MATCHERS)
   const fastStaticPages = new Map<string, FastHandler>()
   for (const entry of manifest.routes) {
     const mod = modules[entry.file] as LoadedPageModule

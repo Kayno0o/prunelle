@@ -59,7 +59,7 @@ describe('Plugin ordering, definePlugin & locals validation (#3550)', () => {
     mkdirSync(join(dir, 'src/routes'), { recursive: true })
     writeFileSync(join(dir, 'src/routes/index.tsx'), 'export default function Home() { return <h1>Hi</h1> }\n')
     writeFileSync(join(dir, 'prunelle.config.ts'), 'export default { outDirr: \'out\', lang: \'fr\', plugns: [], zzz: 1 }\n')
-    await expect(loadConfig(dir, { fresh: true })).rejects.toThrow('prunelle: "outDirr" is not a prunelle.config.ts key: did you mean "outDir"?\nprunelle: "plugns" is not a prunelle.config.ts key: did you mean "plugins"?\nprunelle: "zzz" is not a prunelle.config.ts key: remove it (the keys are site, lang, assetPrefix, security, trustedOrigins, trustProxy, maxRequestBodySize, navigation, streamTimeout, consent, compress, onError, plugins, port, routesDir, outDir, publicDir, compliance)')
+    await expect(loadConfig(dir, { fresh: true })).rejects.toThrow('prunelle: "outDirr" is not a prunelle.config.ts key: did you mean "outDir"?\nprunelle: "plugns" is not a prunelle.config.ts key: did you mean "plugins"?\nprunelle: "zzz" is not a prunelle.config.ts key: remove it (the keys are site, lang, assetPrefix, security, trustedOrigins, trustProxy, maxRequestBodySize, navigation, streamTimeout, consent, compress, healthCheck, onError, plugins, port, routesDir, outDir, publicDir, compliance)')
     writeFileSync(join(dir, 'prunelle.config.ts'), 'export default { outDir: \'out\', compliance: {}, port: 3000 }\n')
     expect(await loadConfig(dir, { fresh: true })).toEqual({ outDir: 'out', compliance: {}, port: 3000 })
   })

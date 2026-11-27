@@ -10,6 +10,7 @@ import type { TrustProxy } from './security'
 import { createRequestConsent } from './consent'
 import { CookieStore } from './cookies'
 import { nodeEnv } from './env'
+import { resolveFallbackRequestId } from './health'
 import { requestedRegion } from './region'
 import { getClientIp, isHttpsRequest } from './security'
 
@@ -31,20 +32,40 @@ export function isNotFound(value: unknown): value is NotFoundResult {
   return typeof value === 'object' && value !== null && (value as Record<symbol, unknown>)[NOT_FOUND_SYMBOL] === true
 }
 
-type SegmentParam<Seg extends string> =
-  Seg extends `[...${infer Name}]`
-    ? { [K in Name]: string }
-    : Seg extends `[${infer Name}]`
-      ? { [K in Name]: string }
-      : Seg extends `*${infer Name}`
-        ? { [K in Name extends '' ? 'rest' : Name]: string }
-        : Seg extends `:${infer Name}`
-          ? { [K in Name]: string }
-          : unknown
-
-type MergeParams<A, B> = {
-  [K in keyof A | keyof B]: K extends keyof B ? B[K] : K extends keyof A ? A[K] : never
+/** Maps built-in (and augmented) route param matcher names to their TypeScript param value types. */
+export interface ParamMatcherTypes {
+  integer: `${number}`
+  uuid: `${string}-${string}-${string}-${string}-${string}`
+  slug: string
 }
+
+type MatcherValue<Name extends string> = Name extends keyof ParamMatcherTypes ? ParamMatcherTypes[Name] : string
+
+type ParseParamSpec<Spec extends string> =
+  Spec extends `${infer Name}=${infer Matcher}`
+    ? [Name, MatcherValue<Matcher>]
+    : [Spec, string]
+
+type SegmentParam<Seg extends string> =
+  Seg extends `(${string})`
+    ? unknown
+    : Seg extends `[[${infer Spec}]]`
+      ? { [K in ParseParamSpec<Spec>[0]]?: ParseParamSpec<Spec>[1] | undefined }
+      : Seg extends `[...${infer Spec}]`
+        ? { [K in ParseParamSpec<Spec>[0]]: string }
+        : Seg extends `[${infer Spec}]`
+          ? { [K in ParseParamSpec<Spec>[0]]: ParseParamSpec<Spec>[1] }
+          : Seg extends `*${infer Spec}`
+            ? { [K in ParseParamSpec<Spec>[0] extends '' ? 'rest' : ParseParamSpec<Spec>[0]]: string }
+            : Seg extends `:${infer Spec}?`
+              ? { [K in ParseParamSpec<Spec>[0]]?: ParseParamSpec<Spec>[1] | undefined }
+              : Seg extends `:${infer Spec}`
+                ? { [K in ParseParamSpec<Spec>[0]]: ParseParamSpec<Spec>[1] }
+                : unknown
+
+type MergeParams<A, B> = unknown extends B
+  ? A
+  : { [K in keyof (Omit<A, keyof B> & B)]: (Omit<A, keyof B> & B)[K] }
 
 type ExtractRouteParamsRec<Path extends string, Acc = {}> =
   Path extends `${infer Seg}/${infer Rest}`
@@ -53,7 +74,7 @@ type ExtractRouteParamsRec<Path extends string, Acc = {}> =
       ? Acc
       : MergeParams<Acc, SegmentParam<Path>>
 
-/** Extracts typed route params from a Prunelle route path (`'/notices/[id]'` -> `{ id: string }`, `'/docs/[...rest]'` -> `{ rest: string }`). */
+/** Extracts typed route params from a Prunelle route path (`'/notices/[id=integer]'` -> `{ id: `${number}` }`, `'/[[lang]]/about'` -> `{ lang?: string | undefined }`, `'/docs/[...rest]'` -> `{ rest: string }`). */
 export type ExtractRouteParams<Path extends string> =
   string extends Path
     ? Record<string, string>
@@ -91,6 +112,15 @@ export interface LayoutProps<Path extends string = string> {
   url: URL
 }
 
+/** Props passed to a Prunelle status page (`_401.tsx`, `_403.tsx`, `_404.tsx`, `_429.tsx`, `_503.tsx`). */
+export interface StatusPageProps<Path extends string = string> {
+  status: number
+  message: string
+  params: ExtractRouteParams<Path>
+  locals: PrunelleLocals
+  url: URL
+}
+
 export interface ServerOptions extends ServerRuntimeConfig {
   root: string
   outDir?: string | undefined
@@ -113,6 +143,8 @@ export interface RequestContext<Params = Record<string, string>> {
   consent: RequestConsent
   locals: PrunelleLocals
   ip?: string | undefined
+  /** Unique identifier for this request, echoed in the `x-request-id` response header and passed to `onError`. */
+  readonly requestId: string
   /** The region a `data-pru-target` link or form asked for alone (`x-pru-region`): `load()` can skip the data the others show. */
   readonly region?: string | undefined
   json: (data: unknown, init?: ResponseInit) => Response
@@ -210,6 +242,7 @@ export interface RequestContextOptions {
   /** The parsed `request.url`, when the caller already has it. */
   url?: URL | undefined
   consent?: NormalizedConsentConfig | undefined
+  requestId?: string | undefined
 }
 
 // None of these read the request, so every context shares them.
@@ -230,8 +263,25 @@ const text: RequestContext['text'] = (body, init) => {
     headers.set('content-length', String(Buffer.byteLength(body, 'utf8')))
   return new Response(body, { ...init, headers })
 }
+export interface DeniedInfo {
+  status: number
+  message: string
+  fieldErrors?: Record<string, string> | undefined
+}
+
+const DENIED_RESPONSES = new WeakMap<Response, DeniedInfo>()
+
+/** Metadata attached to a `Response` produced by `ctx.deny()`. */
+export function getDeniedInfo(res: Response): DeniedInfo | undefined {
+  return DENIED_RESPONSES.get(res)
+}
+
 const redirect: RequestContext['redirect'] = (location, status = 302) => new Response(null, { status, headers: { location } })
-const deny: RequestContext['deny'] = (status, message, fieldErrors) => Response.json({ ok: false, status, error: message, fieldErrors }, { status })
+const deny: RequestContext['deny'] = (status, message, fieldErrors) => {
+  const res = Response.json({ ok: false, status, error: message, fieldErrors }, { status })
+  DENIED_RESPONSES.set(res, { status, message, fieldErrors })
+  return res
+}
 
 /** RFC 9110 weak ETag comparison supporting `*`, comma-separated lists, and `W/` prefixes. */
 export function etagMatches(ifNoneMatch: string | null, etag: string): boolean {
@@ -267,6 +317,7 @@ export function makeRequestContext(
     cachedConsent ??= createRequestConsent(consentConfig !== undefined ? cookieStore.get(consentConfig.cookieName) : undefined, consentConfig)
     return cachedConsent
   }
+  const requestId = opts?.requestId ?? resolveFallbackRequestId(request, trustProxy)
   let cachedIp: string | undefined
   let ipComputed = false
   const ctx: RequestContext = {
@@ -278,6 +329,7 @@ export function makeRequestContext(
       return getConsent()
     },
     locals: {},
+    requestId,
     get ip() {
       if (!ipComputed) {
         ipComputed = true
@@ -304,6 +356,13 @@ export function makeRequestContext(
 export function wantsJson(request: Request): boolean {
   return (request.headers.get('accept') ?? '').includes('application/json')
     || (request.headers.get('content-type') ?? '').includes('application/json')
+}
+
+/** True when the client explicitly accepts HTML and does not ask for JSON (e.g. browser navigation). */
+export function acceptsHtml(request: Request): boolean {
+  if (wantsJson(request))
+    return false
+  return (request.headers.get('accept') ?? '').includes('text/html')
 }
 
 /** Enforces `maxBytes` on incoming request bodies (both Content-Length and streaming body reads). */
@@ -396,14 +455,18 @@ export function applyHstsHeader(
   }
 }
 
-/** Adds the pending cookies (when any) and the security headers the response does not set itself. */
+/** Adds the pending cookies (when any), security headers, `x-request-id`, and dev `Server-Timing`. */
 export function finalizeResponse(
   res: Response,
   cookieStore: CookieStore | undefined,
   entries: readonly [string, string][],
+  requestId?: string,
+  serverTiming?: string,
 ): Response {
   const hasCookies = cookieStore?.hasChanges === true
-  if (!hasCookies && entries.length === 0)
+  const hasRequestId = requestId !== undefined
+  const hasTiming = serverTiming !== undefined && serverTiming !== ''
+  if (!hasCookies && entries.length === 0 && !hasRequestId && !hasTiming)
     return res
 
   const apply = (h: Headers): void => {
@@ -413,6 +476,10 @@ export function finalizeResponse(
       if (!h.has(k))
         h.set(k, v)
     }
+    if (hasRequestId && !h.has('x-request-id'))
+      h.set('x-request-id', requestId)
+    if (hasTiming)
+      h.set('server-timing', serverTiming)
   }
   // Mutate in place (no copy in Bun); a response with immutable headers (e.g. a proxied upstream fetch) is rebuilt.
   try {

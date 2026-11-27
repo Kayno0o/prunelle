@@ -7,10 +7,12 @@
 
 import type { Html, HydrateStrategy } from '../jsx-runtime'
 import type { ActionRegistry, RegisteredAction } from './action-registry'
+import type { ServedFile } from './assets'
 import type { NormalizedConsentConfig } from './consent'
 import type { CookieStore } from './cookies'
 import type { NotifyError } from './errors'
-import type { EmbeddedServerConfig, PrunelleApp, PrunelleServer, Middleware, RequestContext } from './http'
+import type { DevTiming } from './health'
+import type { DeniedInfo, EmbeddedServerConfig, PrunelleApp, PrunelleServer, Middleware, RequestContext } from './http'
 import type { RateLimiter, RateLimitStore } from './rate-limit'
 import type { LoadedMiddlewareModule } from './page'
 import type { ServerPluginHost } from './plugin-host'
@@ -30,8 +32,10 @@ import { CompressionCache, compressedHtmlResponse, compressedHtmlStream, markCom
 import { normalizeConsentConfig } from './consent'
 import { addedInlineStyleHashes, createDocumentHooks, createHtmlHeaders, mergeStyleHashes, resolveRenderedIslands, revivePreload, withPluginHtmlCsp } from './document'
 import { createErrorNotifier, createFallbackPages, devErrorResponse } from './errors'
-import { applyHstsHeader, DEFAULT_MAX_REQUEST_BODY_SIZE, enforceRequestBodyLimit, finalizeResponse, isNotFound, makeRequestContext, runChain, wantsJson } from './http'
+import { collectHealthChecks, createHealthHandler, createRequestIdResolver, createTiming, endTimer, formatServerTiming, runTimedChain, startTimer, withRequestId } from './health'
+import { acceptsHtml, applyHstsHeader, DEFAULT_MAX_REQUEST_BODY_SIZE, enforceRequestBodyLimit, finalizeResponse, getDeniedInfo, isNotFound, makeRequestContext, runChain, wantsJson } from './http'
 import { allowedMethodsHeader, pickPageIslandProps, stripHeadBody } from './page'
+import { resolveParamMatchers } from './param-matchers'
 import { allowedPluginMethodsHeader, createServerPluginHost, takesEncoded } from './plugin-host'
 
 import { hasRegionHeader, invalidRegionResponse, requestedRegion, respondRegion, withRegionVary } from './region'
@@ -58,8 +62,9 @@ export type { CompressionEncoding, PrecompressedEncoding } from './compress'
 export type { RequestConsent } from './consent'
 export type { CookieOptions, Cookies } from './cookies'
 export { defineEnv, nodeEnv } from './env'
+export type { HealthCheckConfig, HealthCheckFn, HealthCheckResult } from './health'
 export { DEFAULT_MAX_REQUEST_BODY_SIZE, notFound } from './http'
-export type { EmbeddedServerConfig, ExtractRouteParams, PrunelleApp, LayoutProps, LoaderData, LoaderFn, Middleware, NotFoundResult, PageProps, RequestContext, RouteContext, ServerOptions } from './http'
+export type { EmbeddedServerConfig, ExtractRouteParams, PrunelleApp, LayoutProps, LoaderData, LoaderFn, Middleware, NotFoundResult, PageProps, ParamMatcherTypes, RequestContext, RouteContext, ServerOptions, StatusPageProps } from './http'
 export { createServer } from './loader'
 export { DEFAULT_CSP, DEFAULT_HSTS, DEFAULT_PERMISSIONS_POLICY, getClientIp, isHttpsRequest, isTrustedOrigin, PRUNELLE_ISLAND_STYLE_HASH, PRUNELLE_STREAM_SCRIPT_HASH, PRUNELLE_SUSPENSE_STYLE_HASH, verifyOrigin, withCspHashes } from './security'
 export type { SecurityHeadersOptions, TrustProxy } from './security'
@@ -71,6 +76,25 @@ const DEFAULT_STREAM_TIMEOUT = 30_000
 
 
 const isEventStream = (res: Response): boolean => (res.headers.get('content-type') ?? '').toLowerCase().includes('text/event-stream')
+const isApiHandler = (mod: CompiledRoute['mod'], method: string): boolean => typeof mod[method] === 'function' || (method === 'HEAD' && typeof mod.GET === 'function')
+
+function maybeRenderDenied(
+  res: Response,
+  request: Request,
+  url: URL,
+  ctx: RequestContext,
+  renderDenied: (denied: DeniedInfo, url: URL, req: Request, ctx?: RequestContext, routeFile?: string) => Promise<Response>,
+  routeFile?: string,
+  isApi = false,
+): Response | Promise<Response> {
+  if (isApi)
+    return res
+  const denied = getDeniedInfo(res)
+  if (denied === undefined || !acceptsHtml(request))
+    return res
+  return renderDenied(denied, url, request, ctx, routeFile)
+}
+
 const makeServerError = (securityRecord: Record<string, string>) => (): Response => new Response('Internal Server Error', { status: 500, headers: { 'content-type': 'text/plain; charset=utf-8', ...securityRecord } })
 // A file body Bun could not open: a build swapped in since this app loaded, or a file deleted by hand. Never cached.
 const badRequest = (): Response => new Response('Bad Request', { status: 400, headers: { 'content-type': 'text/plain; charset=utf-8' } })
@@ -86,6 +110,29 @@ function lookupPrerendered<T>(map: ReadonlyMap<string, T>, staticPath: string | 
 function matchPluginRoute(pluginRouter: ServerPluginHost['router'], requestPath: RequestPath, effective: RequestPath) {
   const rawMatch = effective !== requestPath ? takesEncoded(pluginRouter.match(requestPath), requestPath) : undefined
   return rawMatch ?? takesEncoded(pluginRouter.match(effective), effective)
+}
+
+function matchStaticOrPublic(
+  request: Request,
+  requestPath: RequestPath,
+  assetMap: ReadonlyMap<string, ServedFile>,
+  publicMap: ReadonlyMap<string, ServedFile>,
+  pluginRouter: ServerPluginHost['router'],
+): ServedFile | undefined {
+  const { staticPath } = requestPath
+  if (staticPath === undefined)
+    return undefined
+  const asset = assetMap.get(staticPath)
+  if (asset !== undefined)
+    return asset
+  const pub = publicMap.get(staticPath)
+  if (pub === undefined)
+    return undefined
+  const matchedPlugin = pluginRouter.match(requestPath)
+  const reqMethod = request.method.toUpperCase()
+  const shadowedByPlugin = matchedPlugin !== undefined
+    && (matchedPlugin.data.has(reqMethod) || (reqMethod === 'HEAD' && matchedPlugin.data.has('GET')) || matchedPlugin.data.has('ALL'))
+  return shadowedByPlugin ? undefined : pub
 }
 
 async function renderRouteBody(route: CompiledRoute, data: unknown, pageProps: Record<string, unknown>, ctx: RequestContext): Promise<string> {
@@ -109,6 +156,26 @@ async function renderRouteBody(route: CompiledRoute, data: unknown, pageProps: R
 }
 
 
+function createRequestGuards(
+  maxRequestBodySize: number,
+  finish: (res: Response, request: Request, cookieStore?: CookieStore, requestId?: string, serverTiming?: string) => Response,
+) {
+  const refuseCrossSite = (request: Request, reason: string, cookieStore?: CookieStore, requestId?: string): Response =>
+    finish(Response.json({ ok: false, status: 403, error: reason }, { status: 403 }), request, cookieStore, requestId)
+
+  const checkBodyLimit = async (request: Request, bodyLimited: boolean, cookieStore?: CookieStore, requestId?: string): Promise<Request | Response> => {
+    if (bodyLimited)
+      return request
+    const bounded = await enforceRequestBodyLimit(request, maxRequestBodySize)
+    if (bounded.ok)
+      return bounded.request
+    return finish(wantsJson(request)
+      ? Response.json({ ok: false, status: 413, error: 'Payload Too Large' }, { status: 413 })
+      : new Response('Payload Too Large', { status: 413, headers: { 'content-type': 'text/plain; charset=utf-8' } }), request, cookieStore, requestId)
+  }
+  return { refuseCrossSite, checkBodyLimit }
+}
+
 interface ActionDispatcherDeps {
   actions: ActionRegistry
   rewrites: readonly ((pathname: string, ctx: RequestContext) => string | undefined)[]
@@ -116,15 +183,16 @@ interface ActionDispatcherDeps {
   trustProxy: TrustProxy
   consent: NormalizedConsentConfig | undefined
   rateLimits: RateLimitStore
-  refuseCrossSite: (request: Request, reason: string, cookieStore?: CookieStore) => Response
-  checkBodyLimit: (request: Request, bodyLimited: boolean, cookieStore?: CookieStore) => Promise<Request | Response>
-  finish: (res: Response, request: Request, cookieStore?: CookieStore) => Response
+  isDev: boolean
+  refuseCrossSite: (request: Request, reason: string, cookieStore?: CookieStore, requestId?: string) => Response
+  checkBodyLimit: (request: Request, bodyLimited: boolean, cookieStore?: CookieStore, requestId?: string) => Promise<Request | Response>
+  finish: (res: Response, request: Request, cookieStore?: CookieStore, requestId?: string, serverTiming?: string) => Response
   notifyError: NotifyError
   renderError: (error: unknown, cookieStore: CookieStore | undefined, url: URL, request: Request, ctx?: RequestContext) => Promise<Response>
 }
 
 function createActionDispatcher(deps: ActionDispatcherDeps) {
-  const { actions, rewrites, trustedOrigins, trustProxy, consent, rateLimits, refuseCrossSite, checkBodyLimit, finish, notifyError, renderError } = deps
+  const { actions, rewrites, trustedOrigins, trustProxy, consent, rateLimits, isDev, refuseCrossSite, checkBodyLimit, finish, notifyError, renderError } = deps
   const limiters = new WeakMap<RegisteredAction['act'], RateLimiter>()
   const limiterFor = (act: RegisteredAction['act']): RateLimiter | undefined => {
     if (act.rateLimit === undefined)
@@ -143,6 +211,7 @@ function createActionDispatcher(deps: ActionDispatcherDeps) {
     rawPathname: string,
     remoteIp: string | undefined,
     bodyLimited: boolean,
+    requestId: string,
     existing?: { ctx: RequestContext, cookieStore: CookieStore },
   ): Promise<Response> => {
     const actionHandler = request.method === 'POST' ? registeredAction : undefined
@@ -150,29 +219,30 @@ function createActionDispatcher(deps: ActionDispatcherDeps) {
     if (actionHandler !== undefined) {
       const originCheck = verifyOrigin(request, trustedOrigins, trustProxy, url)
       if (!originCheck.ok)
-        return refuseCrossSite(request, originCheck.reason, existing?.cookieStore)
-      const checked = await checkBodyLimit(request, bodyLimited, existing?.cookieStore)
+        return refuseCrossSite(request, originCheck.reason, existing?.cookieStore, requestId)
+      const checked = await checkBodyLimit(request, bodyLimited, existing?.cookieStore, requestId)
       if (checked instanceof Response)
         return checked
       req = checked
     }
     const { act, middlewares } = registeredAction
-    const { ctx, cookieStore } = existing ?? makeRequestContext(req, {}, { trustProxy, remoteIp, url, consent })
+    const { ctx, cookieStore } = existing ?? makeRequestContext(req, {}, { trustProxy, remoteIp, url, consent, requestId })
     ctx.request = req
     if (existing === undefined && rewrites.length > 0) {
       for (const rewrite of rewrites)
         rewrite(rawPathname, ctx)
     }
+    const timing = createTiming(isDev)
     try {
-      const res = await actions.run(ctx, () => runChain(ctx, middlewares, () =>
+      const res = await actions.run(ctx, () => runTimedChain(ctx, middlewares, () =>
         actionHandler !== undefined
           ? executeAction(act, req, ctx, trustedOrigins, trustProxy, limiterFor(act))
           : methodNotAllowed('POST'),
-      ))
-      return finish(actionHandler !== undefined ? finishActionRedirect(res, req) : res, req, cookieStore)
+      timing, runChain))
+      return finish(actionHandler !== undefined ? finishActionRedirect(res, req) : res, req, cookieStore, ctx.requestId, formatServerTiming(timing))
     }
     catch (error) {
-      notifyError(error, req, 'action')
+      notifyError(error, req, 'action', ctx.requestId)
       return renderError(error, cookieStore, ctx.url, req, ctx)
     }
   }
@@ -229,7 +299,9 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
   const hstsValue = resolveHstsValue(security)
   const withHsts = (res: Response, request: Request): Response => applyHstsHeader(res, request, hstsValue, trustProxy, isDev)
   // The one way out of every response not built with the security headers already in place.
-  const finish = (res: Response, request: Request, cookieStore?: CookieStore): Response => withHsts(finalizeResponse(res, cookieStore, securityEntries), request)
+  const finish = (res: Response, request: Request, cookieStore?: CookieStore, requestId?: string, serverTiming?: string): Response =>
+    withHsts(finalizeResponse(res, cookieStore, securityEntries, requestId, serverTiming), request)
+  const resolveRequestId = createRequestIdResolver(trustProxy)
   const serverError = makeServerError(securityRecord)
   const fileGone = makeFileGone(securityRecord)
   const navigation = createNavigation(config.navigation)
@@ -272,19 +344,18 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
     trustedOrigins,
   })
   const { router: pluginRouter, middlewaresFor, middlewaresForPaths } = pluginHost
+  const healthPath = `${assetPrefix}/health`
+  const healthHandler = createHealthHandler({ checks: collectHealthChecks(config.healthCheck, pluginHost.healthChecks), securityRecord, withHsts, resolveRequestId })
   const hasPluginRewrites = pluginHost.rewrites.length > 0
   const routesPrefix = inferRoutesServerPrefix(manifest)
+  const paramMatchers = resolveParamMatchers(manifest.paramMatchers, modules)
   const routePathByFile = new Map(manifest.routes.map(r => [r.file, r.path]))
-  const ancestorMiddlewaresFor = createAncestorMiddlewareLookup(manifest, modules, routesPrefix)
+  const ancestorMiddlewaresFor = createAncestorMiddlewareLookup(manifest, modules, routesPrefix, paramMatchers)
   const pluginMiddlewaresFor = (effectiveScopedPath: string, rawScopedPath: string): readonly Middleware[] =>
-    effectiveScopedPath === rawScopedPath
-      ? middlewaresFor(effectiveScopedPath)
-      : middlewaresForPaths([effectiveScopedPath, rawScopedPath])
+    effectiveScopedPath === rawScopedPath ? middlewaresFor(effectiveScopedPath) : middlewaresForPaths([effectiveScopedPath, rawScopedPath])
 
   registerManifestActions({ manifest, modules, actions, routesPrefix, routePathByFile, middlewaresFor, middlewaresForPaths })
-
-
-  const { buildNotFoundResponse, renderError } = createFallbackPages({ manifest, modules, lang, alwaysLoadRuntime, navigation: navigation.html, dev: isDev, document, htmlHeaders, notifyError, finish })
+  const { buildNotFoundResponse, renderError, renderDenied } = createFallbackPages({ manifest, modules, routesPrefix, paramMatchers, lang, alwaysLoadRuntime, navigation: navigation.html, dev: isDev, document, htmlHeaders, notifyError, finish })
 
   async function renderNotFound(
     cookieStore: CookieStore,
@@ -293,6 +364,7 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
     ctx: RequestContext,
     effective: RequestPath,
     rawScopedPath: string,
+    timing?: DevTiming,
   ): Promise<Response> {
     const pluginMws = pluginMiddlewaresFor(effective.scopedPath, rawScopedPath)
     const ancestor = ancestorMiddlewaresFor(effective)
@@ -300,34 +372,21 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
       ctx.params = ancestor.params
     const chain = ancestor === undefined ? pluginMws : [...pluginMws, ...ancestor.middlewares]
     try {
-      const res = await actions.run(ctx, () => runChain(ctx, chain, () => buildNotFoundResponse(url, request, ctx)))
-      return finish(res, request, cookieStore)
+      const rawRes = await actions.run(ctx, () => runTimedChain(ctx, chain, () => buildNotFoundResponse(url, request, ctx), timing, runChain))
+      return finish(await maybeRenderDenied(rawRes, request, url, ctx, renderDenied), request, cookieStore, ctx.requestId, formatServerTiming(timing))
     }
     catch (error) {
-      notifyError(error, request, 'route')
+      notifyError(error, request, 'route', ctx.requestId)
       return renderError(error, cookieStore, url, request, ctx)
     }
   }
 
-  function refuseCrossSite(request: Request, reason: string, cookieStore?: CookieStore): Response {
-    return finish(Response.json({ ok: false, status: 403, error: reason }, { status: 403 }), request, cookieStore)
-  }
-
-  async function checkBodyLimit(request: Request, bodyLimited: boolean, cookieStore?: CookieStore): Promise<Request | Response> {
-    if (bodyLimited)
-      return request
-    const bounded = await enforceRequestBodyLimit(request, maxRequestBodySize)
-    if (bounded.ok)
-      return bounded.request
-    return finish(wantsJson(request)
-      ? Response.json({ ok: false, status: 413, error: 'Payload Too Large' }, { status: 413 })
-      : new Response('Payload Too Large', { status: 413, headers: { 'content-type': 'text/plain; charset=utf-8' } }), request, cookieStore)
-  }
+  const { refuseCrossSite, checkBodyLimit } = createRequestGuards(maxRequestBodySize, finish)
 
   const { router, fastStaticPages } = compileRouteTable({
-    manifest, modules, lang, alwaysLoadRuntime, navigation: navigation.html, middlewaresFor,
+    manifest, modules, paramMatchers, lang, alwaysLoadRuntime, navigation: navigation.html, middlewaresFor,
     pluginIntercepts: path => hasPluginRewrites || hasHeadHooks || hasHtmlTransformers || pluginRouter.match(literalPath(path)) !== undefined,
-    fast: { trustProxy, consent, htmlHeaders, compressCache, actions, buildNotFoundResponse, renderError, notifyError, finish, withHsts },
+    fast: { trustProxy, consent, htmlHeaders, compressCache, actions, buildNotFoundResponse, renderError, renderDenied, notifyError, finish, withHsts, dev: isDev, resolveRequestId },
   })
   const { all: prerenderedMap, fast: fastPrerenderedMap } = files.collectPrerendered(manifest.routes, {
     prerendered,
@@ -343,6 +402,7 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
     ctx: RequestContext,
     disableTimeout?: () => void,
     staticPath?: string,
+    timing?: DevTiming,
   ): Promise<Response> {
     const { entry, mod, doc } = route
 
@@ -354,7 +414,7 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
         return serveFile(ctx.request, pre)
       // Prerendered dynamic route: unlisted param returns 404 (never falls back to SSR)
       if (pre === undefined && entry.prerender === true && entry.prerendered !== undefined && route.dynamic)
-        return buildNotFoundResponse(ctx.url, ctx.request, ctx)
+        return buildNotFoundResponse(ctx.url, ctx.request, ctx, entry.file)
     }
 
     // API route (.ts exporting GET/POST/etc.) — HEAD falls back to GET without a body
@@ -376,17 +436,19 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
 
     let data: unknown
     if (entry.hasLoad && typeof mod.load === 'function') {
+      const loadStart = startTimer(timing)
       try {
         data = await mod.load(ctx)
       }
       catch (error) {
         if (isNotFound(error))
-          return buildNotFoundResponse(ctx.url, ctx.request, ctx)
+          return buildNotFoundResponse(ctx.url, ctx.request, ctx, entry.file)
         throw error
       }
+      endTimer(timing, 'load', loadStart)
     }
     if (isNotFound(data))
-      return buildNotFoundResponse(ctx.url, ctx.request, ctx)
+      return buildNotFoundResponse(ctx.url, ctx.request, ctx, entry.file)
     if (data instanceof Response)
       return data
     const pageProps: Record<string, unknown> = {
@@ -400,12 +462,13 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
       return respondRegion(
         ctx.request, mod, pageProps, entry.path, htmlHeaders,
         rctx => resolveDocumentHead(rctx, doc.headTags as readonly string[] | undefined, ctx.url, ctx.request, ctx),
-        streamTimeout, error => notifyError(error, ctx.request, 'route'),
+        streamTimeout, error => notifyError(error, ctx.request, 'route', ctx.requestId),
         hasHtmlTransformers ? html => applyHtmlTransforms(html, ctx.url, ctx.request, ctx) : undefined,
       )
     }
 
-    const rctx = createRenderContext(undefined, undefined, ctx.consent, error => notifyError(error, ctx.request, 'route'))
+    const renderStart = startTimer(timing)
+    const rctx = createRenderContext(undefined, undefined, ctx.consent, error => notifyError(error, ctx.request, 'route', ctx.requestId))
     const body = await runWithRenderContext(rctx, () => renderRouteBody(route, data, pageProps, ctx))
     if (hasFlash)
       ctx.cookies.delete(ACTION_ERROR_COOKIE)
@@ -421,72 +484,73 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
 
     // Streaming SSR when <Suspense> boundaries are pending, compressed per flush, never buffered
     if (isStreamed) {
-      if (ctx.request.method === 'HEAD')
+      endTimer(timing, 'render', renderStart)
+      const streamStart = startTimer(timing)
+      if (ctx.request.method === 'HEAD') {
+        endTimer(timing, 'stream', streamStart)
         return markCompressionHandled(new Response(null, { status: 200, headers: withRegionVary(htmlHeaders(hasIslands, true, true, trustedStyleHashes), hasRegions) }))
+      }
       disableTimeout?.()
       const docShell = renderDocument({ ...doc, body: body + STREAM_TAIL_MARK, head: docHead.head, lang: docHead.lang, htmlAttrs: docHead.htmlAttrs, preloadChunks, hasIslands, hasSuspense: true })
       // Transforms see the document with its initial body; boundaries resolved later stream as they render.
       const shell = hasHtmlTransformers ? await applyHtmlTransforms(docShell, ctx.url, ctx.request, ctx) : docShell
       const streamStyleHashes = mergeStyleHashes(trustedStyleHashes, addedInlineStyleHashes(docShell, shell))
-      return compressedHtmlStream(streamDocument(shell, rctx, streamTimeout, error => notifyError(error, ctx.request, 'route')), 200, withRegionVary(htmlHeaders(hasIslands, true, true, streamStyleHashes), hasRegions), ctx.request, compressCache)
+      endTimer(timing, 'stream', streamStart)
+      return compressedHtmlStream(streamDocument(shell, rctx, streamTimeout, error => notifyError(error, ctx.request, 'route', ctx.requestId)), 200, withRegionVary(htmlHeaders(hasIslands, true, true, streamStyleHashes), hasRegions), ctx.request, compressCache)
     }
 
     const docHtml = renderDocument({ ...doc, body, head: docHead.head, lang: docHead.lang, htmlAttrs: docHead.htmlAttrs, preloadChunks, hasIslands })
     const html = hasHtmlTransformers ? await applyHtmlTransforms(docHtml, ctx.url, ctx.request, ctx) : docHtml
     const finalStyleHashes = mergeStyleHashes(trustedStyleHashes, addedInlineStyleHashes(docHtml, html))
+    endTimer(timing, 'render', renderStart)
 
     return compressedHtmlResponse(html, 200, withRegionVary(htmlHeaders(hasIslands, false, true, finalStyleHashes), hasRegions), ctx.request, compressCache)
   }
 
   const dispatchAction = createActionDispatcher({
-    actions, rewrites: pluginHost.rewrites, trustedOrigins, trustProxy, consent, rateLimits: pluginHost.rateLimits, refuseCrossSite, checkBodyLimit, finish, notifyError, renderError,
+    actions, rewrites: pluginHost.rewrites, trustedOrigins, trustProxy, consent, rateLimits: pluginHost.rateLimits, isDev, refuseCrossSite, checkBodyLimit, finish, notifyError, renderError,
   })
 
   // `bodyLimited` is set under `serve()`, where Bun.serve already enforces maxRequestBodySize on every body, chunked ones included.
   async function handleInternal(request: Request, remoteIp?: string, disableTimeout?: () => void, bodyLimited = false): Promise<Response> {
+    const requestId = resolveRequestId(request)
     try {
       const url = new URL(request.url)
       const rawPathname = url.pathname
       const requestPath = decodeRequestPath(rawPathname)
       if (requestPath === undefined)
-        return finish(badRequest(), request)
+        return finish(badRequest(), request, undefined, requestId)
       const { staticPath, scopedPath } = requestPath
+      if (staticPath === healthPath)
+        return healthHandler(request, requestId)
       const read = isRead(request)
 
       // 1. Static client assets, then public/ files (explicit plugin routes take precedence over public/ files)
-      if (read && staticPath !== undefined) {
-        const asset = assetMap.get(staticPath)
-        if (asset !== undefined)
-          return serveFile(request, asset)
-        const pub = publicMap.get(staticPath)
-        if (pub !== undefined) {
-          const matchedPlugin = pluginRouter.match(requestPath)
-          const reqMethod = request.method.toUpperCase()
-          const shadowedByPlugin = matchedPlugin !== undefined
-            && (matchedPlugin.data.has(reqMethod) || (reqMethod === 'HEAD' && matchedPlugin.data.has('GET')) || matchedPlugin.data.has('ALL'))
-          if (!shadowedByPlugin)
-            return serveFile(request, pub)
-        }
+      if (read) {
+        const staticFile = matchStaticOrPublic(request, requestPath, assetMap, publicMap, pluginRouter)
+        if (staticFile !== undefined)
+          return withRequestId(await serveFile(request, staticFile), requestId)
       }
 
       // 2. Server actions (POST /_pru/action/<id>; non-POST runs applicable middlewares before 405)
       const registeredAction = staticPath !== undefined ? actions.byUrl(staticPath) : undefined
       if (registeredAction !== undefined)
-        return dispatchAction(registeredAction, request, url, rawPathname, remoteIp, bodyLimited)
+        return dispatchAction(registeredAction, request, url, rawPathname, remoteIp, bodyLimited, requestId)
 
       // 3. Prerendered static HTML, then 4. the zero-overhead static route path
       const plainRead = isPlainRead(request)
       if (plainRead && staticPath !== undefined) {
         const pre = fastPrerenderedMap.get(staticPath)
         if (pre !== undefined)
-          return serveFile(request, pre)
+          return withRequestId(await serveFile(request, pre), requestId)
         const fast = fastStaticPages.get(staticPath)
         if (fast !== undefined)
-          return fast(request, remoteIp, url)
+          return fast(request, remoteIp, url, requestId)
       }
 
       // 5. Full Router + Plugin Rewrites + Plugin Routes + Middleware + Streaming/Head/Error pipeline
-      const { ctx, cookieStore } = makeRequestContext(request, {}, { trustProxy, remoteIp, url, consent })
+      const { ctx, cookieStore } = makeRequestContext(request, {}, { trustProxy, remoteIp, url, consent, requestId })
+      const timing = createTiming(isDev)
 
       // Apply plugin URL rewrites (e.g. @prunellejs/i18n stripping /fr prefix and setting ctx.locals.locale)
       let effectivePath = rawPathname
@@ -499,11 +563,11 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
       if (effectivePath !== rawPathname) {
         const rewritten = decodeRequestPath(effectivePath)
         if (rewritten === undefined)
-          return finish(badRequest(), request, cookieStore)
+          return finish(badRequest(), request, cookieStore, requestId)
         effective = rewritten
         const rewrittenAction = rewritten.staticPath !== undefined ? actions.byUrl(rewritten.staticPath) : undefined
         if (rewrittenAction !== undefined)
-          return dispatchAction(rewrittenAction, request, url, effectivePath, remoteIp, bodyLimited, { ctx, cookieStore })
+          return dispatchAction(rewrittenAction, request, url, effectivePath, remoteIp, bodyLimited, requestId, { ctx, cookieStore })
       }
       const { scopedPath: effectiveScopedPath, staticPath: effectiveStaticPath } = effective
 
@@ -517,24 +581,24 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
         if (routeDef.csrf) {
           const originCheck = verifyOrigin(request, routeDef.trustedOrigins, routeDef.trustProxy, url)
           if (!originCheck.ok)
-            return refuseCrossSite(request, originCheck.reason, cookieStore)
+            return refuseCrossSite(request, originCheck.reason, cookieStore, requestId)
         }
-        const checked = await checkBodyLimit(request, bodyLimited, cookieStore)
+        const checked = await checkBodyLimit(request, bodyLimited, cookieStore, requestId)
         if (checked instanceof Response)
           return checked
         ctx.request = checked
         ctx.params = pluginMatch.params
         const pluginMws = pluginMiddlewaresFor(effectiveScopedPath, scopedPath)
         try {
-          let res = await actions.run(ctx, () => runChain(ctx, pluginMws, () => routeDef.handler(ctx)))
+          let res = await actions.run(ctx, () => runTimedChain(ctx, pluginMws, () => routeDef.handler(ctx), timing, runChain))
           if (headFallbackPluginDef !== undefined)
             res = stripHeadBody(res)
           else if (isEventStream(res))
             res = streams.track(res, disableTimeout)
-          return finish(await maybeCompressResponse(await withPluginHtmlCsp(res, htmlHeaders), ctx.request, compressCache), ctx.request, cookieStore)
+          return finish(await maybeCompressResponse(await withPluginHtmlCsp(res, htmlHeaders), ctx.request, compressCache), ctx.request, cookieStore, requestId, formatServerTiming(timing))
         }
         catch (error) {
-          notifyError(error, ctx.request, 'plugin')
+          notifyError(error, ctx.request, 'plugin', requestId)
           return renderError(error, cookieStore, ctx.url, ctx.request, ctx)
         }
       }
@@ -543,7 +607,7 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
       if (read && effectivePath !== rawPathname && effectiveStaticPath !== undefined) {
         const pub = publicMap.get(effectiveStaticPath)
         if (pub !== undefined)
-          return serveFile(request, pub)
+          return withRequestId(await serveFile(request, pub), requestId)
       }
 
       const matched = router.match(effective)
@@ -553,15 +617,15 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
           const allow = allowedPluginMethodsHeader(pluginMatch.data)
           const pluginMws = pluginMiddlewaresFor(effectiveScopedPath, scopedPath)
           try {
-            const res = await actions.run(ctx, () => runChain(ctx, pluginMws, () => methodNotAllowed(allow)))
-            return finish(res, request, cookieStore)
+            const res = await actions.run(ctx, () => runTimedChain(ctx, pluginMws, () => methodNotAllowed(allow), timing, runChain))
+            return finish(res, request, cookieStore, requestId, formatServerTiming(timing))
           }
           catch (error) {
-            notifyError(error, request, 'plugin')
+            notifyError(error, request, 'plugin', requestId)
             return renderError(error, cookieStore, ctx.url, request, ctx)
           }
         }
-        return renderNotFound(cookieStore, ctx.url, request, ctx, effective, scopedPath)
+        return renderNotFound(cookieStore, ctx.url, request, ctx, effective, scopedPath, timing)
       }
 
       ctx.params = matched.params
@@ -572,9 +636,9 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
         if (route.mod.csrf !== false) {
           const originCheck = verifyOrigin(request, trustedOrigins, trustProxy, url)
           if (!originCheck.ok)
-            return refuseCrossSite(request, originCheck.reason, cookieStore)
+            return refuseCrossSite(request, originCheck.reason, cookieStore, requestId)
         }
-        const checked = await checkBodyLimit(request, bodyLimited, cookieStore)
+        const checked = await checkBodyLimit(request, bodyLimited, cookieStore, requestId)
         if (checked instanceof Response)
           return checked
         ctx.request = checked
@@ -585,20 +649,21 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
         : route.middlewares
 
       try {
-        const rawRes = await actions.run(ctx, () => runChain(ctx, routeMiddlewares, () => renderCompiledRoute(route, ctx, disableTimeout, staticPath)))
-        const res = isEventStream(rawRes) ? streams.track(rawRes, disableTimeout) : rawRes
+        const rawRes = await actions.run(ctx, () => runTimedChain(ctx, routeMiddlewares, () => renderCompiledRoute(route, ctx, disableTimeout, staticPath, timing), timing, runChain))
+        const handledRes = await maybeRenderDenied(rawRes, ctx.request, ctx.url, ctx, renderDenied, route.entry.file, isApiHandler(route.mod, method))
+        const res = isEventStream(handledRes) ? streams.track(handledRes, disableTimeout) : handledRes
         // Compress uncompressed API/middleware responses after the middleware chain unwinds.
         const finalRes = res.headers.has('content-encoding') ? res : await maybeCompressResponse(res, ctx.request, compressCache)
-        return finish(finalRes, ctx.request, cookieStore)
+        return finish(finalRes, ctx.request, cookieStore, requestId, formatServerTiming(timing))
       }
       catch (error) {
-        notifyError(error, ctx.request, 'route')
-        return renderError(error, cookieStore, ctx.url, ctx.request, ctx)
+        notifyError(error, ctx.request, 'route', requestId)
+        return renderError(error, cookieStore, ctx.url, ctx.request, ctx, route.entry.file)
       }
     }
     catch (error) {
-      notifyError(error, request, 'route')
-      return withHsts(isDev ? devErrorResponse(error, request) : serverError(), request)
+      notifyError(error, request, 'route', requestId)
+      return withHsts(withRequestId(isDev ? devErrorResponse(error, request) : serverError(), requestId), request)
     }
   }
 
@@ -608,7 +673,7 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
 
   const runRequest = (req: Request, remoteIp: string | undefined, disableTimeout: () => void): Promise<Response> => runWithAppContext(serverAppCtx, () => handleInternal(req, remoteIp, disableTimeout, true))
   const runFast = (handler: FastHandler, req: Request, remoteIp: string | undefined): Response | Promise<Response> => runWithAppContext(serverAppCtx, () => handler(req, remoteIp))
-  const handlers = (server: () => PrunelleServer | undefined) => serveHandlers(server, { files, fastPrerenderedMap, fastStaticPages, pluginRouter, runRequest, runFast, notifyError, serverError, fileGone })
+  const handlers = (server: () => PrunelleServer | undefined) => serveHandlers(server, { files, fastPrerenderedMap, fastStaticPages, pluginRouter, healthPath, healthHandler, resolveRequestId, runRequest, runFast, notifyError, serverError, fileGone })
 
   function serve(port = 3000, hostname = '127.0.0.1') {
     const server: PrunelleServer = Bun.serve({ port, hostname, idleTimeout: 30, maxRequestBodySize, development: false, ...handlers(() => server) })

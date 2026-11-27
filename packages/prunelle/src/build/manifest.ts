@@ -2,10 +2,14 @@
 
 import type { ModuleGraph } from './graph'
 import type { IslandPlan } from './islands'
+import type { StatusPageManifestEntry } from './status-pages'
 import { join } from 'node:path'
 import { isInside } from './is-inside'
 import { islandKey } from './islands'
 import { ancestorFiles, fileToRoutePath, MIDDLEWARE_NAMES } from './routes'
+import { buildStatusPageEntries } from './status-pages'
+
+export type { StatusPageKind, StatusPageManifestEntry } from './status-pages'
 
 const REGION_SOURCES = new Set(['prunelle', 'prunelle/internal/ssr'])
 
@@ -63,6 +67,10 @@ export interface BuildManifest {
   rootLayoutFile?: string | undefined
   errorFile?: string | undefined
   notFoundFile?: string | undefined
+  /** Discovered status/error pages (`_401`, `_403`, `_404`, `_429`, `_503`, `_error`), root and nested. */
+  statusPages?: StatusPageManifestEntry[] | undefined
+  /** Custom app param matchers (`src/params/<name>.ts`), mapping matcher name to compiled module key. */
+  paramMatchers?: Record<string, string> | undefined
   actions: ActionManifestEntry[]
   islands: Record<string, string>
   assets: string[]
@@ -185,6 +193,7 @@ function createReachWalker(graph: ModuleGraph, islands: IslandPlan, islandChunks
 
 export interface RouteEntries {
   routes: RouteManifestEntry[]
+  statusPages: StatusPageManifestEntry[]
   /** Stylesheets of every page: the plugins' CSS, then the root layout's. */
   globalStyles: string[]
   /** The plugins' CSS alone. */
@@ -199,6 +208,7 @@ export function buildRouteEntries(options: {
   islandCssUrl: Map<string, string>
   routesDir: string
   pageFiles: string[]
+  specialFiles?: readonly string[] | undefined
   pluginCssFiles: string[]
   isStatic: boolean
   /** Maps a source file to its compiled module, relative to the out dir. */
@@ -249,7 +259,14 @@ export function buildRouteEntries(options: {
       prerender: analysis?.hasPrerender || options.isStatic,
     }
   })
-  return { routes, globalStyles, globalPluginStyles }
+  const statusPages = buildStatusPageEntries({
+    routesDir,
+    specialFiles: options.specialFiles ?? [],
+    globalPluginStyles,
+    reachOf,
+    toOutRel,
+  })
+  return { routes, statusPages, globalStyles, globalPluginStyles }
 }
 
 export function buildActionEntries(actionsByFile: Map<string, { exportName: string, url: string }[]>, routesDir: string, toOutRel: (srcFile: string) => string): ActionManifestEntry[] {

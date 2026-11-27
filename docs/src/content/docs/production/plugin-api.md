@@ -1,6 +1,6 @@
 ---
 title: Plugin API
-description: Extend Prunelle cleanly with PrunellePlugin hooks — server routes & middleware, build and post-prerender hooks, prunelle check rules, Bun.build plugins, HTML transforms, and custom CLI commands.
+description: Extend Prunelle with PrunellePlugin hooks — server routes, middleware, health checks, build hooks, prunelle check rules, HTML transforms, and CLI commands.
 section: production
 order: 3
 ---
@@ -24,11 +24,12 @@ export function myPlugin() {
       })
       api.route('GET', '/health', ctx => ctx.json({ ok: true }))
       api.route('POST', '/webhook', ctx => ctx.json({ received: true }), { csrf: false })
+      api.healthCheck('my-plugin', () => true)
     },
 
     // Observe unhandled errors from routes, actions, or plugins
-    onError({ error, request, source }) {
-      console.error(`[${source}] ${request.url}`, error)
+    onError({ error, request, source, requestId }) {
+      console.error(`[${source}] [${requestId ?? '-'}] ${request.url}`, error)
     },
 
     // Emit hashed client assets, public files, <link> styles, <head> tags, or build data

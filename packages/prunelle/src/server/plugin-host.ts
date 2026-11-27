@@ -3,6 +3,7 @@
 import type { BuildManifest } from '../build/index'
 import type { AppRuntimeContext } from '../plugins/context'
 import type { PrunellePlugin, MiddlewareOptions, PluginRouteOptions, ServerPluginAPI } from '../plugins/index'
+import type { HealthCheckEntry } from './health'
 import type { EmbeddedServerConfig, Middleware, RequestContext } from './http'
 
 import type { TrustProxy } from './security'
@@ -101,6 +102,7 @@ export async function createServerPluginHost(options: ServerPluginHostOptions) {
   // The counters of every limited route and action of this server, dropped with it.
   const rateLimits = createRateLimitStore()
   const scopedMiddlewares: ScopedMiddleware[] = []
+  const healthChecks: HealthCheckEntry[] = []
   const shutdownHooks: { plugin: string, hook: () => void | Promise<void> }[] = []
   const rewrites: ((pathname: string, ctx: RequestContext) => string | undefined)[] = []
   const router = new Router<Map<string, PluginRouteDef>>()
@@ -200,6 +202,9 @@ export async function createServerPluginHost(options: ServerPluginHostOptions) {
         getBuildData<T = Record<string, unknown>>(pluginName?: string): T | undefined {
           return manifest.pluginData?.[pluginName ?? plugin.name] as T | undefined
         },
+        healthCheck(name, fn) {
+          healthChecks.push({ name, fn })
+        },
         onShutdown(fn) {
           shutdownHooks.push({ plugin: plugin.name, hook: fn })
         },
@@ -245,7 +250,7 @@ export async function createServerPluginHost(options: ServerPluginHostOptions) {
     }
   }
 
-  return { router, rewrites, allMiddlewares, hasPathScopedMiddlewares, middlewaresFor, middlewaresForPaths, rateLimits, dispose }
+  return { router, rewrites, healthChecks, allMiddlewares, hasPathScopedMiddlewares, middlewaresFor, middlewaresForPaths, rateLimits, dispose }
 }
 
 export type ServerPluginHost = Awaited<ReturnType<typeof createServerPluginHost>>

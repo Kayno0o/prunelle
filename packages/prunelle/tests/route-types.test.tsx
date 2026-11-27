@@ -27,7 +27,7 @@ type Equal<A, B> = (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B 
 
 describe('Route params, loader data, PrunelleLocals, and notFound() (#3544)', () => {
   it('types ctx.params from route patterns, PageProps from load, and augmented PrunelleLocals without casts', () => {
-    // 1. ExtractRouteParams covers static, [param], [...catchall], :param, *catchall, and mixed routes
+    // 1. ExtractRouteParams covers static, [param], [...catchall], :param, *catchall, route groups, optional segments, and param matchers
     type _StaticParams = Expect<Equal<ExtractRouteParams<'/about'>, {}>>
     type _SingleParam = Expect<Equal<ExtractRouteParams<'/notices/[id]'>, { id: string }>>
     type _CatchAllParam = Expect<Equal<ExtractRouteParams<'/docs/[...rest]'>, { rest: string }>>
@@ -35,6 +35,14 @@ describe('Route params, loader data, PrunelleLocals, and notFound() (#3544)', ()
     type _ColonParams = Expect<Equal<ExtractRouteParams<'/users/:id/posts/:postId'>, { id: string, postId: string }>>
     type _WildcardParam = Expect<Equal<ExtractRouteParams<'/files/*'>, { rest: string }>>
     type _GenericString = Expect<Equal<ExtractRouteParams<string>, Record<string, string>>>
+    type _GroupIgnored = Expect<Equal<ExtractRouteParams<'/(marketing)/(nested)/about'>, {}>>
+    type _GroupWithParam = Expect<Equal<ExtractRouteParams<'/(admin)/users/[id=integer]'>, { id: `${number}` }>>
+    type _OptionalMiddle = Expect<Equal<ExtractRouteParams<'/[[lang]]/about'>, { lang?: string | undefined }>>
+    type _OptionalMatched = Expect<Equal<ExtractRouteParams<'/blog/[[page=integer]]'>, { page?: `${number}` | undefined }>>
+    type _UuidMatcher = Expect<Equal<ExtractRouteParams<'/items/[id=uuid]'>, { id: `${string}-${string}-${string}-${string}-${string}` }>>
+    type _SlugMatcher = Expect<Equal<ExtractRouteParams<'/posts/[slug=slug]'>, { slug: string }>>
+    type _CatchAllMatcher = Expect<Equal<ExtractRouteParams<'/docs/[...path=slug]'>, { path: string }>>
+    type _ColonOptionalMatched = Expect<Equal<ExtractRouteParams<'/:lang?/items/:id=integer'>, { lang?: string | undefined, id: `${number}` }>>
 
     const _checkTypes: [
       _StaticParams,
@@ -44,8 +52,16 @@ describe('Route params, loader data, PrunelleLocals, and notFound() (#3544)', ()
       _ColonParams,
       _WildcardParam,
       _GenericString,
-    ] = [true, true, true, true, true, true, true]
-    expect(_checkTypes.length).toBe(7)
+      _GroupIgnored,
+      _GroupWithParam,
+      _OptionalMiddle,
+      _OptionalMatched,
+      _UuidMatcher,
+      _SlugMatcher,
+      _CatchAllMatcher,
+      _ColonOptionalMatched,
+    ] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]
+    expect(_checkTypes.length).toBe(15)
 
     // 2. RouteContext<'/notices/[id]'> types ctx.params.id as string (not string | undefined) and rejects typos
     function loadNotice(ctx: RouteContext<'/notices/[id]'>) {

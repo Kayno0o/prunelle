@@ -72,6 +72,7 @@ export async function compileExecutable(opts: CompileExecutableOptions): Promise
   }
 
   const siteProp = site !== undefined ? ` site: ${JSON.stringify(site)},` : ''
+  const healthPath = `${assetPrefix.replace(/\/$/, '')}/health`
   const code = [
     ...imports,
     `const manifest = ${JSON.stringify(manifest)};`,
@@ -83,7 +84,7 @@ export async function compileExecutable(opts: CompileExecutableOptions): Promise
     `const port = Number(process.env.PORT || prunelleConfig.port || 3000);`,
     `const hostname = process.env.HOST || undefined;`,
     `const formatHost = (h: string) => h.includes(':') && !h.startsWith('[') ? \`[\${h}]\` : h;`,
-    `if (Bun.argv.includes('--health')) { const rawHost = !hostname || hostname === '0.0.0.0' || hostname === '::' ? '127.0.0.1' : hostname; const r = await fetch(\`http://\${formatHost(rawHost)}:\${port}/\`).catch(() => null); process.exit(r && r.status < 500 ? 0 : 1); }`,
+    `if (Bun.argv.includes('--health')) { const rawHost = !hostname || hostname === '0.0.0.0' || hostname === '::' ? '127.0.0.1' : hostname; const r = await fetch(\`http://\${formatHost(rawHost)}:\${port}\${${JSON.stringify(healthPath)}}\`).catch(() => null); process.exit(r && r.ok ? 0 : 1); }`,
     `const app = await createApp({ assetPrefix: ${JSON.stringify(assetPrefix)},${siteProp} manifest, assets, publicAssets, publicEtags, prerenderedFiles, prerenderedEtags });`,
     `const server = app.serve(port, hostname);`,
     `handleSignals(app, server);`,

@@ -27,9 +27,16 @@ prunelle build --compile ./server
 ./server
 ```
 
-- Cold start: **~35 ms**
+- Cold start: **~17 ms**
 - `NODE_ENV` defaults to `production` inside compiled binaries
 - SQLite (`bun:sqlite`) works out of the box alongside the binary
+- **Built-in health check & container `HEALTHCHECK`**: Every server exposes `GET /_pru/health` (or `${assetPrefix}/health`), answering `200 { ok: true }` (`Cache-Control: no-store`) or `503 { ok: false, checks }` when an app `healthCheck` in `prunelle.config.ts` or plugin `api.healthCheck(name, fn)` fails. Compiled binaries accept `--health` to probe that endpoint and exit `0` or `1`, so Dockerfiles need no `curl`:
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=3s CMD ["./server", "--health"]
+```
+
+Every response also carries an `x-request-id` header (reusing a safe incoming `x-request-id` only when `trustProxy` is truthy), exposed as `ctx.requestId` and passed to `onError`. Under `prunelle dev`, responses include a `Server-Timing` header breaking down `middleware`, `load`, `render`, and `stream` phases (zero overhead in production).
 
 ## Stopping the server
 
@@ -53,7 +60,7 @@ prunelle build --static
 
 Outputs a ready-to-host directory in `dist/` containing:
 - Every route and `paths()` page (expanded across locales if `@prunellejs/i18n` is enabled). A dynamic page with no `paths()` fails the build, because a static host cannot render it. Dynamic API routes are left out.
-- `404.html` (if `src/routes/_404.tsx` exists)
+- `404.html` (if `src/routes/_404.tsx` exists), plus `<folder>/404.html` for each static non-group subfolder `_404.tsx` (configure your static host to map subfolder misses to `<folder>/404.html` where supported)
 - Hashed client CSS/JS/font assets under `dist/_pru/`
 - All `public/` files, RSS feeds, `sitemap.xml`, and generated OG `shareCard()` PNGs
 

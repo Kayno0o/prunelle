@@ -15,7 +15,7 @@ export function pickRuntimeConfig(config: PrunelleConfig | undefined): ServerRun
 }
 
 // Typed as records so that a key added to the config types without being listed here fails the typecheck.
-const RUNTIME_KEYS: Record<keyof ServerRuntimeConfig, true> = { site: true, lang: true, assetPrefix: true, security: true, trustedOrigins: true, trustProxy: true, maxRequestBodySize: true, navigation: true, streamTimeout: true, consent: true, compress: true, onError: true, plugins: true }
+const RUNTIME_KEYS: Record<keyof ServerRuntimeConfig, true> = { site: true, lang: true, assetPrefix: true, security: true, trustedOrigins: true, trustProxy: true, maxRequestBodySize: true, navigation: true, streamTimeout: true, consent: true, compress: true, healthCheck: true, onError: true, plugins: true }
 const BUILD_KEYS: Record<Exclude<keyof PrunelleConfig, keyof ServerRuntimeConfig>, true> = { port: true, routesDir: true, outDir: true, publicDir: true, compliance: true }
 const RUNTIME_CONFIG_KEYS = Object.keys(RUNTIME_KEYS) as (keyof ServerRuntimeConfig)[]
 const CONFIG_KEYS = [...RUNTIME_CONFIG_KEYS, ...Object.keys(BUILD_KEYS)]

@@ -8,9 +8,10 @@ import { relPosix, walkRoutes } from '../build/files'
 import { ModuleGraph } from '../build/graph'
 import { analyzeIslands } from '../build/islands'
 import { buildActionEntries, buildRouteEntries } from '../build/manifest'
-import { hasRouteHandlerExport, SPECIAL_ROUTE_FILES } from '../build/routes'
+import { hasRouteHandlerExport, routeGroupsOf, SPECIAL_ROUTE_FILES } from '../build/routes'
 import { createAppContext, loadConfig, pickRuntimeConfig, resolvePlugins, runWithAppContext } from '../plugins/index'
 import { actionHash } from '../server/action'
+import { extractOptionalParams, extractPatternMatchers } from '../server/param-matchers'
 
 const HTTP_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'])
 
@@ -19,6 +20,9 @@ export interface InspectRoute {
   file?: string | undefined
   plugin?: string | undefined
   methods?: string[] | undefined
+  groups?: string[] | undefined
+  matchers?: Record<string, string> | undefined
+  optionalParams?: string[] | undefined
   layouts: string[]
   middlewares: string[]
   load: boolean
@@ -106,6 +110,7 @@ async function discoverPluginRoutes(
           },
           inject: key => services.get(key.name) as never,
           getBuildData: () => undefined,
+          healthCheck: () => {},
           onShutdown: (fn) => {
             shutdowns.push(fn)
           },
@@ -198,13 +203,21 @@ export async function inspectProject(rootDir: string): Promise<InspectReport> {
   })
 
   const fileRoutes: InspectRoute[] = routeEntries.map((entry, idx) => {
-    const analysis = graph.analyses.get(pageFiles[idx]!)
+    const pageFile = pageFiles[idx]!
+    const analysis = graph.analyses.get(pageFile)
     const hasDefault = analysis?.exportedNames.includes('default') === true
     const methods = analysis?.exportedNames.filter(name => HTTP_METHODS.has(name)) ?? []
+    const groups = routeGroupsOf(routesDir, pageFile)
+    const matcherRefs = extractPatternMatchers(entry.path)
+    const matchers = matcherRefs.length > 0 ? Object.fromEntries(matcherRefs.map(m => [m.param, m.matcher])) : undefined
+    const optionalParams = extractOptionalParams(entry.path)
     return {
       path: entry.path,
       file: entry.file,
       ...(methods.length > 0 ? { methods } : {}),
+      ...(groups.length > 0 ? { groups } : {}),
+      ...(matchers !== undefined ? { matchers } : {}),
+      ...(optionalParams.length > 0 ? { optionalParams } : {}),
       layouts: hasDefault ? entry.layouts : [],
       middlewares: entry.middlewares,
       load: entry.hasLoad === true,
@@ -261,6 +274,12 @@ export function formatInspectReport(report: InspectReport): string {
       if (r.methods !== undefined && r.methods.length > 0)
         parts.push(r.methods.join(','))
       parts.push(r.file ?? `(plugin: ${r.plugin})`)
+      if (r.groups !== undefined && r.groups.length > 0)
+        parts.push(`groups=[${r.groups.join(', ')}]`)
+      if (r.matchers !== undefined)
+        parts.push(`matchers=[${Object.entries(r.matchers).map(([k, v]) => `${k}=${v}`).join(', ')}]`)
+      if (r.optionalParams !== undefined && r.optionalParams.length > 0)
+        parts.push(`optional=[${r.optionalParams.join(', ')}]`)
       if (r.load)
         parts.push('load')
       if (r.prerender)

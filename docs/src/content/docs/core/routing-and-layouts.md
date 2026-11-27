@@ -14,18 +14,24 @@ Every file in `src/routes/` maps directly to a URL path on `Bun.serve()`.
 | `src/routes/index.tsx` | `/` | Page |
 | `src/routes/about.tsx` | `/about` | Page |
 | `src/routes/posts/[slug].tsx` | `/posts/:slug` | Dynamic param (`params.slug`) |
-| `src/routes/docs/[...slug].tsx` | `/docs/*slug` | Catch-all (`params.slug`) |
+| `src/routes/users/[id=integer].tsx` | `/users/:id=integer` | Matched param (`integer`, `uuid`, `slug`, or `src/params/<name>.ts`) |
+| `src/routes/[[lang]]/about.tsx` | `/:lang?/about` | Optional segment (`params.lang`: `string \| undefined`) |
+| `src/routes/(marketing)/pricing.tsx` | `/pricing` | Route group (applies its `_layout.tsx` & `_middleware.ts`, adds no URL segment) |
+| `src/routes/docs/[...slug].tsx` | `/docs/*slug` | Catch-all (`params.slug`; also supports `[...slug=slug]`) |
 | `src/routes/api/users.ts` | `/api/users` | API route (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`) |
 | `src/routes/_layout.tsx` | All sibling & nested routes | Nested layout (outer → inner) |
 | `src/routes/_middleware.ts` | All sibling & nested routes | Request middleware (outer → inner) |
-| `src/routes/_404.tsx` | Unmatched routes | 404 page (also `404.html` in `--static`) |
-| `src/routes/_error.tsx` | Uncaught route errors | Error page (receives `{ error }`) |
+| `src/routes/_404.tsx` | Unmatched routes | 404 page (root or per-folder; emits `404.html` / `<folder>/404.html` in `--static`) |
+| `src/routes/_error.tsx` | Uncaught route errors | Error page (root or per-folder; receives `{ error }`) |
+| `src/routes/_401.tsx`, `_403.tsx`, `_429.tsx`, `_503.tsx` | Denied HTML requests | Status page (root or per-folder; receives `{ status, message, url, params, locals }`) |
+
+Route precedence is `static > matched param > param > optional > catch-all`. Built-in matchers ship for `integer` (typed as `` `${number}` ``), `uuid` (typed as `` `${string}-${string}-${string}-${string}-${string}` ``), and `slug` (`string`). Add a custom matcher by creating `src/params/<name>.ts` exporting `match(value: string): boolean` (or a default function). When a matcher rejects a segment, matching falls through to the next route or 404. Unknown matcher names, conflicting route patterns (including across `(group)/` folders), and unsupported status pages (such as `_418.tsx`) fail `prunelle check` and `prunelle build`.
 
 Params arrive percent-decoded, so `/posts/caf%C3%A9` gives `params.slug === "café"`. A dynamic route never matches a segment holding an encoded `/`, `\` or NUL, or a `.` or `..` segment: the request gets a 404, so you can join a param into a file path without checking it for traversal. The same rule holds for static pages, `public/` files and a `prunelle start --static` export: `/a%2fb.txt` never serves `a/b.txt`, and a file whose name holds a literal `%2f` is reached through `%252f`. A plugin route that needs such segments as text opts in with `encodedSlashes` ([Plugin API](/docs/production/plugin-api)).
 
-`_404.tsx` and `_error.tsx` automatically render inside your root `_layout.tsx` with global styles.
+`_404.tsx`, `_error.tsx`, and status pages (`_401.tsx`, `_403.tsx`, `_429.tsx`, `_503.tsx`) can live at the root or in any subfolder (including `(group)/`). The nearest one wins and renders inside that folder's `_layout.tsx` chain. When a page, `load()`, or `_middleware.ts` calls `ctx.deny(status, message)` for a browser request (`Accept: text/html`), Prunelle renders the nearest matching `_<status>.tsx` (falling back to the nearest `_error.tsx`, then clean HTML) with that HTTP status; non-HTML and JSON requests receive `{ ok: false, status, error: message }`.
 
-Every other file under `src/routes/` must export a page, a method handler or an action, since an action placed there is guarded by its folder's `_middleware.ts`. A helper with none of these fails `prunelle build` and `prunelle check`: move it elsewhere, or prefix its name or folder with `_`, as in `_format.ts` or `_components/`. The four special files fail the same way without a default export.
+Every other file under `src/routes/` must export a page, a method handler or an action, since an action placed there is guarded by its folder's `_middleware.ts`. A helper with none of these fails `prunelle build` and `prunelle check`: move it elsewhere, or prefix its name or folder with `_`, as in `_format.ts` or `_components/`. Special files fail the same way without a default export.
 
 ## Data loading (`load` vs `async` page)
 
