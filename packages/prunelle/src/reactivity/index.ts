@@ -1,4 +1,4 @@
-// Prunelle v2 reactive kernel: push-pull doubly-linked-list dependency graph.
+// Prunelle reactive kernel: push-pull doubly-linked-list dependency graph.
 // Glitch-free lazy computed values, O(1) link/unlink, compact internal fields for tiny bundle size.
 
 import type { DepNode, Link, Owned, Owner, ReadonlySignal, Signal, SubNode } from './graph'

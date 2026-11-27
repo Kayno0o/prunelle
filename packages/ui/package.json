@@ -1,7 +1,7 @@
 {
   "name": "@prunelle/ui",
   "version": "0.1.0",
-  "description": "Platform-first headless UI primitives and pure CSS @layer kui Style Grammars for Prunelle v2",
+  "description": "Platform-first headless UI primitives and pure CSS @layer kui Style Grammars for Prunelle",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

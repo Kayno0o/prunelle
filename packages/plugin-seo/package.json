@@ -1,7 +1,7 @@
 {
   "name": "@prunelle/seo",
   "version": "0.1.0",
-  "description": "SEO meta, JSON-LD, sitemap, redirects, and self-hosted fonts plugin for Prunelle v2",
+  "description": "SEO meta, JSON-LD, sitemap, redirects, and self-hosted fonts plugin for Prunelle",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

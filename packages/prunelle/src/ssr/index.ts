@@ -1,4 +1,4 @@
-// Prunelle v2 SSR runtime: flat string concatenation with fast-path escaping and zero-overhead islands.
+// Prunelle SSR runtime: flat string concatenation with fast-path escaping and zero-overhead islands.
 
 import type { Html, HydrateStrategy, PrunelleChild } from '../jsx-runtime'
 import { isBlockedAttr, isStringBoolAttr, isUnsafeUrlAttr } from '../attrs'

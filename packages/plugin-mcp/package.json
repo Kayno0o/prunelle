@@ -1,7 +1,7 @@
 {
   "name": "@prunelle/mcp",
   "version": "0.1.0",
-  "description": "Zero-dependency MCP Streamable HTTP (2025-03-26) plugin exposing Prunelle v2 server actions as AI agent tools",
+  "description": "Zero-dependency MCP Streamable HTTP (2025-03-26) plugin exposing Prunelle server actions as AI agent tools",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

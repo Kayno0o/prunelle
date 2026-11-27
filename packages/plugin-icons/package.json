@@ -1,7 +1,7 @@
 {
   "name": "@prunelle/icons",
   "version": "0.1.0",
-  "description": "Compile-time Iconify SVG icon plugin (~icons/<set>/<name>) for Prunelle v2",
+  "description": "Compile-time Iconify SVG icon plugin (~icons/<set>/<name>) for Prunelle",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

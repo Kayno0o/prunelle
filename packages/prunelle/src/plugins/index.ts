@@ -1,4 +1,4 @@
-// Prunelle v2 public Plugin API & config helpers.
+// Prunelle public Plugin API & config helpers.
 // Strict architectural rule: every non-core capability (@prunelle/tailwind, @prunelle/spa, @prunelle/i18n, etc.)
 // is built strictly through these public hooks - never hardcoded in @prunelle/core.
 

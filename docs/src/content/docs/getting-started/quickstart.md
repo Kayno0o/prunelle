@@ -1,6 +1,6 @@
 ---
 title: Quickstart (60s)
-description: Scaffold a Prunelle v2 app, run the dev server, and ship a static site or single standalone binary on Bun.
+description: Scaffold a Prunelle app, run the dev server, and ship a static site or single standalone binary on Bun.
 section: getting-started
 order: 2
 ---
@@ -14,10 +14,10 @@ order: 2
 Pick one of the four built-in starter templates:
 
 ```bash
-bunx prunelle@beta new my-app --template minimal    # Static route + 1 auto-island
-bunx prunelle@beta new my-app --template fullstack  # Layouts, API route, Standard-Schema action
-bunx prunelle@beta new my-app --template blog       # @prunelle/content + @prunelle/ui + RSS (0 KB JS)
-bunx prunelle@beta new my-app --template app        # @prunelle/auth + @prunelle/ui + guarded /dashboard
+bunx prunelle new my-app --template minimal    # Static route + 1 auto-island
+bunx prunelle new my-app --template fullstack  # Layouts, API route, Standard-Schema action
+bunx prunelle new my-app --template blog       # @prunelle/content + @prunelle/ui + RSS (0 KB JS)
+bunx prunelle new my-app --template app        # @prunelle/auth + @prunelle/ui + guarded /dashboard
 ```
 
 Install dependencies and start the dev server:

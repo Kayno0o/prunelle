@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Prunelle v2 coding-agent eval harness: init task workspaces, grade solutions, and aggregate friction reports.
+// Prunelle coding-agent eval harness: init task workspaces, grade solutions, and aggregate friction reports.
 
 import type { Cli, Commands } from '@kaynooo/cli-kit'
 import type { TaskGrade } from './lib/types'
@@ -53,7 +53,7 @@ const commands: Commands = {
         return 0
       }
 
-      console.log('Prunelle v2 Agent Eval Tasks:\n')
+      console.log('Prunelle Agent Eval Tasks:\n')
       for (const { spec } of tasks) {
         const budget = spec.maxJs ?? 'none'
         console.log(`  ${spec.id.padEnd(24)} ${spec.title} (template: ${spec.template}, max-js: ${budget})`)
@@ -174,7 +174,7 @@ const commands: Commands = {
 
 const cli: Cli = {
   name: 'prunelle-evals',
-  about: 'coding-agent friction evaluation suite for prunelle v2',
+  about: 'coding-agent friction evaluation suite for prunelle',
   commands,
   usage: false,
 }

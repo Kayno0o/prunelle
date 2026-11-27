@@ -264,7 +264,7 @@ afterAll(() => {
   rmSync(fixtureDir, { recursive: true, force: true })
 })
 
-describe('Prunelle v2 Milestone 2 full-stack features', () => {
+describe('Prunelle Milestone 2 full-stack features', () => {
   test('routing, nested layouts, middleware, cookies, Head, Suspense, actions, CSRF, prerender, and client stub stripping', async () => {
     const app = await testApp({ root: fixtureDir, outDir: 'dist' })
 

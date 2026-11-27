@@ -89,12 +89,12 @@ export default function HomePage() {
           <div class="docs-actions">
             <a data-ui="button" data-tone="accent" href="/docs/getting-started/quickstart">Get Started →</a>
             <a data-ui="button" data-variant="outline" href="/grammars">Live UI Grammars</a>
-            <a data-ui="button" data-variant="ghost" href="/docs/production/migrating-from-v1">v1 → v2 Migration</a>
+            <a data-ui="button" data-variant="ghost" href="/docs/production/upgrading-from-kay">Upgrading from kay</a>
           </div>
-          <CopyCommand command="bunx prunelle@beta new my-app --template app" $hydrate="idle" />
+          <CopyCommand command="bunx prunelle new my-app --template app" $hydrate="idle" />
         </div>
 
-        <div class="hero-code-card" role="group" aria-label="Prunelle v2 code examples">
+        <div class="hero-code-card" role="group" aria-label="Prunelle code examples">
           <input class="hero-code-input" type="radio" name="hero-code" id="hc-route" checked />
           <label class="hero-code-tab" for="hc-route">routes/index.tsx</label>
           <div class="hero-code-panel" innerHTML={routeHtml} />
@@ -166,7 +166,7 @@ export default function HomePage() {
         <div class="docs-sec-head">
           <div>
             <div class="docs-sec-kicker">Measured Benchmarks</div>
-            <h2 class="docs-sec-title">How Prunelle v2 compares</h2>
+            <h2 class="docs-sec-title">How Prunelle compares</h2>
           </div>
           <span style="font-family:var(--ui-font-mono);font-size:0.78rem;color:var(--ui-muted)">Bun 1.4.5 · mitata · lower JS/build is better</span>
         </div>
@@ -184,7 +184,7 @@ export default function HomePage() {
             </thead>
             <tbody>
               <tr class="bench-row-prunelle">
-                <td>Prunelle v2</td>
+                <td>Prunelle</td>
                 <td>2.62 KB</td>
                 <td>4.93 KB</td>
                 <td>7,017/s</td>
@@ -192,7 +192,7 @@ export default function HomePage() {
                 <td>18.8 ms</td>
               </tr>
               <tr>
-                <td>Prunelle v1</td>
+                <td>kay v1</td>
                 <td>11.40 KB</td>
                 <td>13.80 KB</td>
                 <td>3,983/s</td>

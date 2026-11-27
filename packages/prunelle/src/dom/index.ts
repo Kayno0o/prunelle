@@ -1,4 +1,4 @@
-// Prunelle v2 minimal DOM & hydration core. Every island imports it, so what only some islands need lives apart: attribute bindings in prunelle/internal/dom-attrs, claiming SSR lists and inserts in dom-claim, lists in dom-loop, inserts and spreads in dom-extras.
+// Prunelle minimal DOM & hydration core. Every island imports it, so what only some islands need lives apart: attribute bindings in prunelle/internal/dom-attrs, claiming SSR lists and inserts in dom-claim, lists in dom-loop, inserts and spreads in dom-extras.
 
 import { batch, createOwner, disposeOwner, getOwner, onCleanup, runWithOwner } from '../reactivity/index'
 import { assertRenderable } from '../unrenderable'

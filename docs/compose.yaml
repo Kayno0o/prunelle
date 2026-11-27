@@ -1,4 +1,4 @@
-# Run from the root of prunelle's repository (v2 branch):
+# Run from the root of prunelle's repository:
 #   docker compose -f docs/compose.yaml up -d --build
 name: prunelle-docs
 services:

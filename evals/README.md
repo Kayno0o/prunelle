@@ -1,6 +1,6 @@
-# Prunelle v2 Agent Eval Suite
+# Prunelle Agent Eval Suite
 
-This suite measures real-world coding-agent friction on Prunelle v2 apps: whether an agent can build realistic full-stack features cleanly from `llms.txt` alone, without diving into `@prunelle/*` internals or stalling on unclear compiler/check diagnostics.
+This suite measures real-world coding-agent friction on Prunelle apps: whether an agent can build realistic full-stack features cleanly from `llms.txt` alone, without diving into `@prunelle/*` internals or stalling on unclear compiler/check diagnostics.
 
 ## Tasks
 

@@ -1,7 +1,7 @@
 {
   "name": "@prunelle/live",
   "version": "0.1.0",
-  "description": "Zero-dependency typed SSE rooms and coalesced presence plugin for Prunelle v2",
+  "description": "Zero-dependency typed SSE rooms and coalesced presence plugin for Prunelle",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,

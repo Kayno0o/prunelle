@@ -1,1 +1,1 @@
-packages/kay/llms.txt
+packages/prunelle/llms.txt

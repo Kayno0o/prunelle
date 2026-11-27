@@ -139,7 +139,7 @@ describe('Batch 5 Audit — Ecosystem Plugins & Publish Script (#3526)', () => {
   active={true}
   empty={null}
   config={{
-    label: 'Prunelle v2',
+    label: 'Prunelle',
     nested: [1, 'two', false, { a: 1, },],
   }}
   evil={(() => { globalThis.__box14Executed = true; return 'pwned' })()}
@@ -164,7 +164,7 @@ describe('Batch 5 Audit — Ecosystem Plugins & Publish Script (#3526)', () => {
       expect(received!.active).toBe(true)
       expect(received!.empty).toBeNull()
       expect(received!.config).toEqual({
-        label: 'Prunelle v2',
+        label: 'Prunelle',
         nested: [1, 'two', false, { a: 1 }],
       })
       expect(received!.evil).toBeUndefined()

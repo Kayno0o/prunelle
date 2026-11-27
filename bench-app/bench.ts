@@ -1,4 +1,4 @@
-// Milestone 1 Benchmark Suite for Prunelle v2:
+// Milestone 1 Benchmark Suite for Prunelle:
 // Measures clean build time, bundle sizes, in-process SSR throughput, Chromium load metrics, and 9 js-framework-benchmark ops.
 
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'

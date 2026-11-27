@@ -1,4 +1,4 @@
-// Prunelle v2 SSR compiler: compiles TSX directly to flat string concatenation, inline for-loops,
+// Prunelle SSR compiler: compiles TSX directly to flat string concatenation, inline for-loops,
 // static attribute literal folding, compile-time static island props, and shared balanced hydration markers.
 
 import type {

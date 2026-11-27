@@ -43,7 +43,7 @@ export async function verify({ dir, app }: VerifyContext): Promise<AssertionResu
     assert(actions.length >= 1, `no /_pru/action/* form found on /notes (found: ${extractFormActions(notesHtml).join(', ') || 'none'})`)
 
     const markerTitle = `Eval Note ${Date.now()}`
-    const markerBody = 'Persisted via bun:sqlite in prunelle v2 eval'
+    const markerBody = 'Persisted via bun:sqlite in prunelle eval'
     let created = false
 
     for (const actionUrl of actions) {

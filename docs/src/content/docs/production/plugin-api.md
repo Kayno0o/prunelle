@@ -1,11 +1,11 @@
 ---
 title: Plugin API
-description: Extend Prunelle v2 cleanly with PrunellePlugin hooks — server routes & middleware, build and post-prerender hooks, prunelle check rules, Bun.build plugins, HTML transforms, and custom CLI commands.
+description: Extend Prunelle cleanly with PrunellePlugin hooks — server routes & middleware, build and post-prerender hooks, prunelle check rules, Bun.build plugins, HTML transforms, and custom CLI commands.
 section: production
 order: 3
 ---
 
-Every first-party package in Prunelle v2 is built exclusively on the public `PrunellePlugin` interface, with zero special cases in core.
+Every first-party package in Prunelle is built exclusively on the public `PrunellePlugin` interface, with zero special cases in core.
 
 ## `PrunellePlugin` contract
 

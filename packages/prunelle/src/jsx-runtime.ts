@@ -1,5 +1,5 @@
 /// <reference path="./ambient.d.ts" />
-// TypeScript JSX runtime types for Prunelle v2.
+// TypeScript JSX runtime types for Prunelle.
 // Standard TSX compiles away at build time; these types derive HTML/SVG element attributes from lib.dom,
 // type event `currentTarget` and `ref` per element, support async components, and allow custom elements via augmentation.
 

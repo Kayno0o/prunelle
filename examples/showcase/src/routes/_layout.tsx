@@ -7,7 +7,7 @@ export default function Layout({ children, locals }: LayoutProps) {
   return (
     <>
       <Head>
-        <title>Prunelle v2 — @prunelle/ui Grammar Switcher & @prunelle/auth Showcase</title>
+        <title>Prunelle — @prunelle/ui Grammar Switcher & @prunelle/auth Showcase</title>
         <link id="kui-grammar" rel="stylesheet" href="/grammars/editorial.css" />
         <style>{`
           html { background: var(--ui-paper, #fff); transition: background 180ms ease; }
@@ -19,7 +19,7 @@ export default function Layout({ children, locals }: LayoutProps) {
       <div class="shell">
         <header class="topbar" data-layout="split">
           <div data-layout="cluster">
-            <strong>Prunelle v2 UI</strong>
+            <strong>Prunelle UI</strong>
             <GrammarSwitcher initial="editorial" />
           </div>
           <nav data-layout="cluster">

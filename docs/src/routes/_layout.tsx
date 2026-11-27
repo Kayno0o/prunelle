@@ -20,7 +20,7 @@ export default function Layout({ children, url }: { children: PrunelleChild, url
           <a class="docs-brand" href="/">
             <img src="/favicon.svg" width="24" height="24" alt="" />
             prunelle
-            <span class="docs-ver">v2.0-beta</span>
+            <span class="docs-ver">v0.1</span>
           </a>
           <nav class="docs-nav-links" aria-label="Main navigation">
             <a href="/docs/getting-started/introduction" aria-current={isDocs ? 'page' : undefined}>Docs</a>
@@ -36,7 +36,7 @@ export default function Layout({ children, url }: { children: PrunelleChild, url
       <footer class="docs-footer">
         <div class={isDocs ? 'docs-shell-width docs-footer-row' : 'docs-container docs-footer-row'}>
           <span>
-            Built with <a href="https://github.com/Kayno0o/prunelle">prunelle v2</a>, exported as static files.{' '}
+            Built with <a href="https://github.com/Kayno0o/prunelle">prunelle</a>, exported as static files.{' '}
             <span class="docs-weight" data-page-weight=""></span>
           </span>
           <span style="font-family:var(--ui-font-mono);display:flex;gap:1rem">

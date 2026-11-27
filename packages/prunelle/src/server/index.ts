@@ -1,4 +1,4 @@
-// Prunelle v2 native Bun.serve server:
+// Prunelle native Bun.serve server:
 // - Static + dynamic ([param], [...catchall]) Router
 // - Composable directory-scoped _middleware.ts chains + ctx.cookies + ctx.locals
 // - Unified Standard-Schema action() endpoint handling with CSRF verification

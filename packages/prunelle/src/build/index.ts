@@ -1,4 +1,4 @@
-// Prunelle v2 single-pass builder:
+// Prunelle single-pass builder:
 // - Discovers file routes, nested _layout.tsx, _middleware.ts, _error.tsx, _404.tsx, actions, and automatic islands
 // - Builds client (1 pass, minimal runtime + island chunks + action stubs) and server (1 pass)
 // - Supports hybrid prerender, --static export, and --compile single-executable builds

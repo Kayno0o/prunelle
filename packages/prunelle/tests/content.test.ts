@@ -23,7 +23,7 @@ afterAll(() => {
 describe('@prunelle/content — Zero-dependency Bun.markdown collections & RSS', () => {
   it('parses YAML frontmatter, renders GFM with unique heading IDs, TOC, and reading time', () => {
     const raw = `---
-title: "Hello Prunelle v2"
+title: "Hello Prunelle"
 date: 2026-11-23
 draft: false
 tags:
@@ -32,7 +32,7 @@ tags:
 ---
 # Intro
 
-Welcome to **Prunelle v2**.
+Welcome to **Prunelle**.
 
 ## Why Signals?
 
@@ -44,7 +44,7 @@ Duplicate headings get disambiguated IDs.
 `
     const { data, body } = parseFrontmatter(raw)
     expect(data).toEqual({
-      title: 'Hello Prunelle v2',
+      title: 'Hello Prunelle',
       date: '2026-11-23',
       draft: false,
       tags: ['bun', 'tsx'],
@@ -54,7 +54,7 @@ Duplicate headings get disambiguated IDs.
     expect(rendered.html).toContain('<h1 id="intro">Intro</h1>')
     expect(rendered.html).toContain('<h2 id="why-signals">Why Signals?</h2>')
     expect(rendered.html).toContain('<h2 id="why-signals-1">Why Signals?</h2>')
-    expect(rendered.html).toContain('<strong>Prunelle v2</strong>')
+    expect(rendered.html).toContain('<strong>Prunelle</strong>')
     expect(rendered.headings).toEqual([
       { level: 1, id: 'intro', text: 'Intro' },
       { level: 2, id: 'why-signals', text: 'Why Signals?' },
@@ -72,7 +72,7 @@ Duplicate headings get disambiguated IDs.
     writeFileSync(join(contentDir, 'first.md'), `---
 title: First Post
 date: 2026-11-20
-description: Introducing Prunelle v2
+description: Introducing Prunelle
 tags: [release, bun]
 ---
 ## Overview
@@ -224,7 +224,7 @@ social:
 <BarChart
   title="Build time"
   rows={[
-    {"label": "Prunelle v2", "value": 18.8},
+    {"label": "Prunelle", "value": 18.8},
     {"label": "Astro", "value": 1190}
   ]}
 />
@@ -249,7 +249,7 @@ const tag = '<BarChart title="inside code fence" />'
           `<aside data-note="${tone}">${children.__html}</aside>`,
       },
     })
-    expect(rendered.html).toContain('<figure data-chart="Build time"><span>Prunelle v2:18.8</span><span>Astro:1190</span></figure>')
+    expect(rendered.html).toContain('<figure data-chart="Build time"><span>Prunelle:18.8</span><span>Astro:1190</span></figure>')
     expect(rendered.html).toContain('<aside data-note="warning"><p>Watch out for <strong>hydration</strong>!</p></aside>')
     expect(rendered.html).toContain('<pre data-lang="ts"><code>const tag = \'&lt;BarChart title="inside code fence" />\'</code></pre>')
 

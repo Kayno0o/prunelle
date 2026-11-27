@@ -38,7 +38,7 @@ export default defineConfig({
     seo({
       name: 'Acme',
       titleTemplate: '%s | Acme',
-      description: 'Fast web apps with Prunelle v2.',
+      description: 'Fast web apps with Prunelle.',
       favicon: 'public/favicon.svg',
       fonts: [{ family: 'Inter', src: '@fontsource/inter/files/inter-latin-400-normal.woff2', weight: 400 }],
       redirects: { '/old': '/new' },

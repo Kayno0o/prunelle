@@ -1,13 +1,15 @@
-# Prunelle v2
+# Prunelle
 
 **Write standard TypeScript & JSX. Zero `'use client'`, zero `client:load`.**
 Static UI compiles to `0 KB` HTML strings; interactive components automatically become `~3.9 KB` fine-grained signal islands. Built natively on Bun with single-binary production deploys and a strict `PrunellePlugin` boundary.
 
 ---
 
-## Performance (vs Prunelle v1, Solid, Svelte, Astro, Next.js & Nuxt)
+prunelle began as kay v2: an app on kay v2 moves with `bunx prunelle upgrade`.
 
-| Metric | **Prunelle v2** | Prunelle v1 | Solid | Svelte | Astro | Next.js | Nuxt |
+## Performance (vs kay v1, Solid, Svelte, Astro, Next.js & Nuxt)
+
+| Metric | **Prunelle** | kay v1 | Solid | Svelte | Astro | Next.js | Nuxt |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Clean build** | **18.8 ms** | 460 ms | 140 ms | 90 ms | 1,190 ms | 2,180 ms | 2,580 ms |
 | **Build output (gzip)** | **5.18 KB** | 65.9 KB | 8.2 KB | 22.5 KB | 137.8 KB | 328.6 KB | 614.7 KB |
@@ -119,14 +121,14 @@ cd examples/noticeboard && bun run dev
 ## CLI Commands
 
 ```sh
-bunx prunelle@beta new my-app [--template minimal|fullstack|blog|app]  # Scaffold a new project
+bunx prunelle new my-app [--template minimal|fullstack|blog|app]  # Scaffold a new project
 prunelle check [--no-typecheck]             # Validate routes, compiler rules, RGAA/RGPD/LCEN compliance, plugin checks & types
 prunelle dev [--port 3000] [--host [addr]]  # Fast rebuild + live reload, the app in a child process (127.0.0.1 by default)
 prunelle build [--analyze] [--max-js 40kb] # Production build; per-route islands, fonts and first-load report, or a JS budget
 prunelle build --static                     # Pure static HTML export
 prunelle build --compile [out]              # Single standalone executable
 prunelle start [--port 3000] [--host [addr]] # Serve the built app or static export, reloading each new build
-prunelle upgrade [--no-install]             # Move an app onto the current prunelle APIs
+prunelle upgrade [--no-install]             # Move an app written for kay v2 onto prunelle
 prunelle ui-eject <grammar> [dest]          # Eject a standalone @prunelle/ui CSS Grammar
 prunelle mcp-footprint                      # Inspect @prunelle/mcp tool byte & token budgets
 prunelle --completions fish                 # Shell completion script (also bash, zsh)

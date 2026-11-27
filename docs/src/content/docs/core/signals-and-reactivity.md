@@ -45,7 +45,7 @@ export function Counter({ step = 1 }: { step?: number }) {
 
 ## Compiler-safe prop destructuring
 
-Destructuring props in Prunelle v2 stays reactive. The compiler rewrites reads of destructured props inside client components to live getter reads:
+Destructuring props in Prunelle stays reactive. The compiler rewrites reads of destructured props inside client components to live getter reads:
 
 ```tsx
 export function Badge({ count = 0, label }: { count?: number, label: string }) {

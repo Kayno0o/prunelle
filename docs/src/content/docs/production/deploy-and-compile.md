@@ -1,11 +1,11 @@
 ---
 title: Static & --compile
-description: Deploy Prunelle v2 as a Bun server, a CDN-ready static export (--static), or a zero-dependency single executable (--compile).
+description: Deploy Prunelle as a Bun server, a CDN-ready static export (--static), or a zero-dependency single executable (--compile).
 section: production
 order: 1
 ---
 
-Prunelle v2 supports three first-class deployment modes from the exact same codebase.
+Prunelle supports three first-class deployment modes from the exact same codebase.
 
 ## 1. Bun Server (`prunelle build` + `prunelle start`)
 

@@ -7,7 +7,7 @@ export default function Layout({ children, locals }: LayoutProps) {
   return (
     <>
       <Head>
-        <title>Noticeboard — Prunelle v2</title>
+        <title>Noticeboard — Prunelle</title>
         <style>{`
           body { margin: 0; background: var(--ui-paper); color: var(--ui-ink); font-family: var(--ui-font-body); }
           .nb-header { border-bottom: 1px solid var(--ui-line); padding: 0.9rem 1.25rem; }

@@ -1,6 +1,6 @@
-# Prunelle v2 Docs
+# Prunelle Docs
 
-100% static documentation site built with Prunelle v2 itself (`@prunelle/ui` Orbit grammar, `@prunelle/content`, `@prunelle/images`, `@prunelle/seo`, `@prunelle/icons`).
+100% static documentation site built with Prunelle itself (`@prunelle/ui` Orbit grammar, `@prunelle/content`, `@prunelle/images`, `@prunelle/seo`, `@prunelle/icons`).
 
 ## Local development & static build
 
@@ -21,6 +21,6 @@ docker compose -f docs/compose.yaml up -d --build
 
 Environment variables (optional):
 - `SITE_URL` — canonical URL embedded in sitemap, OpenGraph tags, and share cards (default: `https://prunelle.kaynooo.fr`).
-- `DOCS_PORT` — loopback host port (default: `3650`, leaving v1's `3649` untouched when running side-by-side).
+- `DOCS_PORT` — loopback host port (default: `3650`, leaving kay v1's docs on `3649` untouched when running side-by-side).
 
 Point your host reverse proxy (nginx / Caddy) at `http://127.0.0.1:3650`. Caddy serves precompressed `.br` and `.gz` sidecars directly from disk with immutable caching on `/_pru/*` and `/fonts/*`, and renders `/404.html` on missing paths.

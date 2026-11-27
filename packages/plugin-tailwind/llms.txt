@@ -1,6 +1,6 @@
 # @prunelle/tailwind Reference
 
-> Tailwind CSS v4 integration plugin for Prunelle v2 via `bun-plugin-tailwind`.
+> Tailwind CSS v4 integration plugin for Prunelle via `bun-plugin-tailwind`.
 
 ## Imports
 

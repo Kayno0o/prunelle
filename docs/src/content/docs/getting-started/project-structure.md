@@ -5,7 +5,7 @@ section: getting-started
 order: 3
 ---
 
-A typical Prunelle v2 project stays flat and predictable:
+A typical Prunelle project stays flat and predictable:
 
 ```text
 my-app/

@@ -1,5 +1,5 @@
-// @prunelle/mcp — Zero-dependency MCP Streamable HTTP (2025-03-26) plugin for Prunelle v2.
-// Exposes typed Prunelle v2 server `action()` handlers (and standalone tool handlers) as MCP tools
+// @prunelle/mcp — Zero-dependency MCP Streamable HTTP (2025-03-26) plugin for Prunelle.
+// Exposes typed Prunelle server `action()` handlers (and standalone tool handlers) as MCP tools
 // over a bearer-authenticated endpoint via `PrunellePlugin.server`, keeping core free of MCP code.
 
 import type { PrunellePlugin } from 'prunelle/config'
@@ -37,7 +37,7 @@ export interface McpResource {
 }
 
 export interface McpActionTool<Input = unknown, Output = unknown> {
-  /** Existing Prunelle v2 `action()` handler to expose as an MCP tool. */
+  /** Existing Prunelle `action()` handler to expose as an MCP tool. */
   action: ServerAction<Input, Output>
   handler?: never
   /** Human/agent-facing tool description shown in `tools/list`. */

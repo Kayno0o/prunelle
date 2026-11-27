@@ -1,13 +1,13 @@
 ---
 title: Introduction
-description: Why Prunelle v2 exists — standard TypeScript & JSX, zero-directive automatic islands, fine-grained .value signals, and single-binary Bun deploys.
+description: Why Prunelle exists — standard TypeScript & JSX, zero-directive automatic islands, fine-grained .value signals, and single-binary Bun deploys.
 section: getting-started
 order: 1
 ---
 
-Prunelle v2 is a Bun-native web framework. You write standard TypeScript and JSX. Static components ship zero JavaScript, and interactive components become islands automatically.
+Prunelle is a Bun-native web framework. You write standard TypeScript and JSX. Static components ship zero JavaScript, and interactive components become islands automatically.
 
-## What makes Prunelle v2 different
+## What makes Prunelle different
 
 - **Zero directives**: No `'use client'`, no `'use server'`, no `client:load`. `oxc-parser` analyzes your `.tsx` files at build time and splits static SSR trees from interactive `<pru-island>` roots.
 - **Plain `.value` signals**: A doubly-linked-list reactivity kernel (`signal`, `computed`, `effect`, `batch`, `selector`, `store`) with no compiler assignment magic.
@@ -17,5 +17,5 @@ Prunelle v2 is a Bun-native web framework. You write standard TypeScript and JSX
 - **Small core, modular plugins**: Everything optional (`@prunelle/ui`, `@prunelle/auth`, `@prunelle/content`, `@prunelle/live`, `@prunelle/mcp`, `@prunelle/images`, `@prunelle/seo`, `@prunelle/i18n`, `@prunelle/mail`, `@prunelle/icons`, `@prunelle/tailwind`, `@prunelle/spa`) plugs in through `PrunellePlugin`.
 
 <Callout title="Coding-agent reference" tone="tip">
-The entire Prunelle v2 API fits on one dense page at [`/llms.txt`](/llms.txt). Every install carries the copy for its own version at `node_modules/prunelle/llms.txt`, and the `AGENTS.md` that `prunelle new` writes points coding agents at it.
+The entire Prunelle API fits on one dense page at [`/llms.txt`](/llms.txt). Every install carries the copy for its own version at `node_modules/prunelle/llms.txt`, and the `AGENTS.md` that `prunelle new` writes points coding agents at it.
 </Callout>

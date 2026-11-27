@@ -1,4 +1,4 @@
-# Multi-stage static build for Prunelle v2 documentation.
+# Multi-stage static build for Prunelle documentation.
 # Build from the repository root:
 #   docker build -f docs/Dockerfile --build-arg SITE_URL=https://prunelle.kaynooo.fr -t prunelle-docs .
 

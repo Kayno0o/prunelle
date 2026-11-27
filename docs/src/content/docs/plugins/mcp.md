@@ -1,11 +1,11 @@
 ---
 title: "@prunelle/mcp"
-description: Zero-dependency MCP Streamable HTTP (2025-03-26) plugin exposing typed Prunelle v2 server actions as bearer-authenticated AI agent tools.
+description: Zero-dependency MCP Streamable HTTP (2025-03-26) plugin exposing typed Prunelle server actions as bearer-authenticated AI agent tools.
 section: plugins
 order: 7
 ---
 
-`@prunelle/mcp` exposes your existing Prunelle v2 server `action()` handlers as **Model Context Protocol (MCP)** tools over Streamable HTTP (`2025-03-26`). Core stays free of MCP code — `@prunelle/mcp` mounts strictly as an opt-in `PrunellePlugin` at `/mcp/tools` (configurable).
+`@prunelle/mcp` exposes your existing Prunelle server `action()` handlers as **Model Context Protocol (MCP)** tools over Streamable HTTP (`2025-03-26`). Core stays free of MCP code — `@prunelle/mcp` mounts strictly as an opt-in `PrunellePlugin` at `/mcp/tools` (configurable).
 
 ## 1. Install and register in `prunelle.config.ts`
 

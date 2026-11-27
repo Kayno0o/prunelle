@@ -1,4 +1,4 @@
-// HTTP helpers, MIME table, RequestContext factory, and island tag scanner for Prunelle v2 server.
+// HTTP helpers, MIME table, RequestContext factory, and island tag scanner for Prunelle server.
 
 import type { BuildManifest } from '../build/index'
 import type { PrunelleChild } from '../jsx-runtime'

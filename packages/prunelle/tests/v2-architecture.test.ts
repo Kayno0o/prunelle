@@ -46,7 +46,7 @@ async function withDom<T>(fn: () => T | Promise<T>): Promise<T> {
   }
 }
 
-describe('Prunelle v2 architecture & regression suite', () => {
+describe('Prunelle architecture & regression suite', () => {
   it('createContext / useContext and useId work across SSR and client owner trees', async () => {
     const ThemeCtx = createContext('light')
 

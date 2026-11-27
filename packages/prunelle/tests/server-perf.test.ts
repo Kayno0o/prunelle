@@ -95,7 +95,7 @@ describe('Server compression, zero-copy serving, and fast-path preservation (#35
     mkdirSync(join(dir, 'public'), { recursive: true })
 
     // Large text public file + small binary public file
-    writeFileSync(join(dir, 'public/notes.txt'), 'Prunelle v2 zero-copy public file content.\n'.repeat(40))
+    writeFileSync(join(dir, 'public/notes.txt'), 'Prunelle zero-copy public file content.\n'.repeat(40))
     writeFileSync(join(dir, 'public/pixel.png'), new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10, ...new Array(400).fill(0)]))
 
     writeFileSync(join(dir, 'src/components/Counter.tsx'), `
@@ -206,7 +206,7 @@ describe('Server compression, zero-copy serving, and fast-path preservation (#35
     expect(txtRes.headers.get('content-encoding')).toBe('gzip')
     const etag = txtRes.headers.get('etag')!
     expect(etag).toBeTruthy()
-    expect(new TextDecoder().decode(Bun.gunzipSync(new Uint8Array(await txtRes.arrayBuffer())))).toContain('Prunelle v2 zero-copy')
+    expect(new TextDecoder().decode(Bun.gunzipSync(new Uint8Array(await txtRes.arrayBuffer())))).toContain('Prunelle zero-copy')
 
     const notMod = await app.handle(new Request('http://localhost/notes.txt', { headers: { 'if-none-match': etag } }))
     expect(notMod.status).toBe(304)

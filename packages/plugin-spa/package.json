@@ -1,7 +1,7 @@
 {
   "name": "@prunelle/spa",
   "version": "0.1.0",
-  "description": "Opt-in SPA navigation with persistent islands plugin for Prunelle v2",
+  "description": "Opt-in SPA navigation with persistent islands plugin for Prunelle",
   "license": "MIT",
   "type": "module",
   "sideEffects": [

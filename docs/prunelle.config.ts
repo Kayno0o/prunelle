@@ -27,7 +27,7 @@ const docsAssets = {
     const entries = docs.all()
     const sectionLabels = new Map(SECTIONS.map(s => [s.id, s.label]))
     const fullParts: string[] = [
-      `# Prunelle v2 — Full Documentation & Package Reference\n\n> Complete Markdown corpus generated from ${SITE}. Individual pages are also available at \`${SITE}/docs/<slug>.md\`, and the 1-page summary is at \`${SITE}/llms.txt\`.`,
+      `# Prunelle — Full Documentation & Package Reference\n\n> Complete Markdown corpus generated from ${SITE}. Individual pages are also available at \`${SITE}/docs/<slug>.md\`, and the 1-page summary is at \`${SITE}/llms.txt\`.`,
     ]
 
     if (coreLlms)
@@ -78,7 +78,7 @@ export default defineConfig({
       site: SITE,
       name: 'prunelle',
       titleTemplate: '%s | prunelle',
-      description: 'Prunelle v2 — Bun-native TSX framework with zero-directive automatic islands, fine-grained .value signals, flat-string SSR, and single-binary deploys.',
+      description: 'Prunelle — Bun-native TSX framework with zero-directive automatic islands, fine-grained .value signals, flat-string SSR, and single-binary deploys.',
       favicon: 'public/favicon.svg',
       fonts: [
         { family: 'Chakra Petch', src: '@fontsource/chakra-petch/files/chakra-petch-latin-600-normal.woff2', weight: 600 },

@@ -1,4 +1,4 @@
-// Prunelle v2 Client DOM compiler: compiles TSX to hoisted template() clones, child-path walks,
+// Prunelle Client DOM compiler: compiles TSX to hoisted template() clones, child-path walks,
 // delegated events, compiler-safe destructured props, reactive spreads, and shared balanced hydration markers.
 
 import type {

@@ -1,4 +1,4 @@
-// Prunelle v2 Server Footprint & Compression Benchmark:
+// Prunelle Server Footprint & Compression Benchmark:
 // Measures compiled binary RssAnon, RssFile, VmRSS, cold boot latency, wire sizes, and in-process req/s.
 
 import { existsSync, readFileSync, rmSync } from 'node:fs'
@@ -102,7 +102,7 @@ const rawStats = await measure(async () => (await app.handle(reqRaw)).arrayBuffe
 const gzipStats = await measure(async () => (await app.handle(reqGzip)).arrayBuffer(), { min_cpu_time: 1e9 })
 const zstdStats = await measure(async () => (await app.handle(reqZstd)).arrayBuffer(), { min_cpu_time: 1e9 })
 
-console.log('\n=== PRUNELLE V2 SERVER FOOTPRINT (bench-app --compile) ===')
+console.log('\n=== PRUNELLE SERVER FOOTPRINT (bench-app --compile) ===')
 console.log(`Build + --compile: ${buildMs.toFixed(1)} ms`)
 console.log(`Cold boot + 1st page (median of 3): ${median(bootSamples).toFixed(1)} ms`)
 console.log(`Memory after 1st page: RssAnon ${median(anonSamples).toFixed(1)} MiB | RssFile ${median(fileSamples).toFixed(1)} MiB | VmRSS ${median(rssSamples).toFixed(1)} MiB`)

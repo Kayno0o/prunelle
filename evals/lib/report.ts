@@ -76,7 +76,7 @@ export function formatGradeSummary(grade: TaskGrade): string {
 
 export function formatEvalReport(report: EvalReport): string {
   const lines: string[] = [
-    '# Prunelle v2 Agent Eval Report',
+    '# Prunelle Agent Eval Report',
     '',
     `Summary: **${report.summary.passed}/${report.summary.total} passed** | Max eager JS: **${formatBytes(report.summary.maxEagerJsBytes)}** | Doc-gap \`src/\` reads: **${report.summary.totalSourceReads}** | Repeated diagnostic stalls: **${report.summary.totalRepeatedFailures}**`,
     '',

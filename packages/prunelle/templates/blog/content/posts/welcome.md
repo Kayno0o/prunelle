@@ -1,7 +1,7 @@
 ---
 title: Welcome to __APP_NAME__
 date: 2026-11-23
-description: A zero-JS static Markdown blog built with Prunelle v2.
+description: A zero-JS static Markdown blog built with Prunelle.
 tags: [prunelle, bun]
 ---
 ## Fast by Default

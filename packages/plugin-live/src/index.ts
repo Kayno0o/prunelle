@@ -1,4 +1,4 @@
-// @prunelle/live — Zero-dependency typed real-time rooms, coalesced presence, and SSE streaming for Prunelle v2.
+// @prunelle/live — Zero-dependency typed real-time rooms, coalesced presence, and SSE streaming for Prunelle.
 // Built strictly on Web Streams (text/event-stream) + PrunellePlugin (`api.route`) — zero core WebSocket coupling.
 
 import type { PrunellePlugin } from 'prunelle/config'

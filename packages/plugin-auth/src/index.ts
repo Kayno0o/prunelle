@@ -1,4 +1,4 @@
-// @prunelle/auth — Zero-dependency Bun-native authentication plugin for Prunelle v2.
+// @prunelle/auth — Zero-dependency Bun-native authentication plugin for Prunelle.
 // Built strictly on the public PrunellePlugin API (`api.use` + `api.route`).
 // Supports Argon2id passwords, hashed DB sessions with sliding renewal, email verification,
 // magic links, OAuth 2.0 + PKCE (S256), role/route guards, RGPD helpers, and memory or `bun:sqlite` stores.

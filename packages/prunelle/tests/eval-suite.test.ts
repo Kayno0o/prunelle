@@ -381,7 +381,7 @@ test('rejects invalid input with fieldErrors and accepts valid submission', asyn
   const good = await app.post(submitFeedback.url, {
     name: 'Jane Doe',
     email: 'jane@example.com',
-    message: 'Loving prunelle v2 progressive actions!',
+    message: 'Loving prunelle progressive actions!',
   })
   expect(good.status).toBe(200)
   const goodBody = await good.json() as { ok: boolean, data?: { name: string } }
@@ -536,7 +536,7 @@ test('rejects invalid input with fieldErrors and accepts valid submission', asyn
     ])
 
     const md = formatEvalReport(report)
-    expect(md).toContain('# Prunelle v2 Agent Eval Report')
+    expect(md).toContain('# Prunelle Agent Eval Report')
     expect(md).toContain('**1/2 passed**')
     expect(md).toContain('`02-filter-island`')
     expect(md).toContain('PASS')

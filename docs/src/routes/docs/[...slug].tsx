@@ -145,7 +145,7 @@ export default function DocPage({ data }: { data: DocPageData }) {
           <div class="docs-toc-meta">
             <a href="/llms.txt"><span>→</span> View llms.txt (1-page ref)</a>
             <a href="/grammars"><span>→</span> Live UI Grammars</a>
-            <a href={`https://github.com/Kayno0o/prunelle/blob/v2/docs/src/content/docs/${entry.slug}.md`}>
+            <a href={`https://github.com/Kayno0o/prunelle/blob/main/docs/src/content/docs/${entry.slug}.md`}>
               <span>→</span> Edit on GitHub
             </a>
           </div>
