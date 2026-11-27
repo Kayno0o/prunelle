@@ -224,11 +224,20 @@ a.ch:hover { color: var(--ui-ink); }
   min-width: 0;
   padding-left: calc(var(--num) + var(--gap));
 }
+.chapter {
+  --text: min(var(--measure), calc(100% - var(--notes) - var(--gap)));
+}
 .chapter-head,
 .prose {
-  max-width: min(var(--measure), calc(100% - var(--notes) - var(--gap)));
+  max-width: var(--text);
 }
-.chapter-head { position: relative; }
+/* The head floats so the chapter list, after it in reading order, can sit beside it and stick through the whole chapter. */
+.chapter-head {
+  position: relative;
+  float: left;
+  width: 100%;
+}
+.prose { clear: left; }
 .chapter-num {
   position: absolute;
   top: 4px;
@@ -325,8 +334,21 @@ a.ch:hover { color: var(--ui-ink); }
 .note[data-tone="warning"] b { color: var(--ui-warning); }
 .note p { display: inline; margin: 0; }
 
-/* The chapter's sections open the margin, beside the lead; the notes below clear it. */
-.in-chapter { margin-top: 0; }
+/* The chapter's sections stay in the margin while the chapter scrolls; a note passing them covers them until it has gone by. */
+.in-chapter {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  /* A margin's percentage reads the article's width, so the list lines up with the notes hanging off the text. */
+  margin: 0 calc(100% - var(--text) - var(--gap) - var(--notes)) 12px 0;
+}
+.prose .note {
+  position: relative;
+  z-index: 1;
+  background: var(--ui-paper);
+  outline: 12px solid var(--ui-paper);
+}
 .in-chapter b { display: block; margin-bottom: 4px; }
 .in-chapter ol { list-style: none; margin: 0; padding: 0; }
 .in-chapter .ch { grid-template-columns: 2.2rem 1fr; padding: 3px 0; }
@@ -614,6 +636,7 @@ a.ch:hover { color: var(--ui-ink); }
   .sec-num { font-size: 18px; margin-bottom: 4px; }
   .chapter-head h1 { font-size: 40px; }
   .in-chapter { display: none; }
+  .prose .note { outline: 0; }
   .note {
     float: none;
     width: auto;

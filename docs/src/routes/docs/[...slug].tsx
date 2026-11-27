@@ -88,22 +88,22 @@ export default function DocPage({ data }: { data: DocPageData }) {
             <span class="chapter-num" aria-hidden="true">{chapter.chapter}</span>
             <h1>{entry.data.title}</h1>
             <p class="lead">{entry.data.description}</p>
-            {sections.length > 0 && (
-              <nav class="note in-chapter" aria-labelledby="in-chapter">
-                <b id="in-chapter">In this chapter</b>
-                <ol>
-                  {sections.map((h, n) => (
-                    <li key={h.id}>
-                      <a class="ch" href={`#${h.id}`}>
-                        <i>{`${chapter.chapter}.${n + 1}`}</i>
-                        <span>{h.text}</span>
-                      </a>
-                    </li>
-                  ))}
-                </ol>
-              </nav>
-            )}
           </header>
+          {sections.length > 0 && (
+            <nav class="note in-chapter" aria-labelledby="in-chapter">
+              <b id="in-chapter">In this chapter</b>
+              <ol>
+                {sections.map((h, n) => (
+                  <li key={h.id}>
+                    <a class="ch" href={`#${h.id}`}>
+                      <i>{`${chapter.chapter}.${n + 1}`}</i>
+                      <span>{h.text}</span>
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )}
 
           <div class="prose" innerHTML={html} />
           <script>{COPY_CODE_SCRIPT}</script>
