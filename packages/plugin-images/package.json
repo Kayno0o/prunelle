@@ -1,6 +1,6 @@
 {
   "name": "@prunellejs/images",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Build-time responsive AVIF/WebP image optimization plugin for Prunelle",
   "license": "MIT",
   "type": "module",
@@ -22,6 +22,6 @@
     "directory": "packages/plugin-images"
   },
   "peerDependencies": {
-    "prunelle": "^0.1.1"
+    "prunelle": "^0.1.2"
   }
 }
