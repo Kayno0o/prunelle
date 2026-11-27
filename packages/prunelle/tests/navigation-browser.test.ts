@@ -19,7 +19,7 @@ beforeAll(async () => {
   symlinkSync(join(import.meta.dir, '..'), join(dir, 'node_modules/prunelle'), 'dir')
   write('prunelle.config.ts', `import { defineConfig } from 'prunelle/config'\nexport default defineConfig({})`)
   // Notes what the page change did: a view transition on arrival, in the storage the next test reads.
-  write('public/probe.js', `addEventListener('pagereveal', e => sessionStorage.setItem('vt', e.viewTransition ? 'yes' : 'no'))`)
+  write('public/probe.js', `addEventListener('pagereveal', e => sessionStorage.setItem('vt:' + location.pathname, e.viewTransition ? 'yes' : 'no'))`)
   write('src/components/Side.tsx', `
     export function Side({ key2 }: { key2: string }) {
       const rows = Array.from({ length: 60 }, (_, i) => i)
@@ -104,19 +104,20 @@ describe('a marked panel keeps its scroll across page loads (#3639)', () => {
 })
 
 describe('plain page changes: view transition and prefetch on hover (#3641)', () => {
+  // Each page records its own reveal: the first page's must land before the click, or the browser skips the transition, and the second page's is the one read.
   it('runs a view transition on a page change, and none for a visitor asking for less motion', async () => {
     const page = await browser.open('/')
+    await page.waitFor(() => sessionStorage.getItem('vt:/') !== null)
     await page.click('#go')
-    await page.waitFor(() => document.querySelector('#name')?.textContent === 'two')
-    await page.waitFor(() => sessionStorage.getItem('vt') !== null)
-    expect(await page.evaluate(() => sessionStorage.getItem('vt'))).toBe('yes')
+    await page.waitFor(() => sessionStorage.getItem('vt:/two') !== null)
+    expect(await page.evaluate(() => sessionStorage.getItem('vt:/two'))).toBe('yes')
     await page.close()
 
     const still = await browser.open('/', { reducedMotion: true })
+    await still.waitFor(() => sessionStorage.getItem('vt:/') !== null)
     await still.click('#go')
-    await still.waitFor(() => document.querySelector('#name')?.textContent === 'two')
-    await still.waitFor(() => sessionStorage.getItem('vt') !== null)
-    expect(await still.evaluate(() => sessionStorage.getItem('vt'))).toBe('no')
+    await still.waitFor(() => sessionStorage.getItem('vt:/two') !== null)
+    expect(await still.evaluate(() => sessionStorage.getItem('vt:/two'))).toBe('no')
     await still.close()
   })
 
