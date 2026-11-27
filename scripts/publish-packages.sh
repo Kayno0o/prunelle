@@ -1,8 +1,6 @@
 #!/bin/sh
 # Publishes every non-private package under packages/* to the given registry:
 #   scripts/publish-packages.sh [--stage] <registry url>
-# Prerelease versions (-alpha, -beta, -rc) are published under their matching
-# dist-tag so the stable `latest` tag (e.g. Prunelle v1) is never overwritten.
 # With --stage, tarballs are packed by bun and submitted via `npm stage publish`
 # for stage-only npm tokens (E_STAGE_REQUIRED).
 # Versions already present on the registry are skipped so reruns are idempotent.
@@ -34,12 +32,6 @@ publish() {
   name="$(jq -r '.name' package.json)"
   version="$(jq -r '.version' package.json)"
   package="${name}@${version}"
-  tag=""
-  case "$version" in
-    *-alpha*) tag="alpha" ;;
-    *-beta*) tag="beta" ;;
-    *-rc*) tag="rc" ;;
-  esac
 
   if bun pm view "$package" version > /dev/null 2>&1; then
     echo "$package is already published"
@@ -51,28 +43,14 @@ publish() {
       trap - EXIT
       return 1
     fi
-    if [ -n "$tag" ]; then
-      echo "Staging $package with dist-tag $tag..."
-      if ! npm stage publish --access public --tag "$tag" "$tarball"; then
-        rm -f "$tarball"
-        trap - EXIT
-        return 1
-      fi
-    else
-      echo "Staging $package..."
-      if ! npm stage publish --access public "$tarball"; then
-        rm -f "$tarball"
-        trap - EXIT
-        return 1
-      fi
+    echo "Staging $package..."
+    if ! npm stage publish --access public "$tarball"; then
+      rm -f "$tarball"
+      trap - EXIT
+      return 1
     fi
     rm -f "$tarball"
     trap - EXIT
-  elif [ -n "$tag" ]; then
-    echo "Publishing $package with dist-tag $tag..."
-    if ! bun publish --access public --tag "$tag"; then
-      return 1
-    fi
   else
     echo "Publishing $package..."
     if ! bun publish --access public; then

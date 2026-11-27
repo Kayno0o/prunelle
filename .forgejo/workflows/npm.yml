@@ -23,12 +23,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check the tag is on v2 or main
+      - name: Check the tag is on main
         run: |
-          if git merge-base --is-ancestor "$GITHUB_SHA" origin/v2 2>/dev/null || git merge-base --is-ancestor "$GITHUB_SHA" origin/main 2>/dev/null; then
-            echo "Tag $GITHUB_REF_NAME is on a release branch"
+          if git merge-base --is-ancestor "$GITHUB_SHA" origin/main 2>/dev/null; then
+            echo "Tag $GITHUB_REF_NAME is on main"
           else
-            echo "$GITHUB_SHA is not on v2 or main, nothing is published"
+            echo "$GITHUB_SHA is not on main, nothing is published"
             exit 1
           fi
 
@@ -39,8 +39,8 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ env.BUN_INSTALL_CACHE_DIR }}
-          key: bun-v2-${{ runner.os }}-${{ hashFiles('bun.lock', 'docs/bun.lock') }}
-          restore-keys: bun-v2-${{ runner.os }}-
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'docs/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
 
       - name: Install project deps
         run: bun install --silent --frozen-lockfile
@@ -62,7 +62,8 @@ jobs:
       - name: Publish to Forgejo npm registry
         run: |
           trap 'rm -f ~/.npmrc' EXIT
-          echo "@kaynooo:registry=https://git.kaynooo.fr/api/packages/kaynooo/npm/" > ~/.npmrc
+          echo "registry=https://git.kaynooo.fr/api/packages/kaynooo/npm/" > ~/.npmrc
+          echo "@kaynooo:registry=https://git.kaynooo.fr/api/packages/kaynooo/npm/" >> ~/.npmrc
           echo "@prunelle:registry=https://git.kaynooo.fr/api/packages/kaynooo/npm/" >> ~/.npmrc
           echo "//git.kaynooo.fr/api/packages/kaynooo/npm/:_authToken=${PACKAGE_TOKEN}" >> ~/.npmrc
           sh scripts/publish-packages.sh https://git.kaynooo.fr/api/packages/kaynooo/npm/
@@ -80,7 +81,8 @@ jobs:
             export PATH="$HOME/.bun/bin:$PATH"
           fi
           trap 'rm -f ~/.npmrc' EXIT
-          echo "@prunelle:registry=https://registry.npmjs.org/" > ~/.npmrc
+          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          echo "@prunelle:registry=https://registry.npmjs.org/" >> ~/.npmrc
           echo "//registry.npmjs.org/:_authToken=${NPM_STAGE_TOKEN}" >> ~/.npmrc
           sh scripts/publish-packages.sh --stage https://registry.npmjs.org/
         env:

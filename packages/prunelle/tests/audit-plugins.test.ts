@@ -761,7 +761,7 @@ Safe **bold** and [good link](https://example.com) and ![ok](/img/a.png).
 
       writeFileSync(join(pkgDir, 'package.json'), JSON.stringify({
         name: '@prunelle/sample',
-        version: '2.0.0-alpha.99',
+        version: '0.1.0',
         private: false,
       }))
 

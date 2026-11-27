@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 // Bumps every package under packages/*/package.json (plus peerDependencies.prunelle, bun.lock and docs/bun.lock) in lockstep, then commits and creates annotated tag v<next>.
-// Usage: bun scripts/version.ts <alpha|beta|rc|patch|minor|major|X.Y.Z[-pre]> [--dry-run]
+// Usage: bun scripts/version.ts <patch|minor|major|X.Y.Z> [--dry-run]
 
 import { readFileSync, writeFileSync } from 'node:fs'
 import { Glob } from 'bun'
@@ -10,34 +10,24 @@ const dryRun = args.includes('--dry-run')
 const level = args.find(a => !a.startsWith('-'))
 
 if (!level) {
-  console.error('Usage: bun scripts/version.ts <alpha|beta|rc|patch|minor|major|version> [--dry-run]')
+  console.error('Usage: bun scripts/version.ts <patch|minor|major|X.Y.Z> [--dry-run]')
   process.exit(1)
 }
 
 function nextVersion(current: string, target: string): string {
-  if (/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(target))
+  if (/^\d+\.\d+\.\d+$/.test(target))
     return target
 
-  const match = current.match(/^(\d+)\.(\d+)\.(\d+)(?:-([a-z]+)\.(\d+))?$/)
+  const match = current.match(/^(\d+)\.(\d+)\.(\d+)$/)
   if (!match)
     throw new Error(`Unsupported current version: ${current}`)
 
   const major = Number(match[1])
   const minor = Number(match[2])
   const patch = Number(match[3])
-  const preTag = match[4]
-  const preNum = match[5] !== undefined ? Number(match[5]) : -1
-
-  if (target === 'alpha' || target === 'beta' || target === 'rc') {
-    if (preTag === target)
-      return `${major}.${minor}.${patch}-${target}.${preNum + 1}`
-    if (preTag !== undefined)
-      return `${major}.${minor}.${patch}-${target}.0`
-    return `${major}.${minor}.${patch + 1}-${target}.0`
-  }
 
   if (target === 'patch')
-    return preTag !== undefined ? `${major}.${minor}.${patch}` : `${major}.${minor}.${patch + 1}`
+    return `${major}.${minor}.${patch + 1}`
   if (target === 'minor')
     return `${major}.${minor + 1}.0`
   if (target === 'major')

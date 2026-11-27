@@ -1,4 +1,4 @@
-# Prunelle v2 task runner recipes (`just` or `j`).
+# prunelle task runner recipes (`just` or `j`).
 
 # List all available recipes
 default:
@@ -60,23 +60,14 @@ pack:
 runs:
 	ft runs
 
-# Wait for Forgejo CI on the current branch (default: v2)
+# Wait for Forgejo CI on the current branch
 ci sha="":
 	ft ci {{sha}} -b "$(git branch --show-current)" --workflow test.yml
 
-# Cut next alpha prerelease (v2.0.0-alpha.X)
-alpha: (release "alpha")
-
-# Cut next beta prerelease (v2.0.0-beta.X)
-beta: (release "beta")
-
-# Cut next release candidate (v2.0.0-rc.X)
-rc: (release "rc")
-
-# Cut next patch or graduate prerelease to stable (v2.0.X)
+# Cut next patch release (v0.1.X)
 patch: (release "patch")
 
-# Cut next minor release (v2.X.0)
+# Cut next minor release (v0.X.0)
 minor: (release "minor")
 
 # Cut next major release (vX.0.0)
@@ -87,7 +78,7 @@ release level:
 	#!/usr/bin/env bash
 	set -euo pipefail
 	branch="$(git branch --show-current)"
-	[ "$branch" = "v2" ] || [ "$branch" = "main" ] || { echo "release runs on v2 or main, not $branch" >&2; exit 1; }
+	[ "$branch" = "main" ] || { echo "release runs on main, not $branch" >&2; exit 1; }
 	[ -z "$(git status --porcelain)" ] || { echo "working tree is dirty; commit or stash first" >&2; exit 1; }
 	git fetch -q origin "$branch"
 	[ "$(git rev-parse HEAD)" = "$(git rev-parse "origin/$branch")" ] || { echo "$branch differs from origin/$branch: pull or push first" >&2; exit 1; }

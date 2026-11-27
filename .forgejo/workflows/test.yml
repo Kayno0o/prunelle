@@ -5,7 +5,7 @@ permissions:
 
 on:
   push:
-    branches: [v2, main]
+    branches: [main]
   pull_request:
 
 env:
@@ -28,8 +28,8 @@ jobs:
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ${{ env.BUN_INSTALL_CACHE_DIR }}
-          key: bun-v2-${{ runner.os }}-${{ hashFiles('bun.lock', 'docs/bun.lock') }}
-          restore-keys: bun-v2-${{ runner.os }}-
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock', 'docs/bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
 
       - name: Install project deps
         run: bun install --silent --frozen-lockfile
