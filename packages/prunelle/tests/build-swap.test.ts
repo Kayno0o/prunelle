@@ -224,6 +224,24 @@ describe('prunelle only replaces a folder it marked as its own output (#3658)', 
     await build({ root: dir, static: true, minify: false })
     expect(existsSync(join(dir, 'dist/index.html'))).toBe(true)
   })
+
+  it('replaces a kay v2 static export dist/ holding _kay/, while still refusing unrelated files (#45)', async () => {
+    const dir = appWith({
+      'dist/_kay/app.js': 'console.log("kay")',
+      'dist/index.html': '<!doctype html><p>kay</p>',
+      'unrelated/index.html': '<!doctype html><p>mine</p>',
+      'unrelated/assets/app.js': 'console.log("mine")',
+    })
+
+    await build({ root: dir, static: true, minify: false })
+
+    expect(existsSync(join(dir, 'dist/.prunelle-output'))).toBe(true)
+    expect(existsSync(join(dir, 'dist/_kay'))).toBe(false)
+    expect(readFileSync(join(dir, 'dist/index.html'), 'utf8')).toContain('<h1>v1</h1>')
+
+    await expect(build({ root: dir, outDir: 'unrelated', static: true, minify: false })).rejects.toThrow('prunelle build: refusing to replace "unrelated"')
+    expect(readFileSync(join(dir, 'unrelated/index.html'), 'utf8')).toBe('<!doctype html><p>mine</p>')
+  })
 })
 
 describe('prunelle start keeps answering while prunelle build writes the same dist/ (#3658)', () => {
@@ -278,7 +296,8 @@ describe('testApp() leaves the app\'s dist/ alone (#3658)', () => {
     const proc = Bun.spawnSync(['bun', 'run.ts'], { cwd: dir, stderr: 'pipe' })
 
     expect(proc.exitCode).toBe(0)
-    expect(readdirSync(join(dir, '.prunelle-cache'))).toEqual(['brotli-11'])
+    expect(readdirSync(join(dir, '.prunelle-cache')).sort()).toEqual(['.gitignore', 'brotli-11'])
+    expect(readFileSync(join(dir, '.prunelle-cache/.gitignore'), 'utf8')).toBe('*\n')
     expect(existsSync(join(dir, 'dist'))).toBe(false)
   })
 

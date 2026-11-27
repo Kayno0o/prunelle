@@ -16,9 +16,9 @@ export function assertOwnOutDir(root: string, outDir: string, assetPrefix: strin
   const names = new Set(readdirSync(outDir))
   if (names.size === 0 || names.has(OUTPUT_MARKER))
     return
-  // A build made before the marker existed: a server build's manifest beside its server/ folder, or a static export's asset folder.
+  // A build made before the marker existed: a server build's manifest beside its server/ folder, or a static export's asset folder (including a kay v2 export's `_kay/`).
   const assetDir = assetPrefix.replace(LEADING_SLASH_RE, '').split('/')[0] ?? ''
-  if ((names.has('manifest.json') && names.has('server')) || (assetDir !== '' && names.has(assetDir)))
+  if ((names.has('manifest.json') && names.has('server')) || (assetDir !== '' && names.has(assetDir)) || names.has('_kay'))
     return
   throw new Error(`prunelle build: refusing to replace "${relPosix(root, outDir)}": it holds files prunelle did not build. Delete it, or set \`outDir\` in prunelle.config.ts to a folder of its own.`)
 }
