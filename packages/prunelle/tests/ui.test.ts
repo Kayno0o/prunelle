@@ -244,7 +244,7 @@ describe('@prunelle/ui v2 — Platform-first primitives & Pure CSS Style Grammar
     writeFileSync(join(dir, 'src/routes/index.tsx'), `
       import {
         Accordion, AccordionItem, Badge, Button, Card, CardBody, CardFooter, CardHeader,
-        Checkbox, Cluster, Field, Grid, Notice, Popover, RadioGroup, Stack, Switch,
+        Checkbox, Cluster, Field, Grid, Notice, Popover, Progress, RadioGroup, Stack, Switch,
       } from ${JSON.stringify(UI_ENTRY)}
 
       export default async function Home() {
@@ -274,6 +274,8 @@ describe('@prunelle/ui v2 — Platform-first primitives & Pure CSS Style Grammar
               <AccordionItem title="Question 2" group="faq">Answer 2</AccordionItem>
             </Accordion>
             <Popover id="info-pop" triggerLabel="Info">Native popover content</Popover>
+            <Progress label="Deploying" value={62} />
+            <Progress label="Building 48 pages" />
           </Stack>
         )
       }
@@ -299,6 +301,11 @@ describe('@prunelle/ui v2 — Platform-first primitives & Pure CSS Style Grammar
     expect(html).toContain('data-ui="radio-group"')
     expect(html).toContain('data-ui="accordion"')
     expect(html).toContain('popovertarget="info-pop"')
+    // A value rounds to a 5% step the grammar reads, since a style attribute would need 'unsafe-inline'
+    expect(html).toMatch(/<span data-ui="progress" data-value="60">/)
+    expect(html).toMatch(/<progress value="62" max="100" aria-label="Deploying"><\/progress>/)
+    // Without a value the native bar is indeterminate
+    expect(html).toMatch(/<span data-ui="progress"><span data-part="eye" aria-hidden="true"><\/span><progress aria-label="Building 48 pages"><\/progress>/)
     expect(html).toContain('data-layout="stack"')
     expect(html).toContain('data-gap-value="1.5rem"')
     expect(html).toContain('data-min-value="14rem"')
@@ -320,6 +327,10 @@ describe('@prunelle/ui v2 — Platform-first primitives & Pure CSS Style Grammar
     expect(orbitCss).toContain('body::before')
     expect(orbitCss).toContain('radial-gradient')
     expect(orbitCss).not.toContain("@import '../bare.css'")
+
+    const prunelleCss = readFileSync(ejectGrammar(dir, 'prunelle', 'src/styles/prunelle.css'), 'utf8')
+    expect(prunelleCss).toContain('Grammar: Prunelle')
+    expect(prunelleCss).toContain('[data-ui="progress"]')
   })
 
   it('provides headless createDataTable() sorting, filtering, selection & pagination', () => {
@@ -654,7 +665,7 @@ describe('@prunelle/ui v2 — Platform-first primitives & Pure CSS Style Grammar
       },
     } as never)
 
-    for (const g of ['bare', 'editorial', 'workshop', 'console', 'soft', 'orbit']) {
+    for (const g of ['bare', 'editorial', 'workshop', 'console', 'soft', 'orbit', 'prunelle']) {
       const css = emitted.get(`grammars/${g}.css`)
       expect(css).toBeDefined()
       expect(css).not.toContain('../bare.css')

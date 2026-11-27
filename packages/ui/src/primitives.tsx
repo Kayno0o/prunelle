@@ -213,3 +213,25 @@ export function RadioGroup({ name, legend, options, defaultValue, class: cls }: 
     </fieldset>
   )
 }
+
+export interface ProgressProps {
+  label: string
+  /** Without one the bar is indeterminate: a loader. */
+  value?: number | undefined
+  max?: number | undefined
+  class?: string | undefined
+  [attr: string]: unknown
+}
+
+// The share done, rounded to the 5% step a grammar styles: a style attribute would break a CSP without 'unsafe-inline'.
+const progressStep = (value: number, max: number): string => String(Math.round(Math.min(Math.max(value / max, 0), 1) * 20) * 5)
+
+export function Progress({ label, value, max = 100, class: cls, ...rest }: ProgressProps) {
+  return (
+    <span data-ui="progress" data-value={value === undefined ? undefined : progressStep(value, max)} class={cls} {...rest}>
+      <span data-part="eye" aria-hidden="true" />
+      <progress value={value} max={value === undefined ? undefined : max} aria-label={label} />
+      <span data-part="label" aria-hidden="true">{label}</span>
+    </span>
+  )
+}

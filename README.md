@@ -93,7 +93,7 @@ Core holds the compiler, runtime, router, SSR and build. Every optional capabili
 | Package | Purpose | Notes |
 | :--- | :--- | :--- |
 | **`prunelle`** | Compiler, linked-list signals, DOM runtime, router, SSR/Suspense, actions, build/compile, `prunelle/test` | 2 runtime deps (`oxc-parser`, `@kaynooo/cli-kit` for the CLI) |
-| **`@prunelle/ui`** | Platform-first headless primitives + 5 structurally distinct pure CSS `@layer kui` Grammars (`editorial`, `workshop`, `console`, `soft`, `orbit`) + `prunelle ui-eject` | Zero JS recipe engine, zero Tailwind lock-in |
+| **`@prunelle/ui`** | Platform-first headless primitives + 6 structurally distinct pure CSS `@layer kui` Grammars (`prunelle`, `editorial`, `workshop`, `console`, `soft`, `orbit`) + `prunelle ui-eject` | Zero JS recipe engine, zero Tailwind lock-in |
 | **`@prunelle/auth`** | Argon2id passwords, hashed DB sessions, email verification, magic links, OAuth 2.0 + PKCE (GitHub/Discord/Google), `auth.guard()`, RGPD helpers, `bun:sqlite` store | Zero external deps |
 | **`@prunelle/live`** | Typed real-time SSE rooms, microtask-coalesced presence, `useLive()` browser signal hook | Zero external deps |
 | **`@prunelle/content`** | `Bun.markdown` GFM collections, YAML frontmatter + Standard Schema, lazy `render()`, heading TOC, `paths()` prerender, RSS XML | Zero external deps |
@@ -110,7 +110,7 @@ Core holds the compiler, runtime, router, SSR and build. Every optional capabili
 
 ## Examples
 
-- **[`examples/showcase`](examples/showcase)** — Live `@prunelle/ui` Grammar Switcher (`editorial` / `workshop` / `console` / `soft` / `orbit` / `bare`), every UI primitive, and guarded `@prunelle/auth` routes.
+- **[`examples/showcase`](examples/showcase)** — Live `@prunelle/ui` Grammar Switcher (`prunelle` / `editorial` / `workshop` / `console` / `soft` / `orbit` / `bare`), every UI primitive, and guarded `@prunelle/auth` routes.
 - **[`examples/noticeboard`](examples/noticeboard)** — Full-stack real-time app combining `@prunelle/auth`, `@prunelle/live` (SSE presence & live push), `@prunelle/mail`, `@prunelle/ui`, Standard-Schema `action()`, and `bun:sqlite`.
 
 ```sh

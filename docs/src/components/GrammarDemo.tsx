@@ -1,6 +1,10 @@
 import { signal } from 'prunelle'
 
+// The docs bundle this one; the others load from /grammars/ on demand
+const BASE = 'prunelle'
+
 const GRAMMARS = [
+  { id: 'prunelle', label: 'Prunelle', note: 'A printed book: rules, plum and gold, an eye for radios, switches and progress' },
   { id: 'orbit', label: 'Orbit', note: 'Starry sky, 1px hairlines, amber accent, cockpit states' },
   { id: 'editorial', label: 'Editorial', note: 'Ink on warm paper, serif display, top-ruled cards' },
   { id: 'workshop', label: 'Workshop', note: '2px ink frames, 5px offset shadow, tactile' },
@@ -10,17 +14,17 @@ const GRAMMARS = [
 ] as const
 
 export function GrammarDemo() {
-  const active = signal<string>('orbit')
+  const active = signal<string>(BASE)
 
   const pick = (id: string) => {
     active.value = id
-    // Disable the bundled default Orbit grammar stylesheet so Bare/Editorial/Workshop/Soft/Console don't inherit Orbit rules
-    const baseOrbit = document.querySelector<HTMLLinkElement>('link[rel="stylesheet"][href*="/orbit-"]')
-    if (baseOrbit)
-      baseOrbit.disabled = id !== 'orbit'
+    // Disable the bundled grammar so the one picked doesn't inherit its rules
+    const base = document.querySelector<HTMLLinkElement>(`link[rel="stylesheet"][href*="/${BASE}-"]`)
+    if (base)
+      base.disabled = id !== BASE
 
     let live = document.getElementById('kui-live-grammar') as HTMLLinkElement | null
-    if (id === 'orbit') {
+    if (id === BASE) {
       live?.remove()
       return
     }

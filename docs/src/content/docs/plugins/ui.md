@@ -1,14 +1,14 @@
 ---
-title: "@prunelle/ui (5 Style Grammars)"
+title: "@prunelle/ui (6 Style Grammars)"
 description: Platform-first headless UI primitives and pure CSS @layer kui Style Grammars with zero JS styling runtime and one-file eject.
 section: plugins
 order: 1
 ---
 
-`@prunelle/ui` pairs **platform-first headless TSX primitives** (zero-JS native HTML wherever the platform suffices: `<details name>`, `<dialog>`, `popover`, `<input type="checkbox">`) with **5 structurally distinct pure CSS `@layer kui` Style Grammars**.
+`@prunelle/ui` pairs **platform-first headless TSX primitives** (zero-JS native HTML wherever the platform suffices: `<details name>`, `<dialog>`, `popover`, `<input type="checkbox">`) with **6 structurally distinct pure CSS `@layer kui` Style Grammars**.
 
-<Callout title="Try all 5 grammars live" tone="tip">
-Visit the interactive [UI Grammars sandbox](/grammars) to switch this site between **Orbit**, **Editorial**, **Workshop**, **Console**, **Soft**, and **Bare** in real time.
+<Callout title="Try all 6 grammars live" tone="tip">
+Visit the interactive [UI Grammars sandbox](/grammars) to switch this site between **Prunelle**, **Orbit**, **Editorial**, **Workshop**, **Console**, **Soft**, and **Bare** in real time.
 </Callout>
 
 ## Setup
@@ -19,15 +19,15 @@ import { defineConfig } from 'prunelle/config'
 import { ui } from '@prunelle/ui/plugin'
 
 export default defineConfig({
-  plugins: [ui({ grammar: 'orbit' })],
+  plugins: [ui({ grammar: 'prunelle' })],
 })
 ```
 
-Available grammars: `'orbit'` · `'editorial'` · `'workshop'` · `'console'` · `'soft'` · `'bare'`.
+Available grammars: `'prunelle'` · `'orbit'` · `'editorial'` · `'workshop'` · `'console'` · `'soft'` · `'bare'`.
 
 ## Primitives
 
-- **0 KB JS static & layout primitives**: `Stack`, `Cluster`, `Grid`, `Sidebar`, `Split`, `Button`, `Card` (`CardHeader`/`CardBody`/`CardFooter`), `Badge`, `Notice`, `Field`, `Switch`, `Checkbox`, `RadioGroup`, `Accordion` (`AccordionItem`), `Popover`, `Dialog`, `Drawer`.
+- **0 KB JS static & layout primitives**: `Stack`, `Cluster`, `Grid`, `Sidebar`, `Split`, `Button`, `Card` (`CardHeader`/`CardBody`/`CardFooter`), `Badge`, `Notice`, `Field`, `Switch`, `Checkbox`, `RadioGroup`, `Progress`, `Accordion` (`AccordionItem`), `Popover`, `Dialog`, `Drawer`.
 - **Auto-hydrated interactive islands**: `ControlledDialog` and `ControlledDrawer` (a `Dialog` or `Drawer` your code opens and closes through an `open` signal), `Tabs`, `Menu`, `Select`, `CommandPalette` (`⌘K`), `DataTable` (sort, filter, select, paginate), `Toaster` + `toast()`.
 
 `Dialog` and `Drawer` ship no JavaScript. Their trigger opens them with the browser's invoker commands (`commandfor` and `command="show-modal"`), and the browser closes them on Esc, on the close button and on a click on the backdrop (`closedby="any"`). The page behind an open one does not scroll.
@@ -52,10 +52,19 @@ export default function Settings() {
 }
 ```
 
+`Progress` is a native `<progress>` named by its `label`. Without a `value` it is a loader; with one, `max` defaults to 100.
+
+```tsx
+<Progress label="Building 48 pages" />
+<Progress label="Deploying" value={62} />
+```
+
+The `prunelle` grammar draws its controls as an eye, in the accent colour. A radio is a shut eye that opens when checked, and a switch's knob opens its eye when on. A loading `Progress` looks left and right, then blinks; with a value, its pupil widens until it fills the eye. Its titles are set in Fraunces, which the app loads itself, for instance through the `fonts` option of `@prunelle/seo`; Georgia stands in until then.
+
 ## Eject & own your CSS
 
 Because every grammar is a single pure CSS file wrapped in `@layer kui`, you can eject and customize it anytime — and Tailwind or your own stylesheet always wins without `!important`:
 
 ```bash
-prunelle ui-eject orbit src/styles/ui.css
+prunelle ui-eject prunelle src/styles/ui.css
 ```
