@@ -4,7 +4,7 @@
 
 ## Imports
 
-- `@prunellejs/auth`: `createAuth`, `memoryAuthStore`, `normalizeEmail`, `toPublicUser`, `safeRedirect` (re-exported from `prunelle/server`), `createRateLimiter` (deprecated: `rateLimit` on `api.route()` and `action()`, or `api.rateLimiter()`), `github`, `discord`, `google`, `oauthProvider`; types `Auth`, `AuthOptions`, `GuardOptions`, `AuthStore`, `AuthUser`, `PublicUser`, `AuthSession`, `OAuthAccount`, `TokenKind`, `VerificationToken`, `UserExport`, `AuthMailPayload`, `AuthMailer`, `CreateUserInput`, `OAuthProvider`, `OAuthPresetConfig`, `OAuthProfile`, `RateLimiter`, `RateLimitOptions`.
+- `@prunellejs/auth`: `createAuth`, `memoryAuthStore`, `normalizeEmail`, `toPublicUser`, `safeRedirect` (re-exported from `prunelle/server`), `github`, `discord`, `google`, `oauthProvider`; types `Auth`, `AuthOptions`, `GuardOptions`, `AuthStore`, `AuthUser`, `PublicUser`, `AuthSession`, `OAuthAccount`, `TokenKind`, `VerificationToken`, `UserExport`, `AuthMailPayload`, `AuthMailer`, `CreateUserInput`, `OAuthProvider`, `OAuthPresetConfig`, `OAuthProfile`, `RateLimitOptions`.
 - `@prunellejs/auth/sqlite`: `sqliteAuthStore(dbOrPath?: string | Database)` (returns `AuthStore & { readonly db: Database }`, uses `bun:sqlite` in WAL mode).
 - `@prunellejs/auth/oauth`: `github`, `discord`, `google`, `oauthProvider`.
 

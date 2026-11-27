@@ -5,9 +5,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Database } from 'bun:sqlite'
 import { Window } from 'happy-dom'
-import { createAuth, createRateLimiter, discord, github, google, memoryAuthStore, oauthProvider } from '../../plugin-auth/src/index'
+import { createAuth, discord, github, google, memoryAuthStore, oauthProvider } from '../../plugin-auth/src/index'
 import { sqliteAuthStore } from '../../plugin-auth/src/sqlite'
 import { scaffoldProject } from '../src/cli/new'
+import { createRateLimitStore } from '../src/server/rate-limit'
 import { testApp } from '../src/test/index'
 
 const TMP = join(tmpdir(), `prunelle-audit-auth-${Date.now()}`)
@@ -489,15 +490,21 @@ describe('Audit #3526 Batch 4 — Auth, Scaffold & RGPD', () => {
     })
 
     test('evicts expired keys and caps map size so rate limiter never grows unboundedly', async () => {
-      const limiter = createRateLimiter({ max: 5, windowMs: 30, maxKeys: 10 })
-      for (let i = 0; i < 25; i++)
-        expect(limiter.allow(`k-${i}`)).toBe(true)
-      expect(limiter.size()).toBeLessThanOrEqual(10)
+      const store = createRateLimitStore({ maxKeys: 10 })
+      const limiter = store.limiter({ max: 5, windowMs: 30 })
+      try {
+        for (let i = 0; i < 25; i++)
+          expect(limiter.hit(`k-${i}`)).toBe(0)
+        expect(store.size).toBeLessThanOrEqual(10)
 
-      // Wait for window to expire and sweep
-      await Bun.sleep(45)
-      limiter.sweep()
-      expect(limiter.size()).toBe(0)
+        // Wait for window to expire and sweep
+        await Bun.sleep(45)
+        store.sweep()
+        expect(store.size).toBe(0)
+      }
+      finally {
+        store.close()
+      }
     })
   })
 
@@ -1078,17 +1085,23 @@ describe('Audit #3526 Batch 4 — Auth, Scaffold & RGPD', () => {
 
     test('6. prune timer sweeps renewedAt and rate limiter stays O(1) at maxKeys capacity', async () => {
       // Rate limiter O(1) eviction at maxKeys=10_000 under flood of distinct keys
-      const limiter = createRateLimiter({ max: 5, windowMs: 60_000, maxKeys: 10_000 })
-      for (let i = 0; i < 10_000; i++)
-        limiter.allow(`seed-${i}`)
-      expect(limiter.size()).toBe(10_000)
+      const rlStore = createRateLimitStore({ maxKeys: 10_000 })
+      const limiter = rlStore.limiter({ max: 5, windowMs: 60_000 })
+      try {
+        for (let i = 0; i < 10_000; i++)
+          limiter.hit(`seed-${i}`)
+        expect(rlStore.size).toBe(10_000)
 
-      const start = performance.now()
-      for (let i = 0; i < 5_000; i++)
-        expect(limiter.allow(`flood-${i}`)).toBe(true)
-      const elapsedMs = performance.now() - start
-      expect(limiter.size()).toBe(10_000)
-      expect(elapsedMs).toBeLessThan(500)
+        const start = performance.now()
+        for (let i = 0; i < 5_000; i++)
+          expect(limiter.hit(`flood-${i}`)).toBe(0)
+        const elapsedMs = performance.now() - start
+        expect(rlStore.size).toBe(10_000)
+        expect(elapsedMs).toBeLessThan(500)
+      }
+      finally {
+        rlStore.close()
+      }
 
       // Prune timer runs sweepRenewedAt() alongside store.pruneExpired()
       const appDir = makeMinimalApp('issue3634-renewed-sweep')

@@ -1,6 +1,6 @@
 ---
 title: "@prunellejs/auth"
-description: Zero-dependency Bun-native authentication — Argon2id passwords, hashed sessions, email verification, magic links, OAuth 2.0 + PKCE, route guards, RGPD helpers, and SQLite.
+description: Zero-dependency Bun-native auth — Argon2id passwords, hashed sessions, email verification, magic links, OAuth 2.0 + PKCE, guards, RGPD, and SQLite.
 section: plugins
 order: 2
 ---

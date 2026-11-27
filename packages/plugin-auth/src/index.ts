@@ -9,7 +9,7 @@ import type { OAuthProvider } from './oauth'
 
 import type { AuthSession, AuthStore, AuthUser, PublicUser, UserExport } from './store'
 import { definePlugin } from 'prunelle/config'
-import { createRateLimitStore, isHttpsRequest, nodeEnv, safeRedirect, wantsJson } from 'prunelle/server'
+import { isHttpsRequest, nodeEnv, safeRedirect, wantsJson } from 'prunelle/server'
 import { hashPassword, randomToken, sha256Hex } from './crypto'
 import { authLimits, fail, isValidEmail } from './http'
 import { registerOAuthRoutes } from './oauth-routes'
@@ -30,24 +30,6 @@ export interface RateLimitOptions {
   max?: number | undefined
   /** Window duration in ms (default: 60_000). */
   windowMs?: number | undefined
-  /** @deprecated Read by `createRateLimiter` only: the server's store bounds the auth limits. Removed in the next release. */
-  maxKeys?: number | undefined
-}
-
-/** @deprecated Use `api.rateLimiter()` in a plugin, or `rateLimit` on `api.route` and `action()`. Removed in the next release. */
-export interface RateLimiter {
-  allow(key: string): boolean
-  sweep(now?: number): number
-  size(): number
-}
-
-/** @deprecated Use `api.rateLimiter()` in a plugin, or `rateLimit` on `api.route` and `action()`. Removed in the next release. */
-export function createRateLimiter(opts: RateLimitOptions | false | undefined): RateLimiter {
-  if (opts === false)
-    return { allow: () => true, sweep: () => 0, size: () => 0 }
-  const store = createRateLimitStore({ maxKeys: opts?.maxKeys })
-  const limiter = store.limiter({ max: opts?.max ?? 15, windowMs: opts?.windowMs ?? 60_000 })
-  return { allow: key => limiter.hit(key) === 0, sweep: now => store.sweep(now), size: () => store.size }
 }
 
 export { safeRedirect } from 'prunelle/server'
