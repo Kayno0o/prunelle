@@ -1,7 +1,7 @@
 // `prunelle upgrade`: moves an app written for kay v2 (`@kayjs/kay`) onto prunelle: its dependencies, config file, imports, the names it imports and the names the browser receives.
 
 import { existsSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import pkg from '../../package.json' with { type: 'json' }
 import { isNotSourceDir, relPosix } from '../build/files'
 import { resolvePrunelleSpecifier } from '../build/resolve'
@@ -21,6 +21,7 @@ const PATH_RULES: [RegExp, string][] = [
   [/@kayjs\//g, '@prunelle/'],
   [/\.kay-(cache|dev)\b/g, '.prunelle-$1'],
   [/\bkay\.config\b/g, 'prunelle.config'],
+  [/\bkay v2\b/g, 'prunelle'],
 ]
 // The names kay sent the browser, as app code and styles may spell them.
 const WIRE_RULES: [RegExp, string][] = [
@@ -44,8 +45,11 @@ const PRUNELLE_SOURCE_RE = /^prunelle(\/.*)?$/
 
 const apply = (text: string, rules: readonly [RegExp, string][]): string => rules.reduce((out, [re, to]) => out.replace(re, to), text)
 
-/** Rewrites the app at `root` in place; installing the renamed dependencies is the caller's job. */
+/** Rewrites the app at `root` in place, and each package its bun workspace lists; installing the renamed dependencies is the caller's job. */
 export function upgradeProject(root: string): UpgradeResult {
+  const v1 = kayV1Dependency(root)
+  if (v1 !== undefined)
+    return { changed: [], manual: [`package.json:1: ${v1} is kay v1: prunelle upgrade moves kay v2 apps, so this one is left as it is.`] }
   const changed: string[] = []
   const manual: string[] = []
   const write = (file: string, before: string, after: string): void => {
@@ -87,7 +91,47 @@ export function upgradeProject(root: string): UpgradeResult {
       changed.push(`${dir}/`)
     }
   }
+  for (const member of workspaceMembers(root)) {
+    const res = upgradeProject(join(root, member))
+    changed.push(...res.changed.map(file => `${member}/${file}`))
+    manual.push(...res.manual.map(line => `${member}/${line}`))
+  }
   return { changed: changed.sort(), manual }
+}
+
+const DEP_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
+const V1_RANGE_RE = /^[~^>=\s]*1\./
+
+// kay's core at a 1.x range, as `@kayjs/kay` or an `npm:@kayjs/kay@` alias: an app of `.kay` files prunelle cannot take.
+function kayV1Dependency(root: string): string | undefined {
+  if (!existsSync(join(root, 'package.json')))
+    return undefined
+  const json = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as Record<string, Record<string, string> | undefined>
+  for (const field of DEP_FIELDS) {
+    for (const [name, range] of Object.entries(json[field] ?? {})) {
+      if (name === '@kayjs/kay' && V1_RANGE_RE.test(range))
+        return `${name}@${range}`
+      if (range.startsWith('npm:@kayjs/kay@') && V1_RANGE_RE.test(range.slice('npm:@kayjs/kay@'.length)))
+        return `${name}: ${range}`
+    }
+  }
+  return undefined
+}
+
+// The folders the root package.json lists as `workspaces`, an array of globs or `{ packages }`.
+function workspaceMembers(root: string): string[] {
+  if (!existsSync(join(root, 'package.json')))
+    return []
+  const { workspaces } = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as { workspaces?: string[] | { packages?: string[] } }
+  const patterns = Array.isArray(workspaces) ? workspaces : workspaces?.packages ?? []
+  const members = new Set<string>()
+  for (const pattern of patterns) {
+    for (const file of new Bun.Glob(`${pattern}/package.json`).scanSync({ cwd: root })) {
+      if (!file.split('/').includes('node_modules'))
+        members.add(dirname(file))
+    }
+  }
+  return [...members].sort()
 }
 
 function moveConfig(root: string, changed: string[], manual: string[]): void {
@@ -127,7 +171,7 @@ function upgradePackageJson(text: string): string {
   const indent = /^\{\n([ \t]+)"/.exec(text)?.[1] ?? '  '
   const before = JSON.stringify(json, null, indent)
   const range = `^${pkg.version}`
-  for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+  for (const field of DEP_FIELDS) {
     const deps = json[field] as Record<string, string> | undefined
     if (deps === undefined || !Object.keys(deps).some(name => name.startsWith('@kayjs/')))
       continue

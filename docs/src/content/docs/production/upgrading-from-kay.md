@@ -13,6 +13,8 @@ bunx prunelle upgrade
 
 It rewrites the app in place, then runs `bun install`. Pass `--no-install` to install later. Commit the app first, so the change reads as one diff.
 
+Run from the root of a bun workspace, it also rewrites each package the `workspaces` field lists, then installs once at the root. A package that depends on kay v1 (`@kayjs/kay` at 1.x) is left as it is, with a line saying so: prunelle moves kay v2 apps only.
+
 ## What it rewrites
 
 - **Dependencies.** `@kayjs/kay` becomes `prunelle` and each `@kayjs/<name>` becomes `@prunelle/<name>`, all at the current prunelle version. A `kay` command in the `scripts` becomes `prunelle`.

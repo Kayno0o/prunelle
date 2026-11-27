@@ -31,7 +31,7 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
       'package.json': `${JSON.stringify({
         name: 'app',
         scripts: { dev: 'kay dev', build: 'bunx @kayjs/kay build && echo okay', kayak: 'kayak paddle' },
-        dependencies: { '@kayjs/kay': '^2.0.0-alpha.9', 'hono': '^4.0.0', '@kayjs/ui': '^2.0.0-alpha.9' },
+        dependencies: { '@kayjs/kay': '^2.1.0', 'hono': '^4.0.0', '@kayjs/ui': '^2.0.0-alpha.9' },
         devDependencies: { '@kayjs/auth': '2.0.0-alpha.9' },
       }, null, '\t')}\n`,
     })
@@ -128,7 +128,7 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
     const dir = appWith({
       'tsconfig.json': '{\n  // kept\n  "compilerOptions": { "jsxImportSource": "@kayjs/kay", "types": ["@kayjs/kay/ambient"] }\n}\n',
       '.gitignore': 'dist\n.kay-cache\n.kay-dev\n',
-      'Dockerfile': 'FROM oven/bun\nCOPY kay.config.ts .\nRUN bunx kay build\nCMD ["bunx", "kay", "start"]\n',
+      'Dockerfile': 'FROM oven/bun\n# kay v2 binds 127.0.0.1.\nCOPY kay.config.ts .\nRUN bunx kay build\nCMD ["bunx", "kay", "start"]\n',
       'Justfile': 'dev:\n  bun kay dev\n',
       '.forgejo/workflows/ci.yml': 'jobs:\n  test:\n    steps:\n      - run: bunx kay check\n',
       '.kay-cache/server/index.js': '',
@@ -136,7 +136,7 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
     expect(upgradeProject(dir).changed).toEqual(['.forgejo/workflows/ci.yml', '.gitignore', '.kay-cache/', 'Dockerfile', 'Justfile', 'tsconfig.json'])
     expect(read(dir, 'tsconfig.json')).toBe('{\n  // kept\n  "compilerOptions": { "jsxImportSource": "prunelle", "types": ["prunelle/ambient"] }\n}\n')
     expect(read(dir, '.gitignore')).toBe('dist\n.prunelle-cache\n.prunelle-dev\n')
-    expect(read(dir, 'Dockerfile')).toBe('FROM oven/bun\nCOPY prunelle.config.ts .\nRUN bunx prunelle build\nCMD ["bunx", "prunelle", "start"]\n')
+    expect(read(dir, 'Dockerfile')).toBe('FROM oven/bun\n# prunelle binds 127.0.0.1.\nCOPY prunelle.config.ts .\nRUN bunx prunelle build\nCMD ["bunx", "prunelle", "start"]\n')
     expect(read(dir, 'Justfile')).toBe('dev:\n  bun prunelle dev\n')
     expect(read(dir, '.forgejo/workflows/ci.yml')).toBe('jobs:\n  test:\n    steps:\n      - run: bunx prunelle check\n')
     expect(existsSync(join(dir, '.kay-cache'))).toBe(false)
@@ -185,6 +185,60 @@ describe('prunelle upgrade moves a kay v2 app onto prunelle (#27)', () => {
       'Next: prunelle check',
     ])
     expect(await checkProject(dir, { skipTypecheck: true })).toMatchObject({ ok: true, errors: [] })
+  })
+
+  it('upgrades each package a bun workspace lists, from its root', () => {
+    const kayDeps = (field: string) => `${JSON.stringify({ name: 'member', [field]: { '@kayjs/kay': '^2.0.0-beta.8' } })}\n`
+    const legacy = `${JSON.stringify({ name: 'legacy', scripts: { dev: 'kay dev' }, dependencies: { 'kay': 'npm:@kayjs/kay@~1.112.2', '@kayjs/ui': '~1.112.2' } })}\n`
+    const dir = appWith({
+      'package.json': `${JSON.stringify({ name: 'mono', private: true, workspaces: ['apps/**', 'shell/', 'legacy'] })}\n`,
+      'legacy/package.json': legacy,
+      'legacy/kay.config.ts': 'export default {}\n',
+      'tsconfig.json': '{ "compilerOptions": { "jsxImportSource": "@kayjs/kay" } }\n',
+      'apps/web/package.json': kayDeps('dependencies'),
+      'apps/web/kay.config.ts': 'export default {}\n',
+      'apps/web/src/index.ts': 'import { signal, gone } from \'@kayjs/kay\'\nexport const n = signal(gone)\n',
+      'apps/web/node_modules/dep/package.json': kayDeps('dependencies'),
+      'shell/package.json': kayDeps('peerDependencies'),
+      'tools/package.json': kayDeps('dependencies'),
+    })
+    expect(upgradeProject(dir)).toEqual({
+      changed: ['apps/web/kay.config.ts -> prunelle.config.ts', 'apps/web/package.json', 'apps/web/src/index.ts', 'shell/package.json', 'tsconfig.json'],
+      manual: ['apps/web/src/index.ts:1: prunelle does not export gone.', 'legacy/package.json:1: kay: npm:@kayjs/kay@~1.112.2 is kay v1: prunelle upgrade moves kay v2 apps, so this one is left as it is.'],
+    })
+    expect(read(dir, 'legacy/package.json')).toBe(legacy)
+    expect(existsSync(join(dir, 'legacy/kay.config.ts'))).toBe(true)
+    expect(JSON.parse(read(dir, 'shell/package.json')).peerDependencies).toEqual({ prunelle: `^${pkg.version}` })
+    expect(read(dir, 'apps/web/src/index.ts')).toBe('import { signal, gone } from \'prunelle\'\nexport const n = signal(gone)\n')
+    expect(read(dir, 'tools/package.json')).toBe(kayDeps('dependencies'))
+    expect(read(dir, 'apps/web/node_modules/dep/package.json')).toBe(kayDeps('dependencies'))
+  })
+
+  it('installs at the root when an app\'s or only a workspace package\'s dependencies changed', async () => {
+    const kayDeps = `${JSON.stringify({ name: 'web', dependencies: { '@kayjs/kay': '^2.0.0-beta.8' } })}\n`
+    const app = appWith({ 'package.json': kayDeps })
+    const mono = appWith({
+      'package.json': `${JSON.stringify({ name: 'mono', workspaces: { packages: ['web'] } })}\n`,
+      'web/package.json': kayDeps,
+    })
+    const spawn = spyOn(Bun, 'spawnSync').mockImplementation(() => ({ exitCode: 0 }) as unknown as ReturnType<typeof Bun.spawnSync>)
+    const log = spyOn(console, 'log').mockImplementation(() => {})
+    try {
+      expect(await runCli(['upgrade', app])).toBe(0)
+      expect(await runCli(['upgrade', mono])).toBe(0)
+      expect(spawn.mock.calls.map(([cmd, opts]) => [cmd, (opts as { cwd: string }).cwd])).toEqual([[['bun', 'install'], app], [['bun', 'install'], mono]])
+    }
+    finally {
+      spawn.mockRestore()
+      log.mockRestore()
+    }
+  })
+
+  it('leaves an app on kay v1 as it is, saying why', () => {
+    const pkgJson = `${JSON.stringify({ name: 'old', dependencies: { '@kayjs/ui': '1.104.0', '@kayjs/kay': '^1.104.0' } })}\n`
+    const dir = appWith({ 'package.json': pkgJson, 'src/app.ts': 'import { signal } from \'@kayjs/kay\'\n' })
+    expect(upgradeProject(dir)).toEqual({ changed: [], manual: ['package.json:1: @kayjs/kay@^1.104.0 is kay v1: prunelle upgrade moves kay v2 apps, so this one is left as it is.'] })
+    expect(read(dir, 'src/app.ts')).toBe('import { signal } from \'@kayjs/kay\'\n')
   })
 
   it('leaves node_modules, dist, nested packages and an app already on prunelle untouched', () => {

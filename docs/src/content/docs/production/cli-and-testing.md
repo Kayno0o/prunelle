@@ -17,7 +17,7 @@ order: 4
 | `prunelle build --static` | Static HTML + asset export into `dist/` |
 | `prunelle build --compile [out]` | Compile into a single standalone Bun executable |
 | `prunelle start [dir] [--port 3000] [--host [addr]]` | Serve a built `dist/` app on `Bun.serve()` (binds `127.0.0.1` by default) |
-| `prunelle upgrade [dir] [--no-install]` | Move an app written for kay v2 onto prunelle: its dependencies, config file, imports and the names they bring, then run `bun install`. What it cannot move is printed with its file and line. See [Upgrading from kay](/docs/production/upgrading-from-kay) |
+| `prunelle upgrade [dir] [--no-install]` | Move an app written for kay v2 onto prunelle: its dependencies, config file, imports and the names they bring, then run `bun install`; from a workspace root, each package the workspace lists. What it cannot move is printed with its file and line. See [Upgrading from kay](/docs/production/upgrading-from-kay) |
 | `prunelle ui-eject <grammar> [dest]` | Eject a `@prunelle/ui` CSS Grammar into your repo |
 | `prunelle mcp-footprint` | Print `@prunelle/mcp` tool sizes in bytes and estimated tokens |
 | `prunelle i18n-check` | List missing translation keys across `@prunelle/i18n` locales |

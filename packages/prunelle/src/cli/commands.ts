@@ -124,7 +124,7 @@ function upgradeCommand(cwd: string): Commands[string] {
       for (const file of res.changed)
         console.log(`  ${file}`)
       console.log(`prunelle upgrade rewrote ${res.changed.length} files`)
-      if (res.changed.includes('package.json') && values['no-install'] !== true) {
+      if (res.changed.some(file => file === 'package.json' || file.endsWith('/package.json')) && values['no-install'] !== true) {
         const install = Bun.spawnSync(['bun', 'install'], { cwd: root, stdout: 'inherit', stderr: 'inherit' })
         if (install.exitCode !== 0)
           return 1
