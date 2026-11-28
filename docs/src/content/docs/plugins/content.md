@@ -5,11 +5,11 @@ section: plugins
 order: 3
 ---
 
-`@prunellejs/content` turns folders of Markdown files into typed, lazy-rendered collections using Bun's native Zig `Bun.markdown.html()` and `Bun.YAML.parse()` — **zero npm Markdown parser dependencies** and **0 KB** client JS.
+`@prunellejs/content` turns folders of Markdown files into typed, lazy-rendered collections using Bun's native Zig `Bun.markdown.html()` and `Bun.YAML.parse()` — **zero npm Markdown parser dependencies** and **0 KB** of client JS.
 
 ## Defining a collection
 
-Define one collection and import it from `prunelle.config.ts`, index pages, and post pages alike. Use `render` to lazy-load heavy Shiki highlighters and embedded TSX components only when a page renders Markdown:
+Define one collection and import it from `prunelle.config.ts`, index pages, and post pages alike. Use `render` to lazy-load Shiki highlighters and embedded TSX components only when a page actually renders Markdown:
 
 ```ts
 // src/content.ts
@@ -35,13 +35,13 @@ In your detail route's `load()`, call `await entry.render()` once — `entry.htm
 
 ## Automatic `@prunellejs/images` optimization
 
-When `@prunellejs/images` is enabled in `prunelle.config.ts`, relative Markdown images (`![Diagram](./img/arch.png)`) are automatically optimized using your `images()` plugin widths, formats, quality, and disk cache — no manual `resolveImage` wiring needed. Pass `resolveImage: false` to opt out, or pass a custom `resolveImage` function to override.
+When `@prunellejs/images` is enabled in `prunelle.config.ts`, relative Markdown images (`![Diagram](./img/arch.png)`) are automatically optimized using your `images()` widths, formats, quality, and disk cache — no manual `resolveImage` wiring needed. Pass `resolveImage: false` to opt out, or pass a custom `resolveImage` function to override.
 
 ## Fast lazy rendering & O(1) lookup
 
-- `posts.all(locale)` and `posts.paths('/posts', locale)` parse frontmatter only (entries with `draft: true` are shown by default in `prunelle dev` and `testApp({ dev: true })`, and omitted from `prunelle build` and RSS feeds; pass `includeDrafts: false` to hide drafts in dev too).
+- `posts.all(locale)` and `posts.paths('/posts', locale)` parse frontmatter only. Entries with `draft: true` appear in `prunelle dev` and `testApp({ dev: true })`, and are omitted from `prunelle build` and RSS feeds (pass `includeDrafts: false` to hide drafts in dev too).
 - `entry.html` and `entry.headings` render lazily and memoize on first access.
-- `posts.get(slug, locale)` resolves `<dir>/<slug>.md` directly in O(1) without scanning every other file in the directory.
+- `posts.get(slug, locale)` resolves `<dir>/<slug>.md` directly in O(1) without scanning other files in the directory.
 
 ## Embedded TSX components (MDX-lite)
 
@@ -55,17 +55,21 @@ Supports **bold**, lists, and fenced code blocks inside components.
 
 ## RSS feeds (`content`)
 
+`content({ feeds })` inherits `site` from top-level `prunelle.config.ts` (or accepts a per-feed `site`):
+
 ```ts
 import { content } from '@prunellejs/content'
+import { defineConfig } from 'prunelle/config'
+import { posts } from './src/content'
 
 export default defineConfig({
+  site: 'https://example.com',
   plugins: [
     content({
       feeds: [{
         path: '/rss.xml',
         title: 'My Blog',
         description: 'Latest updates',
-        site: 'https://example.com',
         collection: posts,
         linkPrefix: '/posts',
       }],

@@ -62,7 +62,10 @@ const docsAssets = {
 }
 
 export default defineConfig({
+  site: SITE,
   lang: 'en',
+  // Open-source MIT documentation site; no commercial legal notice route needed.
+  compliance: { legalNotice: false },
   plugins: [
     ui({ grammar: 'prunelle', emitGrammars: true }),
     docsAssets,
@@ -87,6 +90,7 @@ export default defineConfig({
       ],
       redirects: {
         '/docs': '/docs/getting-started/introduction',
+        '/benchmarks': '/docs/production/benchmarks',
       },
       extraUrls: () => [
         '/grammars',

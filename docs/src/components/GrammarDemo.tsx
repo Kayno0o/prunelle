@@ -1,30 +1,52 @@
 import { signal } from 'prunelle'
 
-// The docs bundle this one; the others load from /grammars/ on demand
 const BASE = 'prunelle'
 
 const GRAMMARS = [
-  { id: 'prunelle', label: 'Prunelle', note: 'A printed book: rules, plum and gold, an eye for radios, switches and progress' },
-  { id: 'orbit', label: 'Orbit', note: 'Starry sky, 1px hairlines, amber accent, cockpit states' },
-  { id: 'editorial', label: 'Editorial', note: 'Ink on warm paper, serif display, top-ruled cards' },
-  { id: 'workshop', label: 'Workshop', note: '2px ink frames, 5px offset shadow, tactile' },
-  { id: 'console', label: 'Console', note: 'Dense monospace, crisp gridlines, dark-first' },
-  { id: 'soft', label: 'Soft', note: 'Borderless tinted surfaces, pill controls' },
-  { id: 'bare', label: 'Bare', note: 'Behavior & layout floor only' },
+  ['prunelle', 'Prunelle', 'Printed book: rules, plum & gold, eye controls'],
+  ['orbit', 'Orbit', 'Starry sky, 1px hairlines, amber accent'],
+  ['editorial', 'Editorial', 'Warm paper, serif display, top-ruled cards'],
+  ['workshop', 'Workshop', '2px ink frames, offset shadow, tactile'],
+  ['console', 'Console', 'Dense monospace, crisp gridlines, dark-first'],
+  ['soft', 'Soft', 'Borderless tinted surfaces, pill controls'],
+  ['bare', 'Bare', 'Behavior & layout floor only'],
 ] as const
+
+let saved: [CSSStyleSheet, string][] = []
+
+function setSiteKui(on: boolean): void {
+  if (!on && !saved.length) {
+    for (const s of document.styleSheets) {
+      if (!s.href?.includes('/site-'))
+        continue
+      for (let i = s.cssRules.length; i--;) {
+        const r = s.cssRules[i] as CSSLayerBlockRule
+        if (r.name === 'kui') {
+          saved.push([s, r.cssText])
+          s.deleteRule(i)
+        }
+      }
+    }
+  }
+  else if (on && saved.length) {
+    for (const [s, css] of saved.reverse())
+      s.insertRule(css, 0)
+    saved = []
+  }
+}
 
 export function GrammarDemo() {
   const active = signal<string>(BASE)
 
   const pick = (id: string) => {
     active.value = id
-    // Disable the bundled grammar so the one picked doesn't inherit its rules
-    const base = document.querySelector<HTMLLinkElement>(`link[rel="stylesheet"][href*="/${BASE}-"]`)
-    if (base)
-      base.disabled = id !== BASE
+    const isBase = id === BASE
+    for (const el of document.querySelectorAll<HTMLLinkElement>(`link[href*="/${BASE}-"]`))
+      el.disabled = !isBase
+    setSiteKui(isBase)
 
     let live = document.getElementById('kui-live-grammar') as HTMLLinkElement | null
-    if (id === BASE) {
+    if (isBase) {
       live?.remove()
       return
     }
@@ -40,18 +62,18 @@ export function GrammarDemo() {
   return (
     <div data-layout="stack" style="--ui-gap:1rem">
       <div data-layout="cluster" style="--ui-gap:0.45rem">
-        {GRAMMARS.map(g => (
+        {GRAMMARS.map(([id, label, note]) => (
           <button
-            key={g.id}
+            key={id}
             type="button"
             data-ui="button"
             data-size="sm"
-            data-tone={active.value === g.id ? 'accent' : undefined}
-            data-variant={active.value === g.id ? 'solid' : 'outline'}
-            title={g.note}
-            onClick={() => pick(g.id)}
+            data-tone={active.value === id ? 'accent' : undefined}
+            data-variant={active.value === id ? 'solid' : 'outline'}
+            title={note}
+            onClick={() => pick(id)}
           >
-            {g.label}
+            {label}
           </button>
         ))}
       </div>

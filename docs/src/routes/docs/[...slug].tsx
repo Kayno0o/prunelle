@@ -16,6 +16,7 @@ export function paths(): string[] {
 interface DocPageData {
   entry: ContentEntry<DocFrontmatter>
   chapter: NavItem
+  totalChapters: number
   html: string
   groups: NavGroup[]
   prev: NavItem | undefined
@@ -42,6 +43,7 @@ export async function load(ctx: RequestContext): Promise<DocPageData | Response>
   return {
     entry,
     chapter,
+    totalChapters: flat.length,
     html: numberChapter(entry.html, chapter.chapter),
     groups: getNavGroups(),
     prev: idx > 0 ? flat[idx - 1] : undefined,
@@ -51,7 +53,7 @@ export async function load(ctx: RequestContext): Promise<DocPageData | Response>
 }
 
 export default function DocPage({ data }: { data: DocPageData }) {
-  const { entry, chapter, html, groups, prev, next, ogImage } = data
+  const { entry, chapter, totalChapters, html, groups, prev, next, ogImage } = data
   const sections = entry.headings.filter(h => h.level === 2)
 
   return (
@@ -64,7 +66,13 @@ export default function DocPage({ data }: { data: DocPageData }) {
       <RunningHead left={chapter.partLabel} right={entry.data.title} />
 
       <div class="book">
-        <nav class="contents" aria-label="Contents">
+        <input type="checkbox" id="toc-open" class="toc-check" aria-label="Toggle chapter contents" />
+        <label for="toc-open" class="toc-toggle">
+          <span>Contents</span>
+          <small>{`Ch. ${chapter.chapter} / ${totalChapters}`}</small>
+        </label>
+
+        <nav class="contents" aria-label="Contents" data-pru-keep-scroll="contents">
           {groups.map(group => (
             <div key={group.id}>
               <div class="part">{`${group.part}. ${group.label}`}</div>

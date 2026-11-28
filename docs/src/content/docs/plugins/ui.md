@@ -15,8 +15,8 @@ Visit the interactive [UI Grammars sandbox](/grammars) to switch this site betwe
 
 ```ts
 // prunelle.config.ts
-import { defineConfig } from 'prunelle/config'
 import { ui } from '@prunellejs/ui/plugin'
+import { defineConfig } from 'prunelle/config'
 
 export default defineConfig({
   plugins: [ui({ grammar: 'prunelle' })],
@@ -27,14 +27,14 @@ Available grammars: `'prunelle'` · `'orbit'` · `'editorial'` · `'workshop'` �
 
 ## Primitives
 
-- **0 KB JS static & layout primitives**: `Stack`, `Cluster`, `Grid`, `Sidebar`, `Split`, `Button`, `Card` (`CardHeader`/`CardBody`/`CardFooter`), `Badge`, `Notice`, `Field`, `Switch`, `Checkbox`, `RadioGroup`, `Progress`, `Accordion` (`AccordionItem`), `Popover`, `Dialog`, `Drawer`.
-- **Auto-hydrated interactive islands**: `ControlledDialog` and `ControlledDrawer` (a `Dialog` or `Drawer` your code opens and closes through an `open` signal), `Tabs`, `Menu`, `Select`, `CommandPalette` (`⌘K`), `DataTable` (sort, filter, select, paginate), `Toaster` + `toast()`.
+- **0 KB JS static & layout primitives**: `Stack`, `Cluster`, `Grid`, `Sidebar`, `Split`, `Button`, `Card` (`CardHeader`, `CardBody`, `CardFooter`), `Badge`, `Notice`, `Field`, `Switch`, `Checkbox`, `RadioGroup`, `Progress`, `Accordion` (`AccordionItem`), `Popover`, `Dialog`, `Drawer`.
+- **Auto-hydrated interactive islands**: `ControlledDialog` and `ControlledDrawer` (opened and closed programmatically through an `open` signal), `Tabs`, `Menu`, `Select`, `CommandPalette` (`⌘K`), `DataTable` (sort, filter, select, paginate), `Toaster` + `toast()`.
 
-`Dialog` and `Drawer` ship no JavaScript. Their trigger opens them with the browser's invoker commands (`commandfor` and `command="show-modal"`), and the browser closes them on Esc, on the close button and on a click on the backdrop (`closedby="any"`). The page behind an open one does not scroll.
+`Dialog` and `Drawer` ship **0 KB** of JavaScript. Their trigger opens them via native browser invoker commands (`commandfor` and `command="show-modal"`), and the browser closes them on `Esc`, the close button, or a backdrop click (`closedby="any"`).
 
-`Menu`, `Select` and `Popover` open in the browser's top layer, so a parent with `overflow: hidden` never clips them. CSS anchor positioning places each one below its trigger, and above it or on its other side when the viewport has no room there. An outside click closes them.
+`Menu`, `Select`, and `Popover` open in the browser's top layer so an ancestor with `overflow: hidden` never clips them. CSS anchor positioning places each menu below its trigger and flips it automatically when the viewport runs out of room.
 
-A browser that lacks one of these features, such as Safari before 26.2 or Firefox before 147, loads a fallback of about 700 bytes that does their work; other browsers fetch nothing. The `ui()` plugin adds that check to pages with a `commandfor` button, a `Menu`, a `Select` or a `Popover`, so your own `commandfor` buttons get it too.
+Browsers that lack invoker commands or anchor positioning (such as Safari before 26.2 or Firefox before 147) dynamically load a ~700-byte fallback; modern browsers fetch nothing. The `ui()` plugin wires this check automatically on any page using `commandfor`, `Menu`, `Select`, or `Popover`.
 
 ```tsx
 import { Button, Card, CardBody, CardHeader, Switch } from '@prunellejs/ui'
@@ -44,7 +44,7 @@ export default function Settings() {
     <Card>
       <CardHeader>Preferences</CardHeader>
       <CardBody>
-        <Switch name="dark" label="Starry dark mode" checked />
+        <Switch name="dark" label="Dark mode" checked />
         <Button tone="accent">Save</Button>
       </CardBody>
     </Card>
@@ -52,28 +52,30 @@ export default function Settings() {
 }
 ```
 
-`Progress` is a native `<progress>` named by its `label`. Without a `value` it is a loader; with one, `max` defaults to 100.
+`Progress` renders a native `<progress>` named by its `label`. Omit `value` for an indeterminate loader; pass `value` for a determinate bar (`max` defaults to `100`):
 
 ```tsx
 <Progress label="Building 48 pages" />
 <Progress label="Deploying" value={62} />
 ```
 
-The `prunelle` grammar draws its controls as an eye, in the accent colour. A radio is a shut eye that opens when checked, and a switch's knob opens its eye when on. A loading `Progress` looks left and right, then blinks; with a value, its pupil widens until it fills the eye. Its titles are set in Fraunces, which the app loads itself, for instance through the `fonts` option of `@prunellejs/seo`; Georgia stands in until then.
+In the `prunelle` grammar, the eye is the sole ornament: a radio is a shut eye that opens when checked, a switch knob opens its eye when on, an indeterminate `Progress` looks left, right, and blinks, and a determinate `Progress` widens its pupil to fill the eye. Titles use Fraunces (loaded via `@prunellejs/seo`'s `fonts`, with Georgia as fallback).
 
-## Tokenized Architecture & Per-Component CSS
+## Tokenized architecture & per-route CSS
 
-Every grammar builds on three shared layers inside `@layer kui`:
+Every grammar is built on three layers inside `@layer kui`:
 
-1. **`base.css`**: `box-sizing`, `.kui-sr-only`, `prefers-reduced-motion`, `[hidden]`, and **one single `:focus-visible` indicator** (`outline: 2px solid var(--ui-focus-color, var(--ui-accent, currentColor))`). No grammar ever sets `outline: none` on focusable elements, keeping RGAA 10.7 focus visibility intact across every theme.
-2. **Per-component sheets (`components/<part>.css` + `themed/<part>.css`)**: structural layout, top-layer positioning, 44px mobile touch targets, and `--ui-*` token-driven visual styles split per component (`layout`, `button`, `card`, `badge`, `notice`, `field`, `checkbox`, `switch`, `radio-group`, `progress`, `accordion`, `tabs`, `dialog`, `drawer`, `command`, `popover`, `menu`, `select`, `toast`, `datatable`).
-3. **Thin grammar sheets (`grammars/<name>.css`)**: `:root` CSS custom property palettes plus only the small rules a token cannot express (such as Prunelle's eye controls, Orbit's starfield, or Console's `[badge]` brackets).
+1. **`base.css`**: `box-sizing`, `.kui-sr-only`, `prefers-reduced-motion`, `[hidden]`, and one consistent `:focus-visible` ring (`outline: 2px solid var(--ui-focus-color, var(--ui-accent, currentColor))`). No grammar ever removes focus outlines, preserving RGAA 10.7 across every theme.
+2. **Per-component sheets (`components/<part>.css` + `themed/<part>.css`)**: structural layout, top-layer positioning, 44px mobile touch targets, and `--ui-*` token rules split into 20 component parts (`layout`, `button`, `card`, `badge`, `notice`, `field`, `checkbox`, `switch`, `radio-group`, `progress`, `accordion`, `tabs`, `dialog`, `drawer`, `command`, `popover`, `menu`, `select`, `toast`, `datatable`).
+3. **Thin grammar sheets (`grammars/<name>.css`)**: `:root` CSS custom properties plus the small rules a token cannot express (Prunelle's eye controls, Orbit's starfield, Console's `[badge]` brackets).
 
-Need only a subset of component styles? `@prunellejs/ui/plugin` exports `renderGrammarBaseCss(grammar)`, `renderGrammarPartsCss(grammar, parts)`, `UI_COMPONENT_PARTS`, and `UI_EXPORT_TO_PARTS` so tooling or routes can assemble CSS for only the components a page uses.
+At build time, `ui()` scans each route's reachable imports so pages ship CSS only for the components they render, and `prunelle build` consolidates local stylesheets into at most one site-wide cached sheet plus one per-route sheet. Across apps and this docs site, that cuts shipped CSS by **19%–45%** gzip (dropping docs pages from 3 linked sheets to 1). See [Benchmarks](/docs/production/benchmarks).
+
+For custom tooling, `@prunellejs/ui/plugin` also exports `renderGrammarBaseCss(grammar)`, `renderGrammarPartsCss(grammar, parts)`, `UI_COMPONENT_PARTS`, and `UI_EXPORT_TO_PARTS`.
 
 ## Eject & own your CSS
 
-Because every grammar resolves to a single pure CSS file wrapped in `@layer kui`, you can eject and customize it anytime — and Tailwind or your own stylesheet always wins without `!important`:
+Because every grammar compiles to pure CSS wrapped in `@layer kui`, you can eject it into one standalone file anytime — and Tailwind utilities or your own stylesheet always win without `!important`:
 
 ```bash
 prunelle ui-eject prunelle src/styles/ui.css

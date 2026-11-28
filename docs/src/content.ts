@@ -15,9 +15,9 @@ export interface DocFrontmatter {
 // Each section is a part of the book, numbered in Roman numerals; its blurb is the line under it on the home page's contents.
 export const SECTIONS: ReadonlyArray<{ id: DocSectionId, label: string, part: string, blurb: string }> = [
   { id: 'getting-started', label: 'Getting Started', part: 'I', blurb: 'Install, scaffold, and find your way around a project.' },
-  { id: 'core', label: 'Core Concepts', part: 'II', blurb: 'Islands, signals, routes and actions.' },
-  { id: 'plugins', label: 'Ecosystem Plugins', part: 'III', blurb: 'UI, auth, content, live, images, MCP.' },
-  { id: 'production', label: 'Production', part: 'IV', blurb: 'One binary or a static export, tests, the plugin API.' },
+  { id: 'core', label: 'Core Concepts', part: 'II', blurb: 'Islands, signals, routes, actions, security, and consent.' },
+  { id: 'plugins', label: 'Ecosystem Plugins', part: 'III', blurb: 'UI, auth, content, live, images, SEO, and MCP.' },
+  { id: 'production', label: 'Production', part: 'IV', blurb: 'Deploy, benchmarks, eco-design, testing, and the plugin API.' },
 ]
 
 function findRoot(): string {

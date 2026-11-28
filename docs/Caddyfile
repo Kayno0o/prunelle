@@ -17,6 +17,8 @@
 
 	redir /docs /docs/getting-started/introduction 302
 	redir /docs/ /docs/getting-started/introduction 302
+	redir /benchmarks /docs/production/benchmarks 302
+	redir /benchmarks/ /docs/production/benchmarks 302
 
 	try_files {path} {path}/index.html
 

@@ -1,23 +1,24 @@
 ---
 title: Configuration & Security
-description: prunelle.config.ts options, strict hashed CSP, HSTS, proxy trust, health checks, request IDs, RGAA/RGPD compliance, and typed env vars.
+description: prunelle.config.ts options, strict SHA-256 hashed CSP, HSTS, proxy trust, route caching, cookies, health checks, and typed env vars.
 section: core
 order: 6
 ---
 
-Configure your app in `prunelle.config.ts` with `defineConfig()` from `prunelle/config`:
+Configure your app once in `prunelle.config.ts` with `defineConfig()` from `prunelle/config`:
 
 ```ts
 import { defineConfig } from 'prunelle/config'
 
 export default defineConfig({
+  site: 'https://example.com',
   lang: 'en',
   port: 3000,
   trustProxy: true,
   maxRequestBodySize: 2 * 1024 * 1024,
   streamTimeout: 15_000,
-  onError({ error, request, source }) {
-    console.error(`[${source}] ${request.method} ${request.url}`, error)
+  onError({ error, request, source, requestId }) {
+    console.error(`[${source}] [${requestId ?? '-'}] ${request.method} ${request.url}`, error)
   },
   plugins: [],
 })
@@ -25,45 +26,47 @@ export default defineConfig({
 
 ## `prunelle.config.ts` options
 
-A key prunelle does not read fails the build, `prunelle check` and `prunelle dev`, naming the key you most likely meant (`outDirr` points at `outDir`).
+Any unknown key fails `prunelle check`, `prunelle dev`, and `prunelle build`, naming the closest valid option (`outDirr` suggests `outDir`).
 
 | Option | Default | Purpose |
 | :--- | :--- | :--- |
+| `site` | `undefined` | Public origin (e.g. `'https://example.com'`), inherited by `@prunellejs/seo`, `@prunellejs/i18n`, `@prunellejs/content`, `@prunellejs/images`, and `@prunellejs/auth`. |
 | `lang` | `'en'` | Default `<html lang="...">` attribute. |
 | `port` | `3000` | Default port for `prunelle start` (overridden by `PORT` or `--port`). |
 | `routesDir` | `'src/routes'` | Directory scanned for file-based routes. |
 | `outDir` | `'dist'` | Build output directory. |
 | `publicDir` | `'public'` | Static files served at `/` with ETag and `304`. |
 | `assetPrefix` | `'/_pru'` | URL prefix for immutable hashed build assets. |
-| `security` | Enabled | Security headers options, or `false` to disable all of them. |
-| `trustedOrigins` | `undefined` | Extra origins allowed by CSRF checks (for example, `['https://app.example.com']`). |
-| `trustProxy` | `false` | Reverse proxies in front of Prunelle: `true` for 1 hop, a number for `N` hops (e.g. `2` for CDN + nginx). |
+| `security` | Enabled | Security headers config, or `false` to disable all of them. |
+| `trustedOrigins` | `undefined` | Extra origins allowed by CSRF checks (e.g. `['https://app.example.com']`). |
+| `trustProxy` | `false` | Reverse proxies in front of Prunelle: `true` for 1 hop, or `N` hops (e.g. `2` for CDN + nginx). |
 | `maxRequestBodySize` | `1048576` (1 MiB) | Maximum request body size before returning `413 Payload Too Large`. |
-| `navigation` | `{ viewTransitions: true, prefetch: 'moderate', prerender: false }` | How a change from one page to the next feels, with no client JS: see [Page changes](/docs/core/routing-and-layouts#page-changes). |
-| `consent` | `undefined` | One-declaration CNIL/RGPD consent categories, cookie name (`'pru_consent'`), retention (`15552000` s = 180 days), and `POST` endpoint (`'/_pru/consent'`). |
-| `compliance` | `undefined` | French web law check overrides: `{ ignore?, publicBody?, legalNotice? }`. |
+| `navigation` | `{ viewTransitions: true, prefetch: 'moderate', prerender: false }` | Zero-JS cross-document view transitions and Speculation Rules: see [Page changes](/docs/core/routing-and-layouts#page-changes). |
+| `routeCache` | `{ maxEntries: 500, maxBytes: 33554432 }` | Bounded in-memory LRU cache for routes exporting `cache` (`false` to disable). |
+| `autoPrerender` | `false` | Automatically prerender static pages that read nothing from the request or clock. |
+| `consent` | `undefined` | CNIL/RGPD consent categories, cookie name (`'pru_consent'`), retention (`180` days), and `POST` endpoint (`'/_pru/consent'`). |
+| `compliance` | `undefined` | French web law check overrides (`{ ignore?, publicBody?, legalNotice? }`). See [Compliance & Consent](/docs/core/compliance-and-consent). |
 | `streamTimeout` | `30000` | Milliseconds a `<Suspense>` boundary may wait before failing. |
-| `compress` | `true` in prod, `false` in dev | Sends the `.br` and `.gz` files `prunelle build` wrote beside assets, `public/` files and prerendered pages, and compresses the rest on the fly (zstd, gzip), streamed pages included. |
-| `healthCheck` | `undefined` | One function or named map of checks contributing to `/_pru/health` (returning `false` or throwing turns `/_pru/health` to `503`). |
-| `onError` | `undefined` | Hook called on unhandled errors in routes, actions, or plugins (`{ error, request, source, requestId }`). Without one, Prunelle logs each unhandled error, its request ID, stack, method and path to stderr in both `prunelle start` and `prunelle dev`. A hook that throws is logged with its owner, and the other hooks still run. |
+| `compress` | `true` (prod) / `false` (dev) | Serves precompressed `.br`/`.gz` sidecars and compresses dynamic or streamed responses on the fly (zstd, gzip). |
+| `healthCheck` | `undefined` | Check function or named map evaluated on `GET /_pru/health` (`503` on failure). |
+| `onError` | `undefined` | Hook called on unhandled errors (`{ error, request, source, requestId }`). Without one, Prunelle logs unhandled errors with stack and request ID to stderr. |
 | `plugins` | `[]` | Array of `PrunellePlugin` instances. |
 
 ## Security headers & strict CSP
 
-Prunelle attaches safe security headers to every response out of the box:
+Prunelle attaches hardened security headers to every response out of the box:
 
-- `Content-Security-Policy`: Defaults to `DEFAULT_CSP` (`default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'`). A `style="..."` attribute is allowed, since it cannot run script.
-- **Automatic SHA-256 hashes**: Each page's policy gains the hashes of the inline styles and scripts it renders: islands, `<Suspense>`, and every `<style>` block of the app. A policy you set in `security.csp` gets the same hashes. No `'unsafe-inline'` is needed for them.
+- `Content-Security-Policy`: Defaults to `DEFAULT_CSP` (`default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'`).
+- **Automatic SHA-256 hashes**: Each page's CSP receives exact SHA-256 hashes for its island/Suspense styles, inline `<style>` blocks, navigation rules, and registered plugin inline scripts — no `'unsafe-inline'` for scripts or stylesheets.
 - `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
 - `Strict-Transport-Security`: Sent on HTTPS requests (`max-age=31536000; includeSubDomains` by default).
 
-Override individual headers, extend specific directives of `DEFAULT_CSP`, or turn one off with `false`:
+Extend individual directives of `DEFAULT_CSP`, override headers, or disable one with `false`:
 
 ```ts
 export default defineConfig({
   security: {
-    // Adds sources to the default policy without restating the other directives;
-    // automatic SHA-256 hashes still land in the extended directives.
+    // Merges onto DEFAULT_CSP; automatic SHA-256 hashes still land in extended directives.
     csp: {
       'style-src': ['https://fonts.googleapis.com'],
       'font-src': ['https://fonts.gstatic.com'],
@@ -74,13 +77,11 @@ export default defineConfig({
 })
 ```
 
-Passing a directive object merges onto `DEFAULT_CSP` (new `*-src` fetch directives such as `connect-src` inherit `'self'` from `default-src` automatically, while passing `"'none'"` tightens a directive). Pass a full policy string to replace `DEFAULT_CSP` completely, or import `DEFAULT_CSP` and `extendCsp` from `prunelle/server` when building a policy in code.
+Passing a directive object merges onto `DEFAULT_CSP` (new `*-src` directives inherit `'self'` from `default-src` automatically, while `"'none'"` tightens a directive). Pass a full string to replace `DEFAULT_CSP` completely, or use `DEFAULT_CSP` and `extendCsp` from `prunelle/server`.
 
 ## Reverse proxies (`trustProxy`)
 
-Forwarded headers (`X-Forwarded-Proto`, `X-Forwarded-Host`, `X-Forwarded-For`) are ignored unless `trustProxy` is set. Prunelle reads the entry written by the trusted hops from the right of each header so clients cannot spoof their IP or protocol.
-
-This affects `ctx.ip`, HTTPS cookie `Secure` flags, HSTS headers, and CSRF `Origin` checks.
+Forwarded headers (`X-Forwarded-Proto`, `X-Forwarded-Host`, `X-Forwarded-For`, and incoming `x-request-id`) are ignored unless `trustProxy` is set. Prunelle reads the right-most entries written by trusted hops so clients cannot spoof their IP or protocol. This governs `ctx.ip`, HTTPS cookie `Secure` flags, HSTS headers, and CSRF `Origin` checks.
 
 ## Cookies
 
@@ -92,105 +93,7 @@ ctx.cookies.set('theme', 'dark', { httpOnly: true, sameSite: 'lax', path: '/' })
 ctx.cookies.delete('theme')
 ```
 
-Pass `category` for any non-essential cookie (for example, `{ category: 'analytics' }`). Prunelle refuses to set it unless the visitor has granted consent for that category. Essential cookies (no `category` or `category: 'essential'`) always work.
-
-## French Web Law & Consent (RGPD, CNIL, RGAA, LCEN)
-
-`prunelle check` and production `prunelle build` check French web law rules by default and emit actionable warnings (never hard compile errors; pass `prunelle check --strict` in CI to fail on warnings):
-
-| Rule | What it checks |
-| :--- | :--- |
-| `rgaa/img-alt` | `<img>` missing an `alt` attribute (`alt=""` is accepted for decorative images). |
-| `rgaa/form-label` | `<input>` (except `hidden`/`submit`/`reset`/`button`/`image`), `<select>`, or `<textarea>` without an enclosing `<label>`, matching `<label for>`, `aria-label`, `aria-labelledby`, or `title`. |
-| `rgaa/accessible-name` | Empty or icon-only `<button>` or `<a>` with no visible text, `aria-label`, `aria-labelledby`, `title`, or labelled child image/icon. |
-| `rgaa/duplicate-id` | Duplicate literal `id` attribute within the same component. |
-| `rgaa/positive-tabindex` | Positive `tabindex` (`> 0`), which disrupts natural keyboard focus order (use `0` or `-1`). |
-| `rgaa/nested-control` | Interactive element (`<a>`, `<button>`, `<input>`, `<select>`, `<textarea>`, `<summary>`) nested inside `<a>`, `<button>`, or `<summary>`. |
-| `rgaa/link-as-button` | `<a>` without `href` that has an `onClick` handler (use `<button type="button">` or add `href`). |
-| `rgaa/unknown-role` | Literal `role="..."` containing a token that is not a valid concrete WAI-ARIA role. |
-| `rgaa/unknown-aria` | `aria-*` attribute name that is not a valid WAI-ARIA attribute. |
-| `rgaa/invalid-aria-value` | Literal `aria-*` value that does not match its WAI-ARIA type (boolean, tristate, token enum, or numeric). |
-| `rgaa/skipped-heading` | Downward heading level jump greater than 1 within a component (for example `<h1>` directly followed by `<h3>`). |
-| `rgaa/table-without-header` | Data `<table>` with no `<th>` header cell (unless `role="presentation"` or `role="none"`). |
-| `rgaa/fieldset-without-legend` | `<fieldset>` without a `<legend>` element. |
-| `rgaa/click-without-key` | `onClick` on a non-interactive HTML element without `onKeyDown`, `onKeyUp`, or `onKeyPress`. |
-| `rgaa/autofocus` | `autofocus` / `autoFocus` attribute that moves keyboard focus unexpectedly on page load. |
-| `rgaa/meta-refresh` | `<meta http-equiv="refresh">` automatic redirect or reload. |
-| `rgpd/third-party-url` | Third-party URL on `<script src>`, `<link rel="stylesheet\|preload\|preconnect\|dns-prefetch">`, `<iframe src>`, or CSS `@import`/`url(...)` outside `<ConsentGate>` (same-origin `site` and `localhost` are excluded). |
-| `lcen/legal-notice` | Page app missing a legal notice route (`/mentions-legales`, `/legal`, `/legal-notice`, `/imprint`, `/impressum`, `/cgu`, `/cgv`, or custom `compliance.legalNotice`). Skipped for API-only apps. |
-| `rgaa/accessibility-statement` | When `compliance: { publicBody: true }` is set, missing an accessibility statement route (`/accessibilite`, `/accessibility`, `/declaration-accessibilite`, or `/accessibility-statement`). |
-
-### Silencing warnings
-
-Silence a specific rule explicitly in `prunelle.config.ts` or inline with a comment naming the rule:
-
-```ts
-// prunelle.config.ts
-export default defineConfig({
-  compliance: {
-    publicBody: false,
-    legalNotice: '/mentions-legales', // or false to disable lcen/legal-notice
-    ignore: ['rgaa/img-alt'],
-  },
-})
-```
-
-```tsx
-{/* prunelle-ignore rgaa/img-alt */}
-<img src="/generated.png" />
-
-// Or at the top of a file:
-// prunelle-ignore-file rgpd/third-party-url
-```
-
-### One-declaration consent gating (`consent` & `<ConsentGate>`)
-
-Declare your non-essential categories once in `prunelle.config.ts`. Prunelle automatically wires a CSRF-protected `POST /_pru/consent` endpoint (supporting both zero-JS HTML forms and JSON), sets an `HttpOnly; SameSite=Lax` cookie (`pru_consent`, 180-day CNIL max-age by default), exposes `ctx.consent` (`decided`, `categories`, `has(cat)`, `all()`), gates `ctx.cookies.set(..., { category })`, and provides server-only `<ConsentGate>` with **0 KB of browser JS**:
-
-```ts
-// prunelle.config.ts
-import { defineConfig } from 'prunelle/config'
-
-export default defineConfig({
-  consent: {
-    categories: {
-      analytics: 'Audience measurement',
-      media: 'External video embeds',
-    },
-  },
-})
-```
-
-```tsx
-// src/routes/index.tsx
-import type { PageProps, RouteContext } from 'prunelle'
-import { ConsentGate } from 'prunelle'
-
-export function load(ctx: RouteContext) {
-  // Refused until the visitor grants 'analytics' consent
-  ctx.cookies.set('visitor_id', 'v_123', { category: 'analytics' })
-  return { decided: ctx.consent.decided }
-}
-
-export default function Home({ data }: PageProps<typeof load>) {
-  return (
-    <main>
-      <ConsentGate category="media" fallback={<p>Accept media cookies to load this video.</p>}>
-        <iframe src="https://video.example.com/embed/demo" title="Demo video" />
-      </ConsentGate>
-
-      {!data.decided && (
-        <form method="post" action="/_pru/consent">
-          <button type="submit" name="action" value="accept-all">Accept all</button>
-          <button type="submit" name="action" value="reject-all">Reject all</button>
-        </form>
-      )}
-    </main>
-  )
-}
-```
-
-Granular checkboxes (`<input type="checkbox" name="analytics" />`) work with the same zero-JS form, or send JSON `POST /_pru/consent` with `{ categories: { analytics: true, media: false } }`, `{ acceptAll: true }`, or `{ rejectAll: true }`.
+Pass `category` for any non-essential cookie (`{ category: 'analytics' }`). Prunelle refuses to set it until the visitor grants consent for that category. Essential cookies (no `category` or `category: 'essential'`) always work. See [Compliance & Consent](/docs/core/compliance-and-consent).
 
 ## Typed environment variables (`defineEnv` & `nodeEnv`)
 
@@ -208,4 +111,4 @@ export const env = defineEnv(z.object({
 const isProd = nodeEnv() === 'production'
 ```
 
-Read `nodeEnv()` instead of `process.env.NODE_ENV` in server code. `prunelle build` does not set `NODE_ENV`, so a page it prerenders would read it unset, while `nodeEnv()` returns the mode of the build or of the running server. In `--compile` binaries, `Bun.build` can also inline `process.env.NODE_ENV` at build time. `prunelle build` and `prunelle check` warn on a `process.env.NODE_ENV` read the server runs. An island may read it: its bundle inlines the value.
+Read `nodeEnv()` instead of `process.env.NODE_ENV` in server code. `prunelle build` does not set `NODE_ENV` when prerendering, and `Bun.build` can inline `process.env.NODE_ENV` in `--compile` binaries. `prunelle check` and `prunelle build` warn on server-side `process.env.NODE_ENV` reads (islands may read it because their bundle inlines the value).

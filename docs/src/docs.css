@@ -34,6 +34,12 @@ a:not([data-ui]) {
   text-underline-offset: 4px;
 }
 
+a:not([data-ui]):focus-visible,
+summary:focus-visible {
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 3px;
+}
+
 ::selection { background: color-mix(in srgb, var(--ui-accent) 28%, transparent); }
 
 .lead {
@@ -176,6 +182,35 @@ a.brand { text-decoration: none; }
   width: 100%;
 }
 
+/* Zero-JS chapter drawer toggle shown only once the left rail collapses on tablet/mobile. */
+.toc-check,
+.toc-toggle { display: none; }
+.toc-toggle {
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  margin: 0 0 18px;
+  padding: 8px 0;
+  border-top: 1px solid var(--ui-ink);
+  border-bottom: 1px solid var(--ui-line);
+  cursor: pointer;
+  font: 500 14px var(--ui-font-display);
+  color: var(--ui-ink);
+}
+.toc-toggle small {
+  margin-left: auto;
+  font: 400 12px var(--ui-font-mono);
+  color: var(--ui-muted);
+}
+.toc-toggle::after {
+  content: "+";
+  font: 500 16px/1 var(--ui-font-mono);
+  color: var(--ui-accent);
+}
+.toc-check:checked + .toc-toggle::after { content: "−"; }
+.toc-check:focus-visible + .toc-toggle { outline: 2px solid var(--ui-accent); outline-offset: 3px; }
+
 .contents {
   position: sticky;
   top: 16px;
@@ -218,13 +253,10 @@ a.ch:hover { color: var(--ui-ink); }
   text-underline-offset: 4px;
 }
 
-
 .chapter {
   position: relative;
   min-width: 0;
   padding-left: calc(var(--num) + var(--gap));
-}
-.chapter {
   --text: min(var(--measure), calc(100% - var(--notes) - var(--gap)));
 }
 .chapter-head,
@@ -263,7 +295,7 @@ a.ch:hover { color: var(--ui-ink); }
 }
 .prose :is(h2, h3, h4) {
   position: relative;
-  margin: 32px 0 10px;
+  margin: 34px 0 10px;
   font-family: var(--ui-font-display);
   font-weight: 500;
   letter-spacing: -0.015em;
@@ -292,7 +324,7 @@ a.ch:hover { color: var(--ui-ink); }
   -webkit-box-decoration-break: clone;
 }
 .prose :is(ul, ol) { padding-left: 1.4rem; }
-.prose li + li { margin-top: 4px; }
+.prose li + li { margin-top: 5px; }
 .prose li::marker { color: var(--ui-muted); }
 .prose blockquote {
   border-left: 2px solid var(--ui-accent);
@@ -302,18 +334,25 @@ a.ch:hover { color: var(--ui-ink); }
 .prose table {
   display: block;
   overflow-x: auto;
+  max-width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  margin: 10px 0 22px;
 }
 .prose :is(th, td) {
-  padding: 7px 14px 7px 0;
+  padding: 8px 16px 8px 0;
   border-bottom: 1px solid var(--ui-line);
   text-align: left;
   vertical-align: top;
 }
 .prose thead th {
   font-weight: 600;
-  border-bottom-color: var(--ui-ink);
+  border-top: 1px solid var(--ui-ink);
+  border-bottom: 1px solid var(--ui-ink);
+}
+.prose tbody tr:last-child :is(th, td) {
+  border-bottom-color: var(--ui-line-strong);
 }
 
 /* Notes sit in the margin, beside the paragraph they follow. */
@@ -429,7 +468,7 @@ a.ch:hover { color: var(--ui-ink); }
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  margin-top: 24px;
+  margin-top: 28px;
   padding-top: 14px;
   border-top: 1px solid var(--ui-line);
   font-size: 13px;
@@ -468,7 +507,7 @@ a.ch:hover { color: var(--ui-ink); }
   grid-template-columns: minmax(0, 1.25fr) minmax(16rem, 1fr);
   gap: 40px;
   align-items: start;
-  padding: 48px var(--gutter) 36px;
+  padding: 48px var(--gutter) 32px;
 }
 .kicker {
   margin: 0 0 14px;
@@ -492,7 +531,7 @@ a.ch:hover { color: var(--ui-ink); }
 }
 .eye-note p {
   margin: 0;
-  max-width: 16rem;
+  max-width: 17rem;
   font-size: 13px;
   color: var(--ui-muted);
 }
@@ -518,13 +557,88 @@ a.ch:hover { color: var(--ui-ink); }
 }
 .sommaire a.ch:hover span { text-decoration: underline 1px var(--ui-accent); text-underline-offset: 4px; }
 
-.measured { padding: 12px var(--gutter) 48px; }
-.measured h2 {
-  margin: 0 0 4px;
+/* Home: four editorial pillars, hairline-ruled rather than boxed. */
+.pillars {
+  padding: 4px var(--gutter) 32px;
+}
+.pillars ol {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px 28px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.pillars li {
+  border-top: 1px solid var(--ui-line-strong);
+  padding-top: 12px;
+}
+.pillar-num {
+  display: block;
+  font: 500 13px/1 var(--ui-font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-accent);
+  margin-bottom: 6px;
+}
+.pillars h3 {
+  margin: 0 0 6px;
+  font: 500 17px/1.25 var(--ui-font-display);
+  letter-spacing: -0.015em;
+}
+.pillars p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ui-muted);
+}
+
+.measured { padding: 8px var(--gutter) 48px; }
+.measured-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px 16px;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--ui-ink);
+  margin-bottom: 16px;
+}
+.measured h2 {
+  margin: 0;
   font: 500 15px var(--ui-font-display);
 }
+.figures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px 28px;
+  margin: 0 0 24px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ui-line);
+}
+.figures > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.figures dt {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ui-ink);
+}
+.figures dd { margin: 0; }
+.figure-val {
+  order: -1;
+  font: 500 30px/1.05 var(--ui-font-display);
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-accent);
+  margin-bottom: 4px;
+}
+.figure-detail {
+  font-size: 12px;
+  color: var(--ui-muted);
+}
+
 .table-scroll { overflow-x: auto; }
 .measured table {
   width: 100%;
@@ -532,10 +646,8 @@ a.ch:hover { color: var(--ui-ink); }
   font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
-.measured caption {
-  caption-side: bottom;
-  padding-top: 8px;
-  text-align: left;
+.table-caption {
+  margin: 8px 0 0;
   font-size: 12px;
   color: var(--ui-muted);
 }
@@ -553,6 +665,7 @@ a.ch:hover { color: var(--ui-ink); }
 }
 .measured tbody th { font-weight: 400; }
 .measured [data-self] th { color: var(--ui-accent); font-weight: 600; }
+.measured [data-self] td { font-weight: 500; }
 
 /* 404 and the grammars page. */
 .lost,
@@ -599,12 +712,57 @@ a.ch:hover { color: var(--ui-ink); }
 
 @media (max-width: 1080px) {
   .book { grid-template-columns: minmax(0, 1fr); }
-  .contents { display: none; }
+  .toc-check {
+    display: block;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .toc-toggle { display: flex; }
+  .contents {
+    display: none;
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 0 0 18px;
+    margin-bottom: 22px;
+    border-right: 0;
+    border-bottom: 1px solid var(--ui-line);
+  }
+  .toc-check:checked ~ .contents { display: block; }
+}
+
+@media (max-width: 960px) {
+  .pillars ol,
+  .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 860px) {
   .title-page { grid-template-columns: minmax(0, 1fr); padding-top: 32px; }
   .hero { font-size: 44px; }
+  .chapter { padding-left: 0; }
+  .chapter-head,
+  .prose { max-width: none; }
+  .chapter-num,
+  .sec-num {
+    position: static;
+    display: block;
+    width: auto;
+    text-align: left;
+  }
+  .chapter-num { font-size: 32px; margin-bottom: 6px; }
+  .sec-num { font-size: 18px; margin-bottom: 4px; }
+  .in-chapter { display: none; }
+  .prose .note { outline: 0; }
+  .note {
+    float: none;
+    width: auto;
+    margin: 0 0 16px;
+    padding: 10px 0 0 14px;
+    border-top: 1px solid var(--ui-line);
+  }
 }
 
 @media (max-width: 720px) {
@@ -621,31 +779,15 @@ a.ch:hover { color: var(--ui-ink); }
     justify-content: center;
   }
   .mast-nav [data-part="trigger"]::after { content: none; }
-  .book { padding-top: 24px; }
-  .chapter { padding-left: 0; }
-  .chapter-head,
-  .prose { max-width: none; }
-  .chapter-num,
-  .sec-num {
-    position: static;
-    display: block;
-    width: auto;
-    text-align: left;
-  }
-  .chapter-num { font-size: 30px; margin-bottom: 6px; }
-  .sec-num { font-size: 18px; margin-bottom: 4px; }
+  .book { padding-top: 20px; }
   .chapter-head h1 { font-size: 40px; }
-  .in-chapter { display: none; }
-  .prose .note { outline: 0; }
-  .note {
-    float: none;
-    width: auto;
-    margin: 0 0 16px;
-    padding: 10px 0 0 14px;
-    border-top: 1px solid var(--ui-line);
-  }
+  .toc-toggle { min-height: 44px; }
+  .contents .ch { padding: 8px 0; min-height: 44px; align-items: center; }
+  .prose :is(h2, h3, h4) > a { display: inline-flex; flex-wrap: wrap; align-items: center; min-height: 44px; }
   .turn a { min-height: 44px; }
   .listing-copy { padding: 15px 0 15px 16px; margin: -15px 0; }
   .lost h1,
   .plates h1 { font-size: 36px; }
+  .pillars ol { grid-template-columns: minmax(0, 1fr); }
+  .figure-val { font-size: 26px; }
 }

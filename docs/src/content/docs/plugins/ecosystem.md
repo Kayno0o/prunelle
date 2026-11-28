@@ -1,18 +1,18 @@
 ---
 title: "@prunellejs/i18n · mail · spa · tailwind · icons"
-description: Composable plugins for localization, email delivery, opt-in SPA swaps, Tailwind v4, and inline SVG icon sets.
+description: Composable plugins for localization, email delivery, partial Regions and opt-in SPA swaps, Tailwind v4, and inline SVG icon sets.
 section: plugins
-order: 6
+order: 7
 ---
 
 Every remaining capability is an opt-in package built strictly on `PrunellePlugin` via `definePlugin(...)`.
 
 ## Conventions & ordering
 
-- **Stateless plugins** export a single camelCase factory matching the package name from the package root: `tailwind()`, `images()`, `i18n()`, `content()`, `seo()`, `spa()`, `mcp()`.
-- **Stateful service plugins** also give routes and actions a handle. Their `createX()` returns one object that is both the plugin and the handle: `plugins: [auth, mail, rooms]` registers what `createAuth()`, `createMailer()` and `createRooms()` returned.
-- **Client-safe barrels**: `@prunellejs/ui` and `@prunellejs/icons` export only what an island can import; their build plugins live at `@prunellejs/ui/plugin` (`ui()`) and `@prunellejs/icons/plugin` (`icons()`).
-- **Declarative ordering**: plugins declare `enforce: 'pre' | 'post'`, `after: ['...']`, `providesLocals`, and `readsLocals`. Core sorts plugins deterministically (`pre` → normal → `post`, respecting `after`) and fails at startup if a plugin declares `readsLocals` before its provider runs. Two plugins with the same `name` also fail, since `after` and the build data find a plugin by its name. An `after` name that no plugin has counts as an optional plugin that is not installed, unless it is one typo away from a registered name: then prunelle fails and names it.
+- **Stateless plugins** export a camelCase factory matching the package name: `tailwind()`, `images()`, `i18n()`, `content()`, `seo()`, `spa()`, `regions()`, `mcp()`.
+- **Stateful service plugins** return one object that is both the plugin and the app handle: `plugins: [auth, mail, rooms]` registers what `createAuth()`, `createMailer()`, and `createRooms()` return.
+- **Client-safe barrels**: `@prunellejs/ui` and `@prunellejs/icons` export only browser-safe components; their build plugins live at `@prunellejs/ui/plugin` (`ui()`) and `@prunellejs/icons/plugin` (`icons()`).
+- **Declarative ordering**: Plugins declare `enforce: 'pre' | 'post'`, `after: ['...']`, `providesLocals`, and `readsLocals`. Core sorts plugins deterministically (`pre` → normal → `post`, respecting `after`), rejects duplicate plugin names, catches typo'd `after` names, and fails startup if a reader runs before its `providesLocals` provider.
 
 ## `@prunellejs/i18n`
 
@@ -24,7 +24,6 @@ import { i18n } from '@prunellejs/i18n'
 i18n({
   locales: ['en', 'fr'],
   defaultLocale: 'en',
-  site: 'https://example.com',
   messages: { en, fr },
 })
 ```
@@ -48,13 +47,13 @@ export const mail = createMailer({
 })
 ```
 
-Register `mail` in `prunelle.config.ts`. In development and tests, sent messages are recorded in `mail.outbox` and rendered at `/_pru/mail`. In `NODE_ENV=production`, the preview routes are never mounted and no outbox copy is kept in memory.
+Register `mail` in `prunelle.config.ts`. In development and tests, sent messages are recorded in `mail.outbox` and rendered at `/_pru/mail`. In `NODE_ENV=production`, preview routes are never mounted and no outbox copy is retained in memory.
 
-`resend()` retries a `429` or `5xx` answer twice, after the wait Resend asks for. It sends the mail's id as idempotency key, so Resend never delivers a retried mail twice. Pass `retries: 0` to turn this off.
+`resend()` retries `429` and `5xx` responses twice using the server's wait interval, sending the message ID as an idempotency key so retried mail is never delivered twice (`retries: 0` disables retries).
 
 ## `@prunellejs/icons`
 
-Zero-runtime inline SVGs from any `@iconify-json/*` icon pack. Register `icons()` from `@prunellejs/icons/plugin` in `prunelle.config.ts`, then import icons anywhere, islands included:
+Zero-runtime inline SVGs from any `@iconify-json/*` pack or your own SVG folders. Register `icons()` from `@prunellejs/icons/plugin` in `prunelle.config.ts`, then import icons anywhere, including islands:
 
 ```tsx
 import { Icon } from '@prunellejs/icons'
@@ -63,22 +62,10 @@ import arrowRight from '~icons/tabler/arrow-right'
 <Icon icon={arrowRight} class="size-4" />
 ```
 
-Registering `icons()` also types the `~icons/*` imports. A tsconfig that leaves `prunelle.config.ts` out gets them from `/// <reference types="@prunellejs/icons/ambient" />` in a `.d.ts` file.
-
-Your own icons go in `src/icons` as `.svg` files: `src/icons/logo.svg` imports as `~icons/local/logo`. Each file needs a `viewBox`, or a `width` and `height`. Name other folders with `icons({ dirs: { brand: 'assets/brand' } })`, or give `src/icons` another prefix with `dirs: { app: 'src/icons' }`. `prunelle dev` reloads an edited file.
-
-`<Icon>` takes any SVG attribute. Your `width`, `height` and `viewBox` replace the icon's own. An icon given a non-blank `aria-label` or `aria-labelledby` gets `role="img"`; any other is `aria-hidden`.
-
-An import of an icon or set that does not exist fails `prunelle check` and the build, naming the file and the closest icons that do.
-
-`prunelle icons-find garbage` prints the icons of the installed sets that match, such as `~icons/tabler/trash`, so an agent imports a name that exists. It searches `@iconify-json/*` packages, `@iconify/json` (hoisted installs included), your `.svg` folders and the sets passed to `icons({ sets })`, ten icons per set unless `--limit` says otherwise; `--set tabler` searches one. Matching is English-only and covers related words (`garbage` finds `trash`), typos (`calnedar`), other forms of a word (`searching`), half-typed words (`shopp`) and two words typed apart (`sign out` finds `logout`).
-
-An app's own icon picker gets the same search from `@prunellejs/icons/search`:
-
-- `findIcons(set, query, { limit, offset })` ranks names holding the query as whole words first (in any word order), then related words — icons answering more query words rank ahead of partial matches — and mid-word hits (`pin` in `spinner`) last. It throws on a negative or fractional `offset` (`< 0`) or `limit` (`< 1`).
-- `relatedWords(word)` returns `[word, strength]` pairs for an "also searched" list.
-
-Keep `@prunellejs/icons/search` server-side: it reads a ~1.7 MB word table on first call, and `prunelle build` warns when an island imports it.
+- **Local SVGs**: Place `.svg` files in `src/icons/` and import them as `~icons/local/<name>` (each needs a `viewBox`, or `width` and `height`). Configure extra folders with `icons({ dirs: { brand: 'assets/brand' } })`. `prunelle dev` reloads edited SVGs automatically.
+- **Accessibility**: `<Icon>` forwards SVG attributes and overrides `width`, `height`, and `viewBox`. Icons with a non-blank `aria-label` or `aria-labelledby` receive `role="img"`; decorative icons receive `aria-hidden="true"`.
+- **Compile checks**: Missing icon names or sets fail `prunelle check` and `prunelle build`, suggesting the closest match.
+- **Discovery (`prunelle icons-find`)**: Search installed Iconify packs and local folders by related word, typo, or prefix (`prunelle icons-find garbage` finds `~icons/tabler/trash`; use `--set <prefix>` and `--limit <n>`). Apps building their own icon picker can import `findIcons` and `relatedWords` from `@prunellejs/icons/search` (keep it server-side: it reads a ~1.7 MB word table).
 
 ## `@prunellejs/tailwind`
 
@@ -90,39 +77,22 @@ import { tailwind } from '@prunellejs/tailwind'
 tailwind({ css: 'src/app.css' })
 ```
 
-## `@prunellejs/spa`
+## `@prunellejs/spa` (`regions()` & `spa()`)
 
-Multi-page navigation (`0 KB` JS) is the default, and most apps are best served by it plus [`regions()`](#regions) for the parts of a page that change in place. Add `spa()` only when an island must stay alive from one page to the next:
+Plain multi-page navigation (`0 KB` JS, with view transitions and Speculation Rules) is the default. When part of a page needs to swap in place — such as a detail pane, filterable results, or "Load more" — add `regions()`. Reach for full-page `spa()` only when a `[data-persist]` island must stay mounted across routes.
 
-```ts
-import { spa } from '@prunellejs/spa'
+### Partial swaps with `regions()`
 
-export default defineConfig({
-  plugins: [spa()],
-})
-```
-
-- **Persistent islands**: Add `data-persist="id"` to an element or island to keep its live DOM and state across navigations.
-- **Prefetch on hover/focus**: Add `data-pru-prefetch` to internal links (respects `Save-Data`).
-- **Opt-out**: Add `data-no-spa` to any link that should trigger a full page load.
-- **Accessibility**: Updates `<title>`, `<html lang>`, head metadata, scroll position, focus, and a polite `aria-live` route announcer.
-- **Styles**: after a swap the head's stylesheets are in the order the next page serves them, so the cascade is the one a full load gives. Links it adds keep every attribute.
-- **Scroll**: the browser's own scroll restoring is turned off, and back and forward restore the saved offset once. An element with `data-pru-keep-scroll="key"` keeps its own offset across a swap and per history entry.
-- **Motion**: the swap runs in a view transition, and not when the user asks for reduced motion.
-
-### Regions
-
-A link that opens a detail pane or switches a tab should not download the whole page. `regions()` swaps one part of the page and asks the server for that part alone. It works with or without `spa()`.
+`regions()` swaps one `<Region>` of a page and asks the server for that fragment alone (no layouts, no full document). Its client ships **only on routes that render a `<Region>`** and works with or without `spa()`:
 
 ```ts
 import { regions } from '@prunellejs/spa'
+import { defineConfig } from 'prunelle/config'
 
 export default defineConfig({
   plugins: [regions()],
 })
 ```
-
-Wrap the part in a `<Region>` and point links at it by name:
 
 ```tsx
 import { Region } from 'prunelle'
@@ -131,7 +101,7 @@ export default function Icons({ data }) {
   return (
     <main>
       <Region name="results">
-        {data.items.map(i => <a href={`?icon=${i}`} data-pru-target="pane">{i}</a>)}
+        {data.items.map(i => <a key={i} href={`?icon=${i}`} data-pru-target="pane">{i}</a>)}
       </Region>
       <Region name="pane" aria-label="Icon detail">
         <h2>{data.icon}</h2>
@@ -141,19 +111,25 @@ export default function Icons({ data }) {
 }
 ```
 
-The browser asks for `x-pru-region: pane`. The server skips the layouts and every other region, and sends only the inside of `pane`. Without JavaScript the link is a normal link and the whole page loads. History works as usual: each swap is an entry, and back and forward restore the region. `ctx.region` is the name asked for, so `load()` can skip data the region does not show.
+- **How it works**: Links with `data-pru-target="pane"` send `x-pru-region: pane`. The server skips layouts and other regions (`ctx.region` lets `load()` skip unneeded work), updates `document.title` via `x-pru-title`, pushes history, restores scroll per entry, runs in a view transition (off under reduced motion), updates `aria-current="page"`, moves focus, sets `aria-busy="true"` after 150 ms, and hydrates any islands in the new HTML. Without JS — or on fetch error — the link falls back to a full page load.
+- **Append ("Load more")**: Add `data-pru-append` to append new HTML, remove the clicked link, and replace the history entry.
+- **GET & POST forms**: `<form method="get" data-pru-target="results">` swaps on submit (dropping empty fields); add `data-pru-live` for debounced live filtering (200 ms, one history entry per typing burst). `<form method="post" data-pru-target="x">` posts in the background, follows redirects, and swaps region `x`.
+- **Sync, prefetch & nesting**: `data-pru-sync="q icon"` keeps external links/inputs synced with current query params; links inside `[data-pru-prefetch]` prefetch on hover/focus; regions can nest (each with its own name) so an inner list appends while an outer search swaps cleanly.
+- **Refresh from script**: Call `await refreshRegion('side')` from `@prunellejs/spa/regions` after a background mutation to redraw a region at the current URL without touching history or focus.
+- **Compile & check safety**: `prunelle check` catches `data-pru-target` pointing to a missing `<Region>`; nested same-name regions and invalid attributes fail compile.
 
-- **Append**: add `data-pru-append` to a "Load more" link. The next page is added to the region and the link goes. The history entry is replaced, not pushed.
-- **Forms**: a `<form method="get" data-pru-target="results">` swaps on submit, and empty fields stay out of the URL. Add `data-pru-live` to swap while the user types. A typing burst makes one history entry, and a pause of one second ends the burst. A `<form method="post" data-pru-target="x">` posts in the background, follows the redirect and swaps region `x` from the page it lands on. Without JavaScript it posts normally.
-- **Motion and scroll**: a swap runs in a view transition where the browser has them, and not when the user asks for reduced motion. Each history entry remembers the scroll of the window and of the regions, and back and forward restore both. A new swap leaves the page where it is and puts the region back at its top, unless the region has `data-pru-keep-scroll`. A `#hash` link to something already on the page scrolls to it without a fetch when it names the page and query shown, or one that Load more appended; a link with another query fetches its page. After a swap the page scrolls to the hash of the new address.
-- **Current page**: after a swap, links whose `href` is the new address get `aria-current="page"`, and the others lose it.
-- **Weight**: the regions client is loaded only by pages that render a `<Region>`. Every other page ships none of it.
-- **Keep links in step**: `data-pru-sync="q icon"` on a link copies those query params from the current URL after each swap. On an input or select it keeps the field equal to the param of its name.
-- **Prefetch**: put the link inside `data-pru-prefetch` and its region is fetched on hover or focus, with the same cache as `spa()`.
-- **Nesting**: a region can sit inside another, as long as each has its own name. A "Load more" link can then append to an inner list while a live search swaps the outer region. Asking for the inner region renders it alone, and the outer one is never sent. Asking for the outer region renders it with a fresh inner region, and any fetch still running for the old inner one is dropped. Back and forward work across both. The server still builds the other children of an outer region when only the inner one is asked for, but does not send them.
-- **Title**: a swap sets `document.title` to what the whole page would have, `<Head>` title template included, and back and forward restore it. The server sends it in an `x-pru-title` header, so the response stays small.
-- **Loading and focus**: the region gets `aria-busy="true"` when a fetch takes more than 150 ms, so you can style it. A link moves focus to the region. A region with an `aria-label` announces it. Give the region an `aria-label` that says what changed.
-- **Islands** inside the new HTML hydrate as usual.
-- **Redraw from script**: after a change made in the background, such as a `fetch` to an action, `await refreshRegion('side')` from `@prunellejs/spa/regions` asks the server for that region at the current address again and swaps it. It adds no history entry, leaves focus where it is and skips the prefetch cache. The promise rejects when the page has no such region, the fetch fails or the answer lacks it.
+### Full-page `spa()`
 
-If the page has no region of that name, or the fetch fails, the link loads the whole page. `prunelle check` reports a `data-pru-target` that names no `<Region>`. Two regions with one name throw, and a region inside a region of the same name is a compile error. If you use `spa()` too, give each path either region links or page links, not both for the same history entries.
+Add `spa()` only when an island must stay alive across route changes:
+
+```ts
+import { spa } from '@prunellejs/spa'
+
+export default defineConfig({
+  plugins: [spa()],
+})
+```
+
+- **Persistent islands**: Add `data-persist="id"` to keep live DOM and state across navigations.
+- **Prefetch & opt-out**: Add `data-pru-prefetch` to prefetch on hover/focus (respects `Save-Data`), or `data-no-spa` for a full page load.
+- **Accessibility, styles & scroll**: Updates `<title>`, `<html lang>`, head stylesheets in cascade order, focus, polite `aria-live` announcements, view transitions (respecting reduced motion), and `data-pru-keep-scroll` panels.

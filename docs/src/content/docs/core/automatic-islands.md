@@ -5,21 +5,23 @@ section: core
 order: 2
 ---
 
-Prunelle analyzes every `.tsx` file at build time using `oxc-parser`. Static components compile to flat SSR string concatenation (`0 KB` JS). Interactive components automatically become `<pru-island>` boundaries.
+Prunelle analyzes every `.tsx` file at build time with `oxc-parser`. Static components compile to flat SSR string concatenation (`0 KB` JS), and interactive components become `<pru-island>` boundaries automatically.
 
 ## How detection works
 
 You never write `'use client'` or `client:load`. A component becomes an island automatically when it uses any of:
 
-- A call to a reactive primitive: `signal`, `computed`, `effect`, `onMount`, `store`, `selector`
-- DOM interactivity: `on*` event handlers (`onClick`, `onInput`, etc.) or `ref` on an HTML or SVG element (on a component tag they are plain props)
-- Reactive state imported from another module, such as `export const cart = store([])` in `src/state.ts`
+- A reactive primitive: `signal`, `computed`, `effect`, `onMount`, `store`, or `selector`.
+- DOM interactivity: `on*` event handlers (`onClick`, `onInput`, etc.) or `ref` on an HTML or SVG element (on a component tag, `on*` is a plain prop).
+- Reactive state imported from another module, such as `export const cart = store([])` in `src/state.ts`.
 
-prunelle decides this for each component, not for each file. A static component exported beside an island stays static and ships no JS. A component that needs the browser is an island wherever server code renders it as a tag, even in the same file. A page that declares `Counter` and renders `<Counter />` in twelve sections stays static, and only the counter ships. The island's JS holds the code it reaches and nothing else of the file. So an `async` page can await data from server code and still render a local widget. Its props cross the same boundary as an imported island's, so a handler the page passes to it is refused. A helper called as a function, such as `renderDialog()`, runs where its caller runs: calling one that needs the browser makes the caller an island. Code at the top of a file that calls a primitive, such as `effect(...)`, makes every component of that file an island.
+Detection is **per component**, not per file:
 
-A handler passed from server code to a component that is not an island would never reach the browser, so `prunelle build` and `prunelle check` refuse `<Button onClick={...}>` there. Write the handler inside `Button`, which makes it an island, or render `Button` from an island.
-
-An island renders on the server first, where `window`, `document` and `localStorage` do not exist. Reading one while a component renders, or when its module loads, throws at the first request, so `prunelle build` and `prunelle check` warn with the file and line. Read it in `onMount()`, an effect or an event handler, or check `typeof window !== 'undefined'` first.
+- **Mixed files stay split**: A static component exported beside an island stays static and ships 0 bytes of JS.
+- **Local islands inside static or `async` pages**: If a server page declares `Counter` and renders `<Counter />`, the page itself stays static and only `Counter` ships. Its client chunk includes only the code `Counter` reaches, so an `async` page can `await` server databases and still render a local interactive widget.
+- **Helper functions vs. top-level primitives**: Calling a helper function (`renderDialog()`) runs where its caller runs — if the helper needs the browser, the caller becomes an island. Calling a primitive at a module's top level (`effect(...)`) marks every component in that file as an island.
+- **Server-to-static handlers refused**: Passing `onClick={...}` from server code to a non-island component (`<Button onClick={...}>`) would never run in the browser, so `prunelle build` and `prunelle check` refuse it. Put the handler inside `Button` or render `Button` from an island.
+- **Browser globals warned early**: Because islands render on the server first, reading `window`, `document`, or `localStorage` during render or module load throws on the first request. `prunelle check` and `prunelle build` warn with the file and line: read them inside `onMount()`, an effect, an event handler, or behind `typeof window !== 'undefined'`.
 
 <Callout title="Zero-JS guarantee" tone="tip">
 When a route renders only static components and native HTML forms, Prunelle omits the client runtime completely. Zero `<script>` tags are emitted in the HTML.
@@ -32,7 +34,7 @@ import { signal } from 'prunelle'
 export function Counter({ initial = 0 }: { initial?: number }) {
   const count = signal(initial)
   return (
-    <button onClick={() => count.value++}>
+    <button type="button" onClick={() => count.value++}>
       Clicked {count.value} times
     </button>
   )
@@ -41,7 +43,7 @@ export function Counter({ initial = 0 }: { initial?: number }) {
 
 ## Why a route ships JS
 
-`prunelle build --analyze` lists, under each route, the islands it loads and why each became one:
+`prunelle build --analyze` lists, under each route, the islands it loads and the exact reason each became one:
 
 ```text
 /about                               0.00 KB       0.00 KB     0j/0c
@@ -51,58 +53,58 @@ export function Counter({ initial = 0 }: { initial?: number }) {
   island, deferred: Later (src/components/Later.tsx) uses onClick
 ```
 
-Here `/about` renders `Label`, a static component of `Count.tsx`, and ships no JS.
+Here `/about` renders `Label`, a static export of `Count.tsx`, and ships no JS.
 
-A deferred island hydrates later (any mode but `load`), so its JS is not counted in the route's eager weight. A page whose islands are all deferred downloads only the island loader, about 1 KB, until the first one hydrates: these docs pages, whose one island is Search, ship 1.2 KB. A plugin with a `clientEntry`, such as `spa()`, loads the runtime on every page, so its JS counts on a page with no island too. `prunelle build --max-js 40kb` fails the build when a route's gzipped eager JS is over 40 KB, and names the route and its eager islands.
+Deferred islands (any strategy other than `load`) stay out of a route's eager JS weight. A page whose islands are all deferred downloads only the ~1 KB island loader until the first one hydrates: these docs pages, whose only island is Search, ship **1.2 KB brotli** (`1.39 KB` gzip). A plugin with a `clientEntry` (such as `spa()`) loads on every page, so its weight counts on pages with no island too. Run `prunelle build --max-js 40kb` in CI to fail the build when any route's gzipped eager JS crosses your budget.
 
 ## Hydration strategies (`$hydrate`)
 
-Control when an island downloads and hydrates using `$hydrate` at the call site, or set the default for every call site with `export const hydrate = 'visible'` in the component's file. Unknown modes and `$hydrate` on non-islands fail compilation.
+Control when an island downloads and hydrates with `$hydrate` at the call site, or set a default for all call sites via `export const hydrate = 'visible'` in the component file. Unknown modes and `$hydrate` on non-islands fail compilation.
 
 | Strategy | When it hydrates | Best for |
 | :--- | :--- | :--- |
 | `$hydrate="load"` | Immediately on page load (default) | Critical above-the-fold controls |
 | `$hydrate="visible"` | When scrolled into the viewport (`IntersectionObserver`) | Charts, tables, below-the-fold widgets |
-| `$hydrate="interaction"` | On first pointer or keyboard interaction | Menus, dialogs, dropdowns |
-| `$hydrate="idle"` | Via `requestIdleCallback` | Search palettes, non-blocking enhancements |
+| `$hydrate="interaction"` | On first pointer or keyboard interaction | Menus, dialogs, dropdowns, search palettes |
+| `$hydrate="idle"` | Via `requestIdleCallback` | Non-blocking background enhancements |
 | `$hydrate="media(max-width: 768px)"` | When the CSS media query matches | Mobile-only drawers or nav toggles |
 | `$hydrate="client"` | Skips SSR and mounts client-side only | Browser-only canvas or WebGL widgets |
 
-The code that waits for a strategy ships only when an island of the app can use it, so an app hydrating everything on `load` ships none of it. A page preloads the JS of its `load` islands and every chunk they and the runtime import, so the browser fetches them all at once. The other islands download when their strategy fires.
+The loader bundles only the strategies the app actually uses, so an app hydrating everything on `load` ships none of the observer code. Each page preloads its `load` islands and every chunk they import; deferred islands download only when their trigger fires.
 
 ## Props across the island boundary
 
-Props passed from server code into an island are serialized into HTML and restored in the browser.
+Props passed from server code into an island are serialized into HTML and restored in the browser:
 
-- **Supported**: JSON primitives, arrays, plain objects, `Date`, `Map`, `Set`, `URL`, and `RegExp`. Plain JSON costs no extra JS. A page whose props hold one of these classes also preloads a small file that turns them back into objects.
+- **Supported**: JSON primitives, arrays, plain objects, `Date`, `Map`, `Set`, `URL`, and `RegExp`. Plain JSON adds no extra JS; a page whose props include those richer classes preloads a tiny reviver chunk automatically.
 - **Refused**: Functions, signals, and arbitrary class instances fail `prunelle check` and SSR. Define callbacks inside the island, or pass serializable IDs and data instead.
-- **JSX goes in children**: JSX in any other prop (`<Modal header={<h2>Hi</h2>} />`) fails `prunelle check` and SSR, because it would reach the browser as a plain object. Pass it as children, which render on the server, or build it inside the island.
+- **JSX goes in `children`**: Passing JSX in any other prop (`<Modal header={<h2>Hi</h2>} />`) fails `prunelle check` and SSR. Pass server markup as `children`, or render it inside the island.
 
 ## Static children inside islands (`<pru-slot>`)
 
-When you pass server-rendered JSX children into an island (`<Modal><ServerMarkdown /></Modal>`), Prunelle renders those children on the server inside `<pru-slot>`. Hydration preserves the slot untouched and ships **0 bytes** of client JS for its content. The children render before the island, in the page's scope: they read the page's contexts, and an island among them hydrates on its own.
+When you pass server-rendered JSX children into an island (`<Modal><ServerMarkdown /></Modal>`), Prunelle renders them on the server inside `<pru-slot>`. Hydration leaves the slot untouched and ships **0 bytes** of client JS for its content. Children render before the island in the page's scope, so they can read the page's server contexts and contain nested islands of their own.
 
-## When the page changed before hydration
+## Hydration resilience
 
-A browser extension or a password manager sometimes adds its own element inside an island before it hydrates. Hydration steps over that element and attaches to the markup prunelle rendered. If the server rendered something else entirely, the island draws that part again from scratch rather than wiring handlers to the wrong element. When a list has fewer items in the browser than the server rendered, hydration removes the extra rows. Both work in production; in dev, the console also names the island, the element expected and the one found.
+Browser extensions and password managers occasionally inject nodes inside an island before hydration runs. Prunelle steps over injected nodes to attach to the markup it rendered. If a node's tag differs from what SSR emitted, the island redraws that subtree cleanly rather than binding handlers to the wrong element; if a list has fewer client items than SSR rows, extra rows are removed. Both protections run in production; in dev, the console also names the island and mismatched element.
 
 ## What an island cannot use
 
-The browser renders an island without the page around it, so prunelle refuses what would differ there:
+Because the browser renders an island without the surrounding page, Prunelle refuses constructs that only work on the server:
 
-- `<Head>` and `<Suspense>` run during server rendering only. In an island they fail compilation: render them in the page or a layout. `<Catch>` works in both.
-- A context provided outside the island reaches it on the server only. Reading one throws `prunelle: <Counter> reads a context provided outside the island`: pass the value as a prop. A context the island provides itself works on both sides.
+- `<Head>`, `<Suspense>`, `<Region>`, and `<ConsentGate>` are server-only and fail compilation inside an island. `<Catch>` works on both server and client.
+- Contexts provided outside an island do not cross the boundary and throw during SSR (`prunelle: <Counter> reads a context provided outside the island`). Pass the value as a prop instead.
 
 ## Server-only `async` routes and layouts
 
-An `export default async function Page()` route runs strictly on the server. You can `await` databases or files directly inside it. Using signals or DOM handlers inside an `async` route fails compilation — extract the interactive part into a child component.
+An `export default async function Page()` route runs strictly on the server so you can `await` databases or files directly. Signals or DOM handlers inside an `async` route fail compilation — extract the interactive part into a child component.
 
-`_layout.tsx`, `_error.tsx`, and `_404.tsx` also render on the server only. Move any interactive widget (such as a theme toggle or search palette) into its own component and render it from the layout.
+`_layout.tsx`, `_error.tsx`, `_404.tsx`, and status pages (`_401.tsx`–`_503.tsx`) also render on the server only. Place interactive chrome (such as a theme toggle or search palette) in its own component and render it from the layout.
 
 ## What an island may import
 
-An island ships to the browser with every module it imports. If any reachable module imports a server-only module (`bun:sqlite`, `node:fs`, `prunelle/server`, and similar) or reads `process.env`, `prunelle build` fails and `prunelle check` names the module and the island that reaches it.
+An island ships to the browser with every module it reaches. If any reachable module imports a server-only package (`bun:sqlite`, `node:fs`, `prunelle/server`, etc.) or reads `process.env`, `prunelle build` fails and `prunelle check` names both the module and the island that reaches it.
 
-A file that declares server actions is the exception. The browser receives a tiny RPC stub instead of its server code. Importing any non-action export from that file inside an island fails the build.
+Action files are the exception: the browser receives a tiny RPC stub instead of server code, and importing any non-action export from an action file inside an island fails the build.
 
-Client code may read `process.env.PUBLIC_*`. The build inlines each value at build time, so never store secrets in `PUBLIC_*` variables.
+Client code may read `process.env.PUBLIC_*`, which Prunelle inlines at build time — never store secrets in `PUBLIC_*` variables.

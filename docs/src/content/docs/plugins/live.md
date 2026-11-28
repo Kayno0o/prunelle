@@ -5,9 +5,9 @@ section: plugins
 order: 4
 ---
 
-`@prunellejs/live` adds real-time push updates and online presence over standard HTTP Server-Sent Events (`text/event-stream`) in ~280 LOC with **zero external dependencies** and no WebSocket proxy headaches.
+`@prunellejs/live` adds real-time push updates and online presence over standard HTTP Server-Sent Events (`text/event-stream`) in ~280 lines of code with **zero external dependencies** and no WebSocket proxy configuration.
 
-## 1. Create typed rooms on the server
+## Create typed rooms on the server
 
 ```ts
 // src/live.ts
@@ -29,18 +29,18 @@ export const rooms = createRooms<BoardMessage, string>({
 const presence = rooms.coalesce((room): BoardMessage => ({ type: 'presence', count: rooms.size(room) }))
 ```
 
-Register `rooms` in `prunelle.config.ts` (`plugins: [rooms]`): it mounts the stream at `path`. Without `path`, nothing is mounted and a route opens streams itself with `rooms.stream(ctx, { room, member })`. Broadcast from any server `action()` or API route:
+Register `rooms` in `prunelle.config.ts` (`plugins: [rooms]`) to mount the stream at `path`. Without `path`, nothing is mounted and routes open streams directly via `rooms.stream(ctx, { room, member })`. Broadcast from any server `action()` or API route:
 
 ```ts
-rooms.publish('main', { type: 'notice', title: 'Shipped v2!' })
+rooms.publish('main', { type: 'notice', title: 'Deploy complete' })
 ```
 
-## 2. Subscribe reactively in any island (`useLive`)
+## Subscribe reactively in any island (`useLive`)
 
 ```tsx
-import { signal } from 'prunelle'
-import { useLive } from '@prunellejs/live/client'
 import type { BoardMessage } from '../live'
+import { useLive } from '@prunellejs/live/client'
+import { signal } from 'prunelle'
 
 export function LiveBoard() {
   const online = signal(0)
@@ -58,5 +58,5 @@ export function LiveBoard() {
 ```
 
 <Callout title="HTTP/2 & reverse-proxy safe" tone="info">
-Prunelle sets `idleTimeout: 0` on `Bun.serve()`, emits periodic SSE `: ping` keepalives, cleans up aborted connections via `request.signal`, and avoids the HTTP/2-forbidden `Connection: keep-alive` header.
+Prunelle sets `idleTimeout: 0` on `Bun.serve()`, emits periodic SSE `: ping` keepalives, cleans up aborted connections via `request.signal`, closes open streams cleanly on `SIGTERM`, and avoids the HTTP/2-forbidden `Connection: keep-alive` header.
 </Callout>

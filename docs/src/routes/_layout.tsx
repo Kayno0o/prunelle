@@ -20,7 +20,8 @@ export default function Layout({ children, url }: { children: PrunelleChild, url
           prunelle
         </a>
         <nav class="mast-nav" aria-label="Main navigation">
-          <a href="/docs/getting-started/introduction" aria-current={pathname.startsWith('/docs') ? 'page' : undefined}>Docs</a>
+          <a href="/docs/getting-started/introduction" aria-current={pathname.startsWith('/docs') && pathname !== '/docs/production/benchmarks' ? 'page' : undefined}>Docs</a>
+          <a class="mast-hide-sm" href="/docs/production/benchmarks" aria-current={pathname === '/docs/production/benchmarks' ? 'page' : undefined}>Benchmarks</a>
           <a href="/grammars" aria-current={pathname === '/grammars' ? 'page' : undefined}>Grammars</a>
           <a class="mast-hide-sm" href="/llms.txt">llms.txt</a>
           <SearchIsland items={searchItems} />

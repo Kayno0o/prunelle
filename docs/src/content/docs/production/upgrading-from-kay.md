@@ -1,39 +1,37 @@
 ---
 title: Upgrading from kay
-description: Move an app written for kay v2 (@kayjs/kay) onto prunelle with one command, and what changes for its users.
+description: Move an app written for kay v2 (@kayjs/kay) onto Prunelle with one command, and what changes for its users.
 section: production
-order: 2
+order: 6
 ---
 
-Prunelle is kay v2 under a new name. The API is the same, so an app written for kay v2 moves over with one command, run in its folder:
+Prunelle is kay v2 under a new name. The API is identical, so an app written for kay v2 moves over with one command run in its folder:
 
 ```bash
 bunx prunelle upgrade
 ```
 
-It rewrites the app in place, then runs `bun install`. Pass `--no-install` to install later. Commit the app first, so the change reads as one diff.
+It rewrites the app in place, then runs `bun install` (pass `--no-install` to install later). Commit your app first so the migration reads as one clean diff.
 
-Run from the root of a bun workspace, it also rewrites each package the `workspaces` field lists that depends on kay, then installs once at the root. A package already on prunelle is looked at again, so a second run catches what an older prunelle left behind. A package that depends on kay v1 (`@kayjs/kay` at 1.x) is left as it is, with a line saying so: prunelle moves kay v2 apps only.
+Run from the root of a Bun workspace, it rewrites every workspace package that depends on kay v2 and installs once at the root. Packages already on Prunelle are re-checked so a second run catches anything an earlier version missed. Packages on kay v1 (`@kayjs/kay` 1.x) are left untouched with a note: `prunelle upgrade` migrates kay v2 apps only.
 
 ## What it rewrites
 
-- **Dependencies.** `@kayjs/kay` becomes `prunelle` and each `@kayjs/<name>` becomes `@prunellejs/<name>` (including kay v2 npm aliases such as `"kay": "npm:@kayjs/kay@^2..."`), all at the current prunelle version. A `kay` command in the `scripts` becomes `prunelle`.
-- **The config file.** `kay.config.ts` moves to `prunelle.config.ts`.
-- **Imports and the names they bring.** `@kayjs/kay/server` (and any kay v2 npm alias like `kay/server`) becomes `prunelle/server`, and every name with kay in it is renamed where the file uses it: `KayPlugin` becomes `PrunellePlugin`, `KayLocals` becomes `PrunelleLocals`, a `declare module` block included. A name the file exports, or one that already exists in it, keeps its old name as an alias. Files under `public/` (or your configured `publicDir`) are left untouched.
-- **Names the browser receives**, where scripts and styles spell them: `data-kay-*` attributes, the `kay-island` and `kay-s` tags, `/_kay/` paths, `x-kay-*` headers, the `kay:navigate`, `kay:region` and `kay:consent` events, and the `kay_session` and `kay_consent` cookies. Each takes the `pru` prefix: `data-pru-*`, `pru-island`, `/_pru/`.
-- **Build and CI files.** In `tsconfig.json`, `bunfig.toml`, `.gitignore` (ensuring `.prunelle-cache/` is ignored), a `Dockerfile`, `Justfile`, `Makefile`, compose file and the Forgejo, Gitea or GitHub workflows, the package, the CLI, the config file and the cache folders take their new names.
-- **Agent instructions.** `AGENTS.md` and `CLAUDE.md` take the same names, so they send agents to `node_modules/prunelle/llms.txt`.
+- **Dependencies**: `@kayjs/kay` becomes `prunelle` and each `@kayjs/<name>` becomes `@prunellejs/<name>` (including kay v2 npm aliases such as `"kay": "npm:@kayjs/kay@^2..."`), all pinned to the current Prunelle version. `kay` commands in `package.json` `scripts` become `prunelle`.
+- **Config file**: `kay.config.ts` moves to `prunelle.config.ts`.
+- **Imports & symbols**: `@kayjs/kay/server` (and kay v2 aliases like `kay/server`) become `prunelle/server`, and kay-prefixed types and bindings rename in place (`KayPlugin` → `PrunellePlugin`, `KayLocals` → `PrunelleLocals`, including `declare module` blocks). Exported or colliding names keep their old spelling as an alias. Files under `public/` (or `publicDir`) stay untouched.
+- **Browser wire names**: `data-kay-*` attributes, `<kay-island>` / `<kay-s>` tags, `/_kay/` paths, `x-kay-*` headers, `kay:navigate` / `kay:region` / `kay:consent` events, and `kay_session` / `kay_consent` cookies take the `pru` prefix (`data-pru-*`, `pru-island`, `/_pru/`).
+- **Build & CI files**: `tsconfig.json`, `bunfig.toml`, `.gitignore` (ensuring `.prunelle-cache/` is ignored), `Dockerfile`, `Justfile`, `Makefile`, compose files, and Forgejo/Gitea/GitHub workflows update to Prunelle's package, CLI, config, and cache names.
+- **Agent instructions**: `AGENTS.md` and `CLAUDE.md` update to point coding agents at `node_modules/prunelle/llms.txt`.
 
-It also deletes the `.kay-cache` and `.kay-dev` folders, which only held build output.
+It also removes stale `.kay-cache` and `.kay-dev` build folders.
 
-## What changes for the app's users
+## What changes for users
 
-The session and consent cookies have new names, so after the deploy every signed-in user signs in again and every visitor answers the cookie banner again.
+Because the session and consent cookie names change (`pru_session`, `pru_consent`), signed-in users sign in once after deploy and visitors answer the consent prompt again.
 
-The accounts stay. The first time `sqliteAuthStore()` opens a database kay created, it renames the `kay_auth_*` tables to `prunelle_auth_*`, keeping every user and OAuth link.
+Accounts are preserved automatically: the first time `sqliteAuthStore()` opens a database created by kay, it renames `kay_auth_*` tables to `prunelle_auth_*`, keeping every user and OAuth link intact.
 
-## What it leaves to you
+## What stays manual
 
-An import prunelle cannot serve is printed with its file and line, and the command exits with code 1: a name prunelle no longer exports, or an entry it does not have, such as `@kayjs/kay/dom`. Fix each one, then run `prunelle check`.
-
-Until then, the build refuses any import of `@kayjs/*` it finds and names the prunelle spelling, so an app cannot load both.
+Any import Prunelle cannot serve (such as a removed export or `@kayjs/kay/dom`) is printed with its file and line, and the command exits `1`. Fix those imports, then run `prunelle check`. Until then, `prunelle build` refuses any `@kayjs/*` import and prints the Prunelle spelling so an app cannot mix both.

@@ -2,12 +2,12 @@
 title: "@prunellejs/mcp"
 description: Zero-dependency MCP Streamable HTTP (2025-03-26) plugin exposing typed Prunelle server actions as bearer-authenticated AI agent tools.
 section: plugins
-order: 7
+order: 6
 ---
 
 `@prunellejs/mcp` exposes your existing Prunelle server `action()` handlers as **Model Context Protocol (MCP)** tools over Streamable HTTP (`2025-03-26`). Core stays free of MCP code — `@prunellejs/mcp` mounts strictly as an opt-in `PrunellePlugin` at `/mcp/tools` (configurable).
 
-## 1. Install and register in `prunelle.config.ts`
+## Install and register
 
 ```bash
 bun add @prunellejs/mcp
@@ -41,12 +41,12 @@ export default defineConfig({
 })
 ```
 
-## 2. Compact schemas, shared schemas & resources
+## Compact schemas, shared schemas & resources
 
-- **Automatic schema compaction**: Any Standard Schema v1 library implementing Standard JSON Schema v1 (`~standard.jsonSchema.input`, such as Zod 4, Valibot, or ArkType) populates `inputSchema` in `tools/list`. By default `@prunellejs/mcp` strips `$schema`, `$id`, `x-*` extensions, empty `required`, `additionalProperties: true`, unused `$defs`, no-op bounds (`minLength: 0`, `±MAX_SAFE_INTEGER`), form-coercion string branches in `anyOf`/`oneOf`, and folds optional homogeneous record objects (≥ 4 identical-schema keys) into `additionalProperties` with a compact `Keys: ...` description. Pass `compactSchemas: false` or a `CompactSchemaOptions` object to tune it.
-- **Shared schemas on demand (`schemas` + `schemaRef`)**: When several tools accept the same large config object, register it once under `schemas` and point each tool to `schemaRef`. Server-side validation still enforces the full schema, while `tools/list` sends a short stub and exposes a `describe_schema` tool plus a `prunelle://schemas/<name>` resource.
-- **On-demand `resources`**: Put long docs, enum tables, or style guides in `resources` (served via `resources/list` and `resources/read`) instead of repeating them in tool descriptions or `instructions`.
-- **Actionable errors & form redirects**: Schema validation failures, `ctx.deny(status, message, fieldErrors)` responses (including `fieldErrors`), and thrown errors map to MCP tool results with `isError: true`. `3xx` redirects from reused form actions return a short `ok -> <location>` receipt instead of failing.
+- **Automatic schema compaction**: Any Standard Schema v1 library implementing Standard JSON Schema v1 (`~standard.jsonSchema.input`, such as Zod 4, Valibot, or ArkType) populates `inputSchema` in `tools/list`. By default `@prunellejs/mcp` strips boilerplate (`$schema`, `$id`, `x-*`, empty `required`, `additionalProperties: true`, unused `$defs`, no-op bounds, form-coercion string branches) and folds homogeneous optional objects (≥ 4 identical keys) into `additionalProperties`. Pass `compactSchemas: false` or a `CompactSchemaOptions` object to customize.
+- **Shared schemas on demand (`schemas` + `schemaRef`)**: When several tools accept the same large config object, register it once under `schemas` and point each tool to `schemaRef`. Server validation enforces the full schema while `tools/list` sends a compact stub alongside a `describe_schema` tool and `prunelle://schemas/<name>` resource.
+- **On-demand `resources`**: Put long docs, enum tables, or style guides in `resources` (served via `resources/list` and `resources/read`) instead of repeating them in tool descriptions.
+- **Actionable errors & form redirects**: Schema failures, `ctx.deny(status, message, fieldErrors)` responses, and thrown errors map to MCP tool results with `isError: true`. `3xx` redirects from reused form actions return a compact `ok -> <location>` receipt instead of failing.
 
 ```ts
 mcp({
@@ -65,12 +65,12 @@ mcp({
 })
 ```
 
-## 3. Token-efficient outputs & footprint budgets
+## Token-efficient outputs & footprint budgets
 
 Web actions often return full records, `null` columns, or large lists. `@prunellejs/mcp` includes built-in controls to keep both `tools/list` and tool outputs lean:
 
 ```ts
-import { formatLines, inspectMcpFootprint, mcp, mcpTool } from '@prunellejs/mcp'
+import { formatLines, mcp, mcpTool } from '@prunellejs/mcp'
 
 mcp({
   token: { env: 'MCP_TOKEN' },
@@ -95,7 +95,7 @@ mcp({
 
 - **`format` / `formatResult`**: Transform an `action()` return value into a short receipt, compact lines (`formatLines`), or TSV (`formatTable`) without changing the web action.
 - **`pruneEmpty`**: Set `'nullish'` to strip `null`/`undefined`, or `true` to also drop empty arrays and objects from JSON responses.
-- **`maxOutputChars`**: Global or per-tool character guard that truncates runaway payloads cleanly.
+- **`maxOutputChars`**: Global or per-tool character cap with a clean truncation hint.
 - **`prunelle mcp-footprint` & `inspectMcpFootprint()`**: Print or assert each tool's bytes, `description` vs `schema` split, and estimated tokens. In dev and `prunelle check`, tools over `budget.maxToolBytes` (default `2048` B) trigger a warning.
 
 ### Keeping `tools/list` small
@@ -106,14 +106,14 @@ Clients that load every MCP tool up front pay your whole `tools/list` on every t
 - Prefer one tool with an enum `op` / `kind` parameter over several near-identical tools.
 - Use `schemas` + `schemaRef` whenever two or more tools share a large nested object.
 
-## 4. Bearer token security
+## Bearer token security
 
 | State | HTTP response |
 | :--- | :--- |
-| Token unconfigured / missing env var / missing file | `404 Not Found` (endpoint hidden) |
+| Token unconfigured, missing env var, or missing file | `404 Not Found` (endpoint hidden) |
 | Missing or invalid `Authorization: Bearer <token>` | `401 Unauthorized` (`WWW-Authenticate: Bearer`) |
 | Valid token (constant-time SHA-256 comparison) | `200 OK` JSON-RPC 2.0 (`202 Accepted` on notifications) |
 
 <Callout title="Works cleanly in --compile binaries" tone="info">
-Because `@prunellejs/mcp` uses `token: { env: '...' }` or `token: { file: '...' }` at request time, secrets are never baked into your standalone binary and can be rotated on disk without rebuilding.
+Because `@prunellejs/mcp` reads `token: { env: '...' }` or `token: { file: '...' }` at request time, secrets are never baked into your standalone binary and can be rotated on disk without rebuilding.
 </Callout>

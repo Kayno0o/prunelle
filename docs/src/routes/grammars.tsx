@@ -23,6 +23,7 @@ import {
 import { join } from 'node:path'
 import { shareCard } from '@prunellejs/images'
 import { Head } from 'prunelle'
+import pkg from '../../../packages/prunelle/package.json'
 import { GrammarDemo } from '../components/GrammarDemo'
 import { RunningHead } from '../components/RunningHead'
 import { DOCS_ROOT } from '../content'
@@ -51,7 +52,7 @@ export default function GrammarsPage() {
             <h1>Same DOM. Six structurally different apps.</h1>
             <p class="lead">
               Switch the active CSS Grammar below without touching a single component or shipping a JS recipe engine.
-              Every grammar is a single self-contained file you can eject and own with <code>prunelle ui-eject</code>.
+              Every grammar compiles per-route CSS automatically and can be ejected into one file with <code>prunelle ui-eject</code>.
             </p>
             <GrammarDemo />
           </div>
@@ -71,7 +72,7 @@ export default function GrammarsPage() {
                     legend="Deploy target"
                     defaultValue="binary"
                     options={[
-                      { value: 'binary', label: 'Single executable', hint: '35ms cold start' },
+                      { value: 'binary', label: 'Single executable', hint: '~15 ms cold start' },
                       { value: 'static', label: 'Static HTML export', hint: 'CDN-ready' },
                     ]}
                   />
@@ -88,12 +89,12 @@ export default function GrammarsPage() {
             </Card>
 
             <Card>
-              <CardHeader>Cockpit States &amp; Interactive Islands</CardHeader>
+              <CardHeader>States &amp; Interactive Islands</CardHeader>
               <CardBody>
                 <Stack gap="1rem">
                   <Cluster>
-                    <Badge tone="accent">v0.1</Badge>
-                    <Badge tone="success">38/38 pass</Badge>
+                    <Badge tone="accent">{`v${pkg.version}`}</Badge>
+                    <Badge tone="success">Grade A</Badge>
                     <Badge tone="warning">experimental</Badge>
                     <Badge tone="danger">breaking</Badge>
                   </Cluster>
@@ -126,8 +127,8 @@ export default function GrammarsPage() {
                   <Tabs
                     defaultValue="css"
                     items={[
-                      { id: 'css', label: 'Pure CSS', content: 'Every grammar is a single ~3–4 KB brotli CSS file with native light-dark() support.' },
-                      { id: 'eject', label: 'One-File Eject', content: 'Run `prunelle ui-eject prunelle` to copy the entire grammar into your repo and customize freely.' },
+                      { id: 'css', label: 'Pure CSS', content: 'Tokenized @layer kui sheets ship only the components each route renders, with native light-dark() support.' },
+                      { id: 'eject', label: 'One-File Eject', content: 'Run prunelle ui-eject prunelle to copy the complete standalone grammar into your repo and customize freely.' },
                     ]}
                   />
                   <Accordion>

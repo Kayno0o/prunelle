@@ -18,7 +18,6 @@ import { mail } from './mail'
 export const auth = createAuth({
   store: sqliteAuthStore('./data/app.sqlite'),
   secret: process.env.AUTH_SECRET,
-  site: 'https://example.com',
   defaultRedirect: '/dashboard',
   sendMail: async m => mail.send({ to: m.to, subject: m.subject, text: m.text, html: m.html }),
   providers: [
@@ -30,19 +29,20 @@ export const auth = createAuth({
 })
 ```
 
-- **`secret`**: In `NODE_ENV=production`, `secret` (or `AUTH_SECRET` env) is **required** and must be at least **32 UTF-8 bytes**. An empty string is rejected in all environments. In development, omitting `secret` generates an ephemeral key per process.
-- **`site`**: The public origin of the app. Mailed sign-in/verification links and OAuth callbacks are built from it, never from the request's `Host` header, which the client controls. Without it, mailed links only work on loopback hosts (`localhost` / `127.0.0.1`), and other hosts receive `500`.
+- **`secret`**: In `NODE_ENV=production`, `secret` (or `AUTH_SECRET`) is **required** and must be at least **32 UTF-8 bytes**. An empty string is rejected in every environment. In development, omitting `secret` generates an ephemeral key per process.
+- **`site`**: Inherited from top-level `site` in `prunelle.config.ts` (or passed directly). Mailed verification/magic links and OAuth callbacks are built from it — never from the client-controlled `Host` header. Without it, mailed links work only on loopback hosts (`localhost` / `127.0.0.1`), and other hosts receive `500`.
 - **`minPasswordLength`**: Defaults to `12` (aligned with CNIL recommendations).
-- **`requireEmailVerification`**: Defaults to `true`. `POST /auth/signup` creates an unverified account, mails a one-time verification link (`kind: 'verify-email'`), and returns `202 { ok: true, verificationRequired: true }` without opening a session cookie. `POST /auth/signin` refuses unverified accounts with `403`. Set `requireEmailVerification: false` explicitly only if you intentionally allow unverified password sessions (for example, local development without mail).
-- **`trustProxy`**: Defaults to `false`. Rate limiting keys on `ctx.ip` (populated by Prunelle's server) plus the normalized email address on email-bearing endpoints, and covers sign-up, sign-in, magic-link, verification, and OAuth endpoints. Forwarded headers are ignored unless `trustProxy` is set: `true` trusts one proxy, a number trusts that many hops, and only the entry those hops wrote counts.
+- **`requireEmailVerification`**: Defaults to `true`. `POST /auth/signup` creates an unverified account, sends a one-time verification link (`kind: 'verify-email'`), and returns `202 { ok: true, verificationRequired: true }` without opening a session. `POST /auth/signin` refuses unverified accounts with `403`. Set `requireEmailVerification: false` only when intentionally allowing unverified password sessions.
+- **`trustProxy`**: Inherited from `prunelle.config.ts` (`false` by default). Rate limiting keys on `ctx.ip` plus the normalized email address across sign-up, sign-in, magic-link, verification, and OAuth endpoints.
 
-The object `createAuth()` returns is also the plugin. Register it in `prunelle.config.ts`:
+The object `createAuth()` returns is both your handle and the plugin. Register it in `prunelle.config.ts`:
 
 ```ts
 import { defineConfig } from 'prunelle/config'
 import { auth } from './src/auth'
 
 export default defineConfig({
+  site: 'https://example.com',
   plugins: [auth],
 })
 ```
@@ -51,13 +51,13 @@ export default defineConfig({
 
 | Route | Behavior |
 | :--- | :--- |
-| `POST /auth/signup` | Argon2id password hash; by default sends a verification email and returns `202` without opening a session (`201` + session only when `requireEmailVerification: false`) |
-| `GET` / `POST /auth/verify-email` | The `GET` the mail opens shows a page with one button and leaves the token unused, so a mail scanner opening the link first does not burn it. Its form `POST`s the token, which marks `emailVerified = true` and opens a session cookie |
-| `POST /auth/signin` | Timing-safe Argon2id verify, rejects unverified accounts (`403`) when verification is required, IP + email rate limiting (`429`) |
-| `POST /auth/signout` | Revokes hashed session + clears cookie |
-| `GET /auth/session` | Returns current public user JSON |
-| `POST /auth/magic-link` & `GET` / `POST /auth/magic-link/verify` | One-time email login via `@prunellejs/mail`. Like verification, the link opens a page whose button `POST`s the token and signs in. The first sign-in by link verifies the address and drops any password, sessions and provider links set before it |
-| `GET /auth/oauth/:provider` & callback | OAuth 2.0 + PKCE (`S256`) with HMAC-signed state (`github`, `discord`, `google`, or custom `oauthProvider`), rate limited |
+| `POST /auth/signup` | Argon2id password hash; sends a verification email and returns `202` without opening a session (`201` + session only when `requireEmailVerification: false`). |
+| `GET` / `POST /auth/verify-email` | `GET` shows a one-button confirmation page and leaves the token unused so mail scanners cannot burn it; `POST` marks `emailVerified = true` and opens a session cookie. |
+| `POST /auth/signin` | Timing-safe Argon2id verify, refuses unverified accounts (`403`) when verification is required, IP + email rate limiting (`429`). |
+| `POST /auth/signout` | Revokes hashed session and clears cookie. |
+| `GET /auth/session` | Returns the current public user JSON. |
+| `POST /auth/magic-link` & `GET` / `POST /auth/magic-link/verify` | One-time email login via `@prunellejs/mail` using the same scanner-safe two-step `GET` → `POST` flow. The first link sign-in verifies the address and clears any prior unverified password, sessions, and provider links. |
+| `GET /auth/oauth/:provider` & callback | OAuth 2.0 + PKCE (`S256`) with HMAC-signed state (`github`, `discord`, `google`, or custom `oauthProvider`), rate limited. |
 
 ## Protecting routes & actions
 
@@ -70,18 +70,18 @@ import { auth } from '../../auth'
 export default auth.guard({ redirectTo: '/login' })
 ```
 
-Inside any route, layout, or server `action()`, `ctx.locals.user` is automatically populated with the signed-in user (or `undefined`).
+Inside any route, layout, or server `action()`, `ctx.locals.user` is populated automatically with the signed-in user (or `undefined`).
 
 ## Data retention & RGPD helpers
 
-`createAuth()` automatically starts an unref'd background timer (`pruneIntervalMs`, default 15 minutes; set `false` to disable) that calls `store.pruneExpired()` and sweeps expired rate-limit buckets. Call `auth.dispose()` in tests or shutdown hooks to stop the timer.
+`createAuth()` starts an unref'd background timer (`pruneIntervalMs`, default 15 minutes; set `false` to disable) that calls `store.pruneExpired()` and sweeps expired rate-limit entries. Call `auth.dispose()` in tests or shutdown hooks to stop it.
 
-For session data minimization, you can configure:
+For session data minimization, configure:
 
 - `storeIp`: `'truncate'` (default — IPv4 `/24`, IPv6 `/48`), `true` (full IP), or `false` (omit IP).
 - `storeUserAgent`: `true` (default) or `false` (omit `User-Agent`).
 
-The `Auth` instance also exposes RGPD lifecycle methods delegating to your `AuthStore`:
+The `Auth` instance exposes RGPD lifecycle methods delegating to your `AuthStore`:
 
 ```ts
 const sessions = await auth.listSessions(userId)   // Active non-expired sessions
@@ -90,12 +90,12 @@ await auth.deleteUser(userId)                       // Cascades user, sessions, 
 await auth.pruneExpired()                           // Manual purge of expired sessions, tokens, and rate-limit entries
 ```
 
-## Custom `AuthStore` & Migration
+## Custom `AuthStore`
 
-If you implement a custom `AuthStore` (rather than using `memoryAuthStore()` or `sqliteAuthStore()`), ensure your adapter implements all required methods on the `AuthStore` interface:
+If you implement a custom `AuthStore` instead of `sqliteAuthStore()` or `memoryAuthStore()`, implement all lifecycle methods on the `AuthStore` interface:
 
-- **`deleteUserOAuthAccounts(userId: string)`** *(added in #3525)*: Deletes all OAuth provider links belonging to `userId`. Called when an unverified account is claimed via a verified magic link or verified OAuth login so a pre-account squatter cannot retain provider access.
-- **`deleteUser(userId: string)`**: Permanently deletes the user and cascades removal of all associated sessions, OAuth accounts, and verification tokens (matching both `userId` and the user's email address).
-- **`exportUser(userId: string)`**: Returns a `UserExport` (`{ user, sessions, oauthAccounts, exportedAt }`) with `passwordHash` stripped and only active non-expired sessions included, or `null` if the user does not exist.
-- **`listSessions(userId: string)`**: Returns all active, non-expired `AuthSession` records for `userId`.
-- **`pruneExpired()`**: Deletes expired sessions and expired verification tokens from storage. Invoked automatically on the `pruneIntervalMs` timer.
+- **`deleteUserOAuthAccounts(userId: string)`**: Deletes all OAuth provider links for `userId` (called when an unverified account is claimed via verified magic link or OAuth so a pre-account squatter cannot keep provider access).
+- **`deleteUser(userId: string)`**: Permanently deletes the user and cascades sessions, OAuth accounts, and verification tokens (matching both `userId` and email).
+- **`exportUser(userId: string)`**: Returns a `UserExport` (`{ user, sessions, oauthAccounts, exportedAt }`) with `passwordHash` stripped and only active non-expired sessions, or `null` if not found.
+- **`listSessions(userId: string)`**: Returns active, non-expired `AuthSession` records for `userId`.
+- **`pruneExpired()`**: Deletes expired sessions and verification tokens. Invoked automatically on `pruneIntervalMs`.

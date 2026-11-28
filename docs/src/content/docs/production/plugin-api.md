@@ -2,7 +2,7 @@
 title: Plugin API
 description: Extend Prunelle with PrunellePlugin hooks — server routes, middleware, health checks, build hooks, prunelle check rules, HTML transforms, and CLI commands.
 section: production
-order: 3
+order: 5
 ---
 
 Every first-party package in Prunelle is built exclusively on the public `PrunellePlugin` interface, with zero special cases in core.
@@ -38,7 +38,7 @@ export function myPlugin() {
       ctx.setData({ builtAt: Date.now() })
     },
 
-    // Run after Step 3 prerendering (route.prerendered & publicFiles are populated)
+    // Run after prerendering (route.prerendered & publicFiles are populated)
     afterPrerender(ctx) {
       // Ideal for sitemaps, feeds, or inspecting generated static files
     },
@@ -53,7 +53,7 @@ export function myPlugin() {
       return html
     },
 
-    // Inline scripts the plugin writes into pages, as they stand between their tags: every page's CSP allows them by hash
+    // Inline scripts the plugin writes into pages: every page's CSP allows them by hash
     inlineScripts: [],
 
     // Native Bun.build plugins per target ('client' | 'server' | 'compile')
@@ -86,29 +86,33 @@ export function myPlugin() {
 }
 ```
 
-## Build-to-server handoff & service sharing
+## Lifecycle, state & production checks
 
-- **Runtime state**: A plugin creates its timers, connections and caches in `server(api)` and releases them in `api.onShutdown()`, never in its factory. The app's bundled config is evaluated once, and `prunelle dev` may start several servers on the same plugin instance, each one before the last shuts down. An edit to `prunelle.config.ts` or a file it imports starts a new `prunelle dev` process, so in-memory state does not outlive it. The hooks also run when `prunelle start` or a compiled binary receives `SIGTERM`, and the process waits for them before it exits. A hook that throws is logged with the plugin's name, and the other hooks still run, as with `onError`.
-- **Production requirements**: `requires({ root, site })` returns one message per setting the plugin lacks to run in production, read from its options and the environment, each naming the setting and its fix. A production start (`prunelle start`, a compiled binary, or `createServer` with `NODE_ENV=production`) refuses while any is unmet and lists them all at once, each with its plugin's name. `prunelle dev`, tests and `prunelle check` boot and warn once about each one instead. `prunelle build` does not check them, since its environment is not the one the app runs in. A `requires` that throws counts as unmet. The first-party plugins use it: `@prunellejs/auth` refuses an in-memory store, `@prunellejs/mail` a missing transport or sender, `@prunellejs/mcp` a missing token, and `@prunellejs/seo` and each `@prunellejs/content` feed a missing `site`.
-- **Build and runtime instances**: `build`, `afterPrerender`, `prerenderPaths`, `check`, `commands`, `css` and `bunPlugins` run on the config `prunelle build` loads itself. `server`, `head` and `transformHtml` run on the app's bundled config, the same copy its routes import, prerendered pages included.
-- **`ctx.setData(data)` / `api.getBuildData()`**: Persists JSON-serializable plugin data into `manifest.pluginData[plugin.name]` so it survives cold starts and `prunelle build --compile`.
-- **`provide(key, value)` / `inject(key)`**: Available on both `BuildPluginContext` and `ServerPluginAPI` to share services between plugins without module-level singletons.
-- **Per-route assets**: Use `ctx.addRouteStyle(routePath, href)` and `ctx.addRouteHead(routePath, html)` when an asset belongs on one route rather than every page.
-- **Route headers**: an `api.route()` response gets the app's security headers. An HTML response without its own `content-security-policy` gets the app's CSP, with a hash for each of its `<style>` blocks.
-- **Route CSRF**: `api.route()` enforces `Origin` / `Sec-Fetch-Site` on unsafe methods by default. Pass `{ csrf: false }` for webhooks or bearer-token endpoints (such as `@prunellejs/mcp`).
-- **Encoded slashes**: every route refuses a path segment holding an encoded `/`, `\` or NUL (`%2F`, `%5C`, `%00`). A route that reads its catch-all as text, such as `/qr/*text` drawing a QR code of a URL, passes `{ encodedSlashes: true }` to take them. The segment reaches `ctx.params` still encoded, so `/qr/https%3A%2F%2Fa.test` gives `https%3A%2F%2Fa.test`. Only the methods that pass the option take such a path: another method on the same route answers `405`. A path with no `*name` segment throws at startup.
-- **Route rate limit**: `api.route(method, path, handler, { rateLimit: { max: 20, windowMs: 60_000 } })` lets one client call the route 20 times a minute. The next call gets a `429` with a `Retry-After` header in whole seconds, and the handler does not run. A client is its `ctx.ip`, read through `trustProxy`; give `key: ctx => ...` to count by something else, such as an account, and return `undefined` to fall back to the address. Each method of a path counts apart.
-- **Other limits**: `api.rateLimiter({ max, windowMs })` returns a limiter for a count a route option cannot key, such as per email in a sign-in form. `limiter.hit(key)` counts a request and returns 0, or, past the limit, counts nothing and returns the seconds to wait. Every limiter of a server shares one store, capped at 10 000 keys and 1 000 000 hits, least recently used first out. The store is swept every minute and dropped with the server, so a `prunelle dev` restart or a deploy starts the counts from zero. Counts are not shared between processes.
-- **Middleware scope**: `api.use(mw, { scope })` takes `'all'` (the default), `'rendered'`, `'dynamic'` or a path prefix. `'all'` runs on prerendered pages too. `'rendered'` skips them: they were rendered at build time and never read `ctx.locals`, so a middleware that only feeds rendering, such as `@prunellejs/auth`'s session, belongs there. `'dynamic'` also skips pages with no `load`. A prerendered page that no middleware, plugin route or route `_middleware.ts` applies to is answered by Bun's route table, without running any prunelle code.
-- **Rewrites and prerendered pages**: the server runs the `api.rewrite()` chain once per prerendered page when it starts, on an anonymous GET as the build did, to find where it sends the page. Keep a rewrite free of side effects. A page it sends onto a plugin route, a path-scoped middleware or a route with a `_middleware.ts` goes through the full pipeline, as before.
+- **Runtime state**: Create timers, connections, and caches inside `server(api)` and release them in `api.onShutdown()` — never in the plugin factory. `prunelle dev` may start a new server on the same instance before shutting the previous one down, and `prunelle start` / `--compile` run `onShutdown()` on `SIGTERM`. A throwing `onShutdown` or `onError` hook is logged with its plugin name while remaining hooks still run.
+- **Production requirements (`requires`)**: Return one message per missing production setting (naming it and its fix). Production starts (`NODE_ENV=production`) refuse to boot while any requirement is unmet; `prunelle dev`, tests, and `prunelle check` warn once instead. First-party plugins use this for `@prunellejs/auth` (in-memory store), `@prunellejs/mail` (missing transport or `from`), `@prunellejs/mcp` (missing token), and `@prunellejs/seo` / `@prunellejs/content` feeds (missing `site`).
+- **Build vs. runtime instances**: `build`, `afterPrerender`, `prerenderPaths`, `check`, `commands`, `css`, and `bunPlugins` run on the config `prunelle build` loads. `server`, `head`, and `transformHtml` run on the app's bundled config (the same copy routes import).
+
+## Build handoff, assets & services
+
+- **`ctx.setData(data)` / `api.getBuildData()`**: Persists JSON-serializable build data into `manifest.pluginData[plugin.name]`, surviving cold starts and `--compile`.
+- **`provide(key, value)` / `inject(key)`**: Available on both `BuildPluginContext` and `ServerPluginAPI` (typed with `serviceKey<T>(name)` from `prunelle/config`) to share services between plugins without module singletons.
+- **Per-route assets**: Use `ctx.addRouteStyle(routePath, href)` and `ctx.addRouteHead(routePath, html)` when an asset belongs on specific routes rather than every page. Local stylesheets emitted via `addStyle` / `addRouteStyle` are automatically consolidated into site-wide and per-route bundles at build time.
+
+## Routes, middleware scope & rate limiting
+
+- **Security headers & CSRF**: `api.route()` responses inherit the app's security headers (and CSP with inline `<style>` hashes for HTML) and enforce `Origin` / `Sec-Fetch-Site` on unsafe methods by default. Pass `{ csrf: false }` for webhooks or bearer-token endpoints.
+- **Encoded slashes**: Routes reject path segments containing `%2F`, `%5C`, or `%00` by default. Catch-all routes that intentionally accept text like URLs (`/qr/*text`) can opt in with `{ encodedSlashes: true }`; the segment arrives still encoded in `ctx.params`.
+- **Route & custom rate limits**: Pass `{ rateLimit: { max: 20, windowMs: 60_000, key? } }` to `api.route()` to reply `429` with `Retry-After` before the handler runs (keyed by `ctx.ip` by default). For non-route keys (such as per email), call `api.rateLimiter({ max, windowMs })` and `limiter.hit(key)` — all limiters share one bounded LRU store (`10,000` keys / `1,000,000` hits), swept every minute and cleared on restart.
+- **Middleware scope**: `api.use(mw, { scope })` accepts `'all'` (default, including prerendered pages), `'rendered'` (skips prerendered pages — ideal for session loaders like `@prunellejs/auth`), `'dynamic'` (also skips pages without `load`), or a path prefix. Prerendered pages with no matching middleware are served straight from Bun's route table.
+- **Rewrites**: `api.rewrite()` runs once per prerendered page at startup on an anonymous `GET` — keep rewrites side-effect free.
 
 ## Helpers for plugin code
 
-The first-party plugins use these instead of keeping their own copies, and a third-party plugin can do the same.
+First-party plugins use these shared helpers from `prunelle/config` and `prunelle/server`:
 
-- **`isInside(dir, target, { orSame })`** from `prunelle/config`: whether `target` lies under `dir`. The folder itself counts only with `orSame: true`. Paths are compared as written, so call `realpathSync` on both first when a symlink must not lead out.
-- **`readStringFields(request)`** from `prunelle/server`: the string fields of a JSON object, urlencoded or multipart body, the last of a repeated name winning. Files, numbers and arrays are dropped. The record has no prototype, so a `__proto__` field is an ordinary field. A malformed body throws: answer 400.
-- **`wantsJson(request)`** from `prunelle/server`: whether the client sent or asked for JSON, to answer an error as JSON rather than as a redirect or a page.
-- **`safeRedirect(target, fallback)`** from `prunelle/server`: `target` when it is a path on this site, otherwise `fallback`.
-- **`escJson(json)`** from `prunelle/server`: JSON text made safe inside a `<script>` element, such as JSON-LD or a JSON data block. It escapes `<` and the two Unicode line separators, and the result still parses to the same value.
-- **`safeEqual(a, b)`** from `prunelle/server`: compares two secrets, such as a bearer token or an OAuth state, in constant time. Both are hashed first, so the time taken does not reveal their length either.
+- **`isInside(dir, target, { orSame })`** (`prunelle/config`): Checks whether `target` lies inside `dir` (call `realpathSync` first when guarding against symlinks).
+- **`readStringFields(request)`** (`prunelle/server`): Reads string fields from JSON, urlencoded, or multipart bodies onto a null-prototype object (throws on malformed bodies).
+- **`wantsJson(request)`** (`prunelle/server`): Detects JSON clients so handlers can reply with JSON instead of HTML or redirects.
+- **`safeRedirect(target, fallback)`** (`prunelle/server`): Returns `target` only if it is a safe same-site path; otherwise returns `fallback`.
+- **`escJson(json)`** (`prunelle/server`): Escapes `<` and Unicode line separators so JSON is safe inside `<script>` tags (JSON-LD or hydration payloads).
+- **`safeEqual(a, b)`** (`prunelle/server`): Constant-time secret comparison (hashed first so length is not leaked).

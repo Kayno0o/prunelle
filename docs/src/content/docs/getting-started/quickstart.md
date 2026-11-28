@@ -9,7 +9,7 @@ order: 2
 
 - **Bun 1.4+** (`bun --version`)
 
-## 1. Create a project
+## Create a project
 
 Pick one of the four built-in starter templates:
 
@@ -30,7 +30,11 @@ bun run dev
 
 Your app runs at `http://127.0.0.1:3000` with incremental rebuilds and live reload over SSE.
 
-## 2. Build for production
+<Callout title="Inspect without building" tone="tip">
+Run `prunelle inspect` at any time to list every route (including `cacheable` pages), island hydration trigger, server action, and plugin order without running a bundle.
+</Callout>
+
+## Build for production
 
 <Tabs label="Deployment targets">
 <Tab group="deploy" label="Bun Server" checked>
@@ -59,12 +63,12 @@ prunelle build --static
 </Tab>
 </Tabs>
 
-Pass `--analyze` to `prunelle build` to print each route's eager JS and CSS weight, its fonts, its first load (what a first visit downloads besides the HTML: stylesheets, eager JS and its imports, fonts and images, brotli), the islands behind it with the reason each became one, and the largest bundled modules. Pass `--max-js 40kb` to fail the build when a route's gzipped eager JS is over 40 KB.
+Pass `--analyze` to `prunelle build` to print each route's eager JS, consolidated CSS, fonts, first-load brotli weight, GreenIT EcoIndex grade (`A–G`), and the islands behind it with the exact reason each became interactive. Pass `--auto-prerender` to automatically prerender static routes that read nothing from the request or clock, and `--max-js 40kb` to fail the build when any route's gzipped eager JS exceeds your budget.
 
-## 3. Validate before shipping
+## Validate before shipping
 
 ```bash
 prunelle check
 ```
 
-`prunelle check` runs TypeScript checking, Prunelle compiler guardrails, route conflict checks, and every active plugin's `check` hook. Pass `--no-typecheck` to skip `bun check`/`tsgo`/`tsc` when iterating quickly.
+`prunelle check` runs TypeScript checking, Prunelle compiler guardrails, route and link conflict checks, form-vs-schema validation, RGAA/RGPD/LCEN compliance warnings, and every active plugin's `check` hook. Pass `--no-typecheck` when iterating quickly, or `--strict` in CI to fail on warnings too.
