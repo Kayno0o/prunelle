@@ -1,6 +1,6 @@
 {
   "name": "@prunellejs/auth",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Zero-dependency Bun-native auth plugin for Prunelle (Argon2id, hashed sessions, SQLite, magic links, OAuth2 PKCE)",
   "license": "MIT",
   "type": "module",
@@ -23,6 +23,6 @@
     "directory": "packages/plugin-auth"
   },
   "peerDependencies": {
-    "prunelle": "^0.2.0"
+    "prunelle": "^0.3.0"
   }
 }

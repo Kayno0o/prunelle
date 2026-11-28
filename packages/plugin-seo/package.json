@@ -1,6 +1,6 @@
 {
   "name": "@prunellejs/seo",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "SEO meta, JSON-LD, sitemap, redirects, and self-hosted fonts plugin for Prunelle",
   "license": "MIT",
   "type": "module",
@@ -21,6 +21,6 @@
     "directory": "packages/plugin-seo"
   },
   "peerDependencies": {
-    "prunelle": "^0.2.0"
+    "prunelle": "^0.3.0"
   }
 }

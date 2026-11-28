@@ -1,6 +1,6 @@
 {
   "name": "prunelle",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Bun-native TSX web framework with zero-directive automatic islands, fine-grained signals, and single-binary deploys",
   "license": "MIT",
   "homepage": "https://prunelle.kaynooo.fr",

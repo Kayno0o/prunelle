@@ -1,6 +1,6 @@
 {
   "name": "@prunellejs/content",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Zero-dependency Bun.markdown collections, YAML frontmatter, TOC, and RSS plugin for Prunelle",
   "license": "MIT",
   "type": "module",
@@ -21,6 +21,6 @@
     "directory": "packages/plugin-content"
   },
   "peerDependencies": {
-    "prunelle": "^0.2.0"
+    "prunelle": "^0.3.0"
   }
 }
