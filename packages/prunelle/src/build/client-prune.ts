@@ -38,13 +38,22 @@ export function clientView(analysis: ModuleAnalysis, code: string, keep: Readonl
   }
 }
 
+function padPreservingLines(original: string, replacement: string): string {
+  if (replacement === '')
+    return original.replace(/[^\r\n]/g, ' ')
+  const origNewlines = original.split('\n').length - 1
+  const nextNewlines = replacement.split('\n').length - 1
+  return origNewlines > nextNewlines ? `${replacement}${'\n'.repeat(origNewlines - nextNewlines)}` : replacement
+}
+
 /** `code` with each top-level declaration, import and re-export outside `keep` removed. Everything else (module-level statements, types) stays. */
-export function pruneForClient(code: string, program: Program, keep: ReadonlySet<string>): string {
+export function pruneForClient(code: string, program: Program, keep: ReadonlySet<string>, options?: { preserveLines?: boolean | undefined }): string {
   const editor = new SourceEditor(code)
+  const preserveLines = options?.preserveLines === true
   for (const stmt of program.body) {
     const text = keptText(stmt, code, keep)
     if (text !== undefined)
-      editor.replace(stmt.start, stmt.end, text)
+      editor.replace(stmt.start, stmt.end, preserveLines ? padPreservingLines(code.slice(stmt.start, stmt.end), text) : text)
   }
   return editor.toString()
 }

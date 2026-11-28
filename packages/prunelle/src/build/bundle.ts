@@ -261,7 +261,7 @@ export async function buildClient(env: BundleEnv, standaloneCss: string[]): Prom
 
   const clientLeaks = new Set<string>()
   const inlinedEnvKey = (key: string): boolean => key === 'NODE_ENV' || `process.env.${key}` in envDefines
-  const plugin = clientPlugin({ root, graph, cache, actionsByFile, transforms, leaks: clientLeaks, localExports: localIslandExports(islands.targets.values()), clientKeep: islands.clientKeep })
+  const plugin = clientPlugin({ root, isDev: env.isDev, graph, cache, actionsByFile, transforms, leaks: clientLeaks, localExports: localIslandExports(islands.targets.values()), clientKeep: islands.clientKeep })
   const reviver = islands.targets.size > 0 ? await buildReviver(env) : undefined
 
   const clientResult = await runBunBuild('client', env.root, () => {
@@ -540,7 +540,7 @@ export async function buildServer(env: BundleEnv, entries: string[], serverRoot:
         // Island code of another module may render any component of a module it imports; in its own module, only the code an island reaches.
         const emitMarkers = islands.reach.has(args.path) || (isInteractive && analysis.browserSpans)
         let islandMap: Map<string, IslandBinding> | undefined
-        let key = `${isInteractive ? '1' : '0'}:${emitMarkers === true ? '1' : emitMarkers === false ? '0' : 's'}|t=${transforms.key}`
+        let key = `${env.isDev ? 'd:' : ''}${isInteractive ? '1' : '0'}:${emitMarkers === true ? '1' : emitMarkers === false ? '0' : 's'}|t=${transforms.key}`
         if (rawBindings !== undefined) {
           islandMap = new Map()
           for (const [localName, target] of rawBindings) {
@@ -560,6 +560,7 @@ export async function buildServer(env: BundleEnv, entries: string[], serverRoot:
           islands: islandMap,
           isIsland: isInteractive,
           emitMarkers,
+          devSourceRoot: env.isDev ? root : undefined,
         } as Parameters<typeof compileSsr>[2])
         const code = transforms.apply(compiled.code, args.path, 'server')
         if (cache !== undefined && stamp !== undefined)

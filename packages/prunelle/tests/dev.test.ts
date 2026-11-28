@@ -116,7 +116,7 @@ describe('Incremental BuildCache & prunelle dev (#3520)', () => {
     try {
       const html1 = await (await fetch(`${srv.url}/`)).text()
       expect(html1).toContain('<html lang="en">')
-      expect(html1).toContain('<h1>Dev OK</h1>')
+      expect(html1).toMatch(/<h1[^>]*>Dev OK<\/h1>/)
 
       // Subscribe to SSE /_pru/dev-events
       const sseRes = await fetch(`${srv.url}/_pru/dev-events`, { signal: ac.signal })
@@ -153,7 +153,7 @@ describe('Incremental BuildCache & prunelle dev (#3520)', () => {
       expect(fixMsg).toBe('reload')
       const recRes = await fetch(`${srv.url}/`)
       expect(recRes.status).toBe(200)
-      expect(await recRes.text()).toContain('<h1>Recovered</h1>')
+      expect(await recRes.text()).toMatch(/<h1[^>]*>Recovered<\/h1>/)
 
       // 4. Edit prunelle.config.ts (lang: 'en' -> 'fr') -> live config reload!
       await Bun.sleep(60)
@@ -192,7 +192,7 @@ describe('Incremental BuildCache & prunelle dev (#3520)', () => {
     writeFileSync(otherPath, other('v1'))
 
     const srv = await devServer({ root: dir, port: 0 })
-    const page = async (path: string) => (await (await fetch(`${srv.url}${path}`)).text()).match(/<p>([^<]+)<\/p>/)![1]
+    const page = async (path: string) => (await (await fetch(`${srv.url}${path}`)).text()).match(/<p[^>]*>([^<]+)<\/p>/)![1]
     try {
       const boot = await page('/')
       expect(boot).toStartWith('boot-')
@@ -228,12 +228,12 @@ describe('Incremental BuildCache & prunelle dev (#3520)', () => {
     const srv = await devServer({ root: dir, port: 0 })
     const ac = new AbortController()
     try {
-      expect(await (await fetch(srv.url)).text()).toContain('<p>data v1</p>')
+      expect(await (await fetch(srv.url)).text()).toMatch(/<p[^>]*>data v1<\/p>/)
       const reader = (await fetch(`${srv.url}/_pru/dev-events`, { signal: ac.signal })).body!.getReader()
       await Bun.sleep(60)
       writeFileSync(dataPath, 'data v2')
       expect(await readNextSseData(reader)).toBe('reload')
-      expect(await (await fetch(srv.url)).text()).toContain('<p>data v2</p>')
+      expect(await (await fetch(srv.url)).text()).toMatch(/<p[^>]*>data v2<\/p>/)
     }
     finally {
       ac.abort()
@@ -305,7 +305,7 @@ describe('Incremental BuildCache & prunelle dev (#3520)', () => {
       await srv.rebuild()
       const res = await fetch(srv.url)
       expect(res.status).toBe(200)
-      expect(await res.text()).toContain('<p>ready</p>')
+      expect(await res.text()).toMatch(/<p[^>]*>ready<\/p>/)
     }
     finally {
       srv.stop()

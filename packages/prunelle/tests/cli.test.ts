@@ -390,4 +390,49 @@ describe('prunelle build names the islands behind each route\'s JS (#3585)', () 
     expect(() => checkJsBudget(report(1024), 2048)).not.toThrow()
     expect(() => checkJsBudget(report(4096), 2047)).toThrow('prunelle build: eager JS over --max-js 2.00 KB (gzip) on 2 routes:\n  / ships 2.00 KB of eager JS: Clicker (src/Clicker.tsx) uses onClick\n  /later ships 4.00 KB of eager JS: the prunelle runtime alone\nDefer an island with export const hydrate = \'visible\', move its state into fewer components, or raise --max-js.')
   })
+
+  test('prunelle docs, prunelle render, and prunelle mcp work end-to-end from the CLI (#19, #20, #21)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'prunelle-v04-cli-'))
+    try {
+      mkdirSync(join(dir, 'src/routes/api'), { recursive: true })
+      writeFileSync(join(dir, 'src/routes/index.tsx'), 'export default function Home() { return <h1>Hello Render</h1> }\n')
+      writeFileSync(join(dir, 'src/routes/api/echo.ts'), 'export async function POST(ctx: { request: Request, cookies: { get: (k: string) => string | undefined }, json: (v: unknown) => Response }) { return ctx.json({ body: await ctx.request.text(), cookie: ctx.cookies.get("sid") ?? null, hdr: ctx.request.headers.get("x-test") }) }\n')
+
+      // prunelle --help lists docs, render, mcp
+      const help = await prunelle(['--help'])
+      expect(help.code).toBe(0)
+      expect(help.out).toContain('docs')
+      expect(help.out).toContain('render')
+      expect(help.out).toContain('mcp')
+      expect((await prunelle(['mcp', '--help'])).out).toContain('--allow-write')
+
+      // prunelle docs --json
+      const docsRes = await prunelle(['docs', 'action', '--json'], dir)
+      expect(docsRes.code).toBe(0)
+      const docsJson = JSON.parse(docsRes.out) as { matches: { packageName: string }[] }
+      expect(docsJson.matches.length).toBeGreaterThan(0)
+      expect(docsJson.matches.some(m => m.packageName === 'prunelle')).toBe(true)
+
+      const noMatch = await prunelle(['docs', 'xyznonexistenttoken98765'], dir)
+      expect(noMatch.code).toBe(1)
+
+      // prunelle render <url> (200 -> exit 0, 404 -> exit 1, POST + headers + cookie + -i)
+      const okRender = await prunelle(['render', '/', '--root', dir])
+      expect(okRender.code).toBe(0)
+      expect(okRender.out).toContain('<h1>Hello Render</h1>')
+
+      const notFoundRender = await prunelle(['render', '/missing', '--root', dir])
+      expect(notFoundRender.code).toBe(1)
+
+      const postRender = await prunelle(['render', '/api/echo', '-X', 'POST', '-d', 'ping', '-H', 'x-test: ok', '-b', 'sid=42', '-i', '--root', dir])
+      expect(postRender.code).toBe(0)
+      expect(postRender.out).toContain('HTTP/1.1 200')
+      expect(postRender.out).toContain('"body":"ping"')
+      expect(postRender.out).toContain('"cookie":"42"')
+      expect(postRender.out).toContain('"hdr":"ok"')
+    }
+    finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
 })

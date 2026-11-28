@@ -121,10 +121,13 @@ cd examples/noticeboard && bun run dev
 ## CLI Commands
 
 ```sh
-bunx prunelle new my-app [--template minimal|fullstack|blog|app]  # Scaffold a new project
+bunx prunelle new my-app [--template minimal|fullstack|blog|app]  # Scaffold a new project (with .mcp.json & prunelle/ts-plugin)
 prunelle check [--no-typecheck]             # Validate routes, compiler rules, RGAA/RGPD/LCEN compliance, plugin checks & types
 prunelle inspect [--json]                   # Inspect routes (cacheable/cache), islands, actions & plugins without bundling
-prunelle dev [--port 3000] [--host [addr]]  # Fast rebuild + live reload, the app in a child process (127.0.0.1 by default)
+prunelle docs <words...> [--json]           # Search llms.txt across prunelle and installed @prunellejs/* plugins
+prunelle render <url> [-X method] [-i]      # Render a URL in-process via testApp() with no port bound
+prunelle mcp [--allow-write]                # Stdio MCP server for coding agents (check, inspect, build_analyze, render, docs, dev_errors)
+prunelle dev [--port 3000] [--host [addr]]  # Fast rebuild + live reload + Alt-click jump to TSX in $PRUNELLE_EDITOR/$VISUAL
 prunelle build [--analyze] [--max-js 40kb]  # Production build; per-route islands, EcoIndex, fonts & first-load report, or JS budget
 prunelle build --static                     # Pure static HTML export (or --auto-prerender for cacheable pages)
 prunelle build --compile [out]              # Single standalone executable

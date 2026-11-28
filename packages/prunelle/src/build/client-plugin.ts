@@ -24,6 +24,7 @@ export interface ClientTransforms {
 
 export interface ClientPluginEnv {
   root: string
+  isDev: boolean
   graph: ModuleGraph
   cache: BuildCache | undefined
   actionsByFile: ActionsByFile
@@ -114,7 +115,7 @@ export function directPrunelleImports(code: string, graph: ModuleGraph, filename
 }
 
 export function clientPlugin(env: ClientPluginEnv): BunPlugin {
-  const { root, graph, cache, actionsByFile, transforms, leaks, localExports, clientKeep } = env
+  const { root, isDev, graph, cache, actionsByFile, transforms, leaks, localExports, clientKeep } = env
   return {
     name: 'prunelle-client',
     setup(b) {
@@ -151,14 +152,17 @@ export function clientPlugin(env: ClientPluginEnv): BunPlugin {
         const stamp = graph.stamp(args.path)
         const extraExports = localExports.get(args.path) ?? ''
         const keep = clientKeep.get(args.path)
-        const key = `${transforms.key}${extraExports}${keep === undefined ? '' : `|keep=${[...keep].sort().join(',')}`}`
+        const key = `${isDev ? 'd:' : ''}${transforms.key}${extraExports}${keep === undefined ? '' : `|keep=${[...keep].sort().join(',')}`}`
         const cachedDom = stamp !== undefined ? cache?.domCompiled.get(args.path) : undefined
         if (cachedDom !== undefined && cachedDom.mtimeMs === stamp!.mtimeMs && cachedDom.size === stamp!.size && (cachedDom.key ?? '') === key)
           return { contents: cachedDom.code, loader: 'tsx' }
         const analysis = graph.analyses.get(args.path)
         const source = graph.source(args.path)
-        const clientSource = keep === undefined || analysis === undefined ? source : pruneForClient(source, analysis.program, keep)
-        const dom = compileDom(args.path, clientSource, clientSource === source ? { analysis } : {})
+        const clientSource = keep === undefined || analysis === undefined ? source : pruneForClient(source, analysis.program, keep, { preserveLines: isDev })
+        const dom = compileDom(args.path, clientSource, {
+          ...(clientSource === source ? { analysis } : {}),
+          devSourceRoot: isDev ? root : undefined,
+        })
         const compiled = directPrunelleImports(transforms.apply(dom.code, args.path, 'client'), graph, args.path) + extraExports
         if (cache !== undefined && stamp !== undefined)
           cache.domCompiled.set(args.path, { mtimeMs: stamp.mtimeMs, size: stamp.size, key, code: compiled })

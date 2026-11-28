@@ -429,7 +429,7 @@ describe('#3632 — 3. <Region> HTTP semantics, Vary composition, prerendered ro
       expect(regionRes.status).toBe(200)
       expect(regionRes.headers.get('x-pru-region')).toBe('pane')
       const regionHtml = await regionRes.text()
-      expect(regionHtml).toBe('<p>partial-only</p>')
+      expect(regionHtml).toMatch(/^<p data-pru-src="[^"]+">partial-only<\/p>$/)
       expect(regionHtml).not.toContain('<script>')
       expect(regionHtml).not.toContain('EventSource')
     }

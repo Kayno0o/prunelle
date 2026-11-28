@@ -13,7 +13,9 @@ import { build, createBuildCache } from '../build/index'
 import { loadConfig, resolveServerConfig } from '../plugins/index'
 import { DEFAULT_MAX_REQUEST_BODY_SIZE } from '../server/http'
 import { createServer } from '../server/index'
+import { createDevRuntimeErrorSink, recordDevBuildError } from './error-log'
 import { createModuleStore } from './modules'
+import { handleOpenEditorRequest } from './open-editor'
 import { DEV_CLIENT_IP_HEADER } from './protocol'
 import { createRebuildQueue } from './queue'
 import { buildErrorResponse, createReloadHub, makeDevReloadAssets, withReloadScript } from './reload'
@@ -36,6 +38,55 @@ export interface DevServerOptions {
 }
 
 const errorText = (err: unknown): string => err instanceof Error ? err.stack ?? err.message : String(err)
+
+function startDevHttpServer(
+  options: DevServerOptions,
+  maxRequestBodySize: number,
+  configPort: number | undefined,
+  onFetch: (request: Request, srv: Server<undefined>) => Promise<Response>,
+): { server: Server<undefined>, url: string } {
+  const hostname = options.hostname ?? '127.0.0.1'
+  const serveOptions = { maxRequestBodySize, fetch: onFetch }
+  const server = options.unix !== undefined
+    ? Bun.serve({ ...serveOptions, unix: options.unix })
+    : Bun.serve({ ...serveOptions, port: options.port ?? configPort ?? 3000, hostname, idleTimeout: 30 })
+  // `0.0.0.0` is printed as the loopback address a browser on this machine opens.
+  const url = options.unix !== undefined ? `unix:${options.unix}` : `http://${hostname === '0.0.0.0' ? '127.0.0.1' : hostname}:${server.port}`
+  if (options.unix === undefined)
+    console.log(`[prunelle dev] listening on ${url}`)
+  return { server, url }
+}
+
+async function handleAppFetch(
+  request: Request,
+  srv: Server<undefined>,
+  state: {
+    root: string
+    unix: string | undefined
+    hub: ReturnType<typeof createReloadHub> | undefined
+    reloadAssets: ReturnType<typeof makeDevReloadAssets>
+    lastError: string | undefined
+    app: PrunelleApp | undefined
+  },
+): Promise<Response> {
+  const { pathname } = new URL(request.url)
+  if (state.hub !== undefined && pathname === state.reloadAssets.eventsPath) {
+    srv.timeout(request, 0)
+    return state.hub.events(request)
+  }
+  if (pathname === state.reloadAssets.openEditorPath)
+    return handleOpenEditorRequest(request, state.root)
+  if (state.lastError !== undefined)
+    return buildErrorResponse(request, state.lastError, state.reloadAssets.script)
+
+  const remoteIp = state.unix !== undefined ? request.headers.get(DEV_CLIENT_IP_HEADER) ?? undefined : srv.requestIP(request)?.address
+  const res = await state.app!.handle(request, remoteIp)
+  const ct = res.headers.get('content-type') ?? ''
+  const isStreamedHtml = ct.includes('text/html') && request.method !== 'HEAD' && res.body !== null && !res.headers.has('content-length')
+  if (ct.includes('text/event-stream') || isStreamedHtml)
+    srv.timeout(request, 0)
+  return withReloadScript(request, res, state.reloadAssets)
+}
 
 export async function devServer(options: DevServerOptions): Promise<{
   url: string
@@ -65,7 +116,7 @@ export async function devServer(options: DevServerOptions): Promise<{
     routesDir: options.routesDir,
     schedule: kind => kind === 'config' && recycle !== undefined ? recycle('config') : queue.schedule(kind),
   })
-  const serverOptions = { root, dev: true, compress: false, ...(options.maxRequestBodySize !== undefined ? { maxRequestBodySize: options.maxRequestBodySize } : {}) }
+  const serverOptions = { root, dev: true, compress: false, errorSink: createDevRuntimeErrorSink(root), ...(options.maxRequestBodySize !== undefined ? { maxRequestBodySize: options.maxRequestBodySize } : {}) }
 
   let buildNum = 0
   let current: { app: PrunelleApp, outDir: string } | undefined
@@ -119,6 +170,7 @@ export async function devServer(options: DevServerOptions): Promise<{
         return
       }
       lastError = undefined
+      recordDevBuildError(root, undefined)
       watchers.syncBuild(buildCache.watchedFiles, manifest.publicFiles)
       if (n > 2)
         rmSync(join(devRoot, `b${n - 2}`), { recursive: true, force: true })
@@ -131,6 +183,7 @@ export async function devServer(options: DevServerOptions): Promise<{
       if (stopped)
         return
       lastError = errorText(err)
+      recordDevBuildError(root, lastError)
       console.error(`[prunelle dev] build error:\n${lastError}`)
       // Push reload over SSE so open browser tabs immediately display the error overlay
       broadcast('reload')
@@ -150,34 +203,12 @@ export async function devServer(options: DevServerOptions): Promise<{
   }
 
   const runtimeCfg = resolveServerConfig(initialCfg, { maxRequestBodySize: options.maxRequestBodySize })
-  const hostname = options.hostname ?? '127.0.0.1'
-  const serveOptions = {
-    maxRequestBodySize: runtimeCfg.maxRequestBodySize ?? DEFAULT_MAX_REQUEST_BODY_SIZE,
-    async fetch(request: Request, srv: Server<undefined>): Promise<Response> {
-      if (hub !== undefined && new URL(request.url).pathname === reloadAssets.eventsPath) {
-        srv.timeout(request, 0)
-        return hub.events(request)
-      }
-      if (lastError !== undefined)
-        return buildErrorResponse(request, lastError, reloadAssets.script)
-
-      const remoteIp = options.unix !== undefined ? request.headers.get(DEV_CLIENT_IP_HEADER) ?? undefined : srv.requestIP(request)?.address
-      const res = await current!.app.handle(request, remoteIp)
-      const ct = res.headers.get('content-type') ?? ''
-      const isStreamedHtml = ct.includes('text/html') && request.method !== 'HEAD' && res.body !== null && !res.headers.has('content-length')
-      if (ct.includes('text/event-stream') || isStreamedHtml)
-        srv.timeout(request, 0)
-      return withReloadScript(request, res, reloadAssets)
-    },
-  }
-  const server = options.unix !== undefined
-    ? Bun.serve({ ...serveOptions, unix: options.unix })
-    : Bun.serve({ ...serveOptions, port: options.port ?? initialCfg.port ?? 3000, hostname, idleTimeout: 30 })
-
-  // `0.0.0.0` is printed as the loopback address a browser on this machine opens.
-  const url = options.unix !== undefined ? `unix:${options.unix}` : `http://${hostname === '0.0.0.0' ? '127.0.0.1' : hostname}:${server.port}`
-  if (options.unix === undefined)
-    console.log(`[prunelle dev] listening on ${url}`)
+  const { server, url } = startDevHttpServer(
+    options,
+    runtimeCfg.maxRequestBodySize ?? DEFAULT_MAX_REQUEST_BODY_SIZE,
+    initialCfg.port,
+    (request, srv) => handleAppFetch(request, srv, { root, unix: options.unix, hub, reloadAssets, lastError, app: current?.app }),
+  )
   let stopPromise: Promise<void> | undefined
 
   return {

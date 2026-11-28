@@ -7,6 +7,7 @@ import { existsSync, mkdtempSync, rmSync, watch } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { DEFAULT_MAX_REQUEST_BODY_SIZE } from '../server/http'
+import { recordDevCrashError } from './error-log'
 import { DEV_CHILD_ENV, DEV_CLIENT_IP_HEADER } from './protocol'
 import { buildErrorResponse, createReloadHub, makeDevReloadAssets } from './reload'
 
@@ -64,6 +65,7 @@ export async function devSupervisor(options: DevSupervisorOptions): Promise<{ ur
         else if (message.t === 'ready') {
           reloadAssets = makeDevReloadAssets(message.assetPrefix)
           crashed = undefined
+          recordDevCrashError(root, undefined)
           onReady(child)
         }
         else if (child === live && !child.stopping && !stopped) {
@@ -87,6 +89,7 @@ export async function devSupervisor(options: DevSupervisorOptions): Promise<{ ur
         return
       const how = proc.signalCode !== null ? `was killed by ${proc.signalCode}` : `exited with code ${code}`
       crashed = [`prunelle dev: the app process ${how}.`, stderrTail.trim(), 'Save a file to start it again.'].filter(Boolean).join('\n\n')
+      recordDevCrashError(root, crashed)
       if (live === child)
         live = undefined
       onReady(undefined)

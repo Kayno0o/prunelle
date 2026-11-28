@@ -12,6 +12,7 @@ import type { SelectValueBinding } from './ssr-helpers'
 import type { PrunelleTagEmitter } from './ssr-prunelle-tags'
 import { analyzeModule, parseTsx } from './analyze'
 import { walk } from './ast'
+import { createDevSourceAttr } from './dev-source'
 import { mistake } from './mistakes'
 import { alignLines, lineMarker, SourceEditor } from './patch'
 import {
@@ -126,6 +127,8 @@ export interface CompileSsrOptions {
   /** Hydration markers everywhere, nowhere, or only inside these source spans. */
   emitMarkers?: boolean | readonly (readonly [number, number])[] | undefined
   analysis?: ModuleAnalysis | undefined
+  /** Project root for dev-only `data-pru-src="file:line:col"` attributes; omit in production. */
+  devSourceRoot?: string | undefined
 }
 
 export interface CompileResult {
@@ -164,6 +167,13 @@ function markerTest(markers: NonNullable<CompileSsrOptions['emitMarkers']>): (of
   return typeof markers === 'boolean' ? () => markers : offset => markers.some(([start, end]) => offset >= start && offset < end)
 }
 
+function flushStringParts(bufVar: string, parts: StringParts, stmts: string[]): void {
+  if (!parts.isEmpty()) {
+    stmts.push(`${bufVar} += ${parts.toExpr()};`)
+    parts.clear()
+  }
+}
+
 export function compileSsr(filename: string, code: string, options: CompileSsrOptions = {}): CompileResult {
   const program = options.analysis?.program ?? parseTsx(filename, code)
   const analysis = options.analysis ?? analyzeModule(filename, code, program)
@@ -184,6 +194,7 @@ export function compileSsr(filename: string, code: string, options: CompileSsrOp
   }
 
   const islands = options.islands
+  const devSrc = createDevSourceAttr(filename, code, options.devSourceRoot)
   const markersAt = markerTest(options.emitMarkers ?? options.isIsland ?? analysis.isInteractive)
   const jsxNodes = analysis.jsxNodes
   const exprContext = createExprContext(program, jsxNodes)
@@ -210,12 +221,7 @@ export function compileSsr(filename: string, code: string, options: CompileSsrOp
     const bufVar = `_o${loopCounter++}`
     const stmts: string[] = []
     const parts = new StringParts()
-    const flush = () => {
-      if (!parts.isEmpty()) {
-        stmts.push(`${bufVar} += ${parts.toExpr()};`)
-        parts.clear()
-      }
-    }
+    const flush = () => flushStringParts(bufVar, parts, stmts)
     emitChildrenIntoBuffer(children, bufVar, parts, flush, s => stmts.push(s), rawTextTag, slotMarkers, inFragment)
     if (stmts.length === 0)
       return parts.toExpr()
@@ -247,7 +253,7 @@ export function compileSsr(filename: string, code: string, options: CompileSsrOp
       }
     }
 
-    parts.pushStatic(`<${tag}`)
+    parts.pushStatic(`<${tag}${devSrc(node, tag)}`)
     const isTextarea = tag === 'textarea'
     const isSelect = tag === 'select'
     const compileAttrExpr = actionOverride !== undefined ? (n: Node) => (n === actionOverride.node ? actionOverride.ident : compileSubExpression(n)) : compileSubExpression
@@ -450,12 +456,7 @@ export function compileSsr(filename: string, code: string, options: CompileSsrOp
     const stmts: string[] = []
     const parts = new StringParts()
 
-    const flush = () => {
-      if (!parts.isEmpty()) {
-        stmts.push(`${bufVar} += ${parts.toExpr()};`)
-        parts.clear()
-      }
-    }
+    const flush = () => flushStringParts(bufVar, parts, stmts)
 
     emitIntoBuffer(node, bufVar, parts, flush, s => stmts.push(s))
 

@@ -36,15 +36,16 @@ export function resolveImportPath(fromFile: string, specifier: string): string |
   }
 }
 
+const PRUNELLE_PKG_ROOT = resolve(PRUNELLE_SRC_ROOT, '..')
+
 const PRUNELLE_SPECIFIER_FILES = new Map<string, string>(
   Object.entries(pkg.exports as Record<string, string>).map(([subpath, target]) => [
     subpath === '.' ? 'prunelle' : `prunelle/${subpath.slice(2)}`,
-    target.replace(/^\.\/src\//, ''),
+    resolve(PRUNELLE_PKG_ROOT, target),
   ]),
 )
 
 /** Maps `prunelle` and its subpaths to their source file. */
 export function resolvePrunelleSpecifier(specifier: string): string | undefined {
-  const file = PRUNELLE_SPECIFIER_FILES.get(specifier)
-  return file === undefined ? undefined : join(PRUNELLE_SRC_ROOT, file)
+  return PRUNELLE_SPECIFIER_FILES.get(specifier)
 }

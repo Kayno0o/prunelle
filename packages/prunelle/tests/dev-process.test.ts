@@ -32,8 +32,10 @@ function makeApp(files: Record<string, string> = {}): string {
   return dir
 }
 
+const HOME_P_RE = /<p(?:\s[^>]*)?>(\w+) (\d+)<\/p>/
+
 const home = async (url: string): Promise<{ site: string, pid: string }> => {
-  const [, site, pid] = /<p>(\w+) (\d+)<\/p>/.exec(await (await fetch(url)).text())!
+  const [, site, pid] = HOME_P_RE.exec(await (await fetch(url)).text())!
   return { site: site!, pid: pid! }
 }
 
@@ -57,7 +59,7 @@ async function nextEvent(reader: ReadableStreamDefaultReader<Uint8Array>): Promi
 async function nextProcess(url: string, pid: string): Promise<{ site: string, pid: string }> {
   const deadline = Date.now() + 15_000
   while (Date.now() < deadline) {
-    const now = /<p>(\w+) (\d+)<\/p>/.exec(await (await fetch(url)).text())
+    const now = HOME_P_RE.exec(await (await fetch(url)).text())
     if (now !== null && now[2] !== pid)
       return { site: now[1]!, pid: now[2]! }
     await Bun.sleep(50)

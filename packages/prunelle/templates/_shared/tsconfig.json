@@ -8,6 +8,11 @@
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
+    "plugins": [
+      {
+        "name": "prunelle/ts-plugin"
+      }
+    ],
     "types": [
       "bun"
     ]

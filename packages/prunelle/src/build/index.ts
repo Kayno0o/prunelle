@@ -60,6 +60,8 @@ export interface BuildOptions {
   analyze?: boolean | undefined
   /** Print the `--analyze` bundle weight report as JSON instead of a human-readable table. */
   analyzeJson?: boolean | undefined
+  /** Receives the computed `BundleReport` in-process without printing to stdout (used by `prunelle mcp`). */
+  onAnalyze?: ((report: import('./report').BundleReport) => void) | undefined
   /** Fail the build when a route's eager JS, gzipped, is over this many bytes, naming the route and its islands. */
   maxJs?: number | undefined
   /** Export a static site directly into outDir (dist/) with no server/ folder left behind. */
@@ -385,7 +387,8 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
     .flatMap(p => p.css ?? [])
     .map(c => resolve(root, c))
     .filter(c => existsSync(c))
-  const env = { root, outDir, clientDir, serverDir, assetPrefix, minify: run.minify, isDev, nodeEnv: run.nodeEnv, analyze: options.analyze === true || options.analyzeJson === true || options.maxJs !== undefined, graph, cache: options.cache, plugins, actionsByFile, islands }
+  const wantsAnalyze = wantsBundleAnalysis(options)
+  const env = { root, outDir, clientDir, serverDir, assetPrefix, minify: run.minify, isDev, nodeEnv: run.nodeEnv, analyze: wantsAnalyze, graph, cache: options.cache, plugins, actionsByFile, islands }
 
   const routeEntryFiles = new Set([...specialFiles, ...pageFiles])
   const standaloneActionFiles = [...actionsByFile.keys()].filter(f => !routeEntryFiles.has(f))
@@ -508,7 +511,7 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
   }
   const writeManifest = (): void => writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2))
   writeManifest()
-  const analyzeOrigins = options.analyze === true || options.analyzeJson === true || options.maxJs !== undefined
+  const analyzeOrigins = wantsAnalyze
     ? islandOrigins(islands, client.islandChunks, graph, root)
     : undefined
 
@@ -529,11 +532,16 @@ interface BuiltOutput {
   outPublicDir: string
 }
 
+function wantsBundleAnalysis(options: BuildOptions): boolean {
+  return options.analyze === true || options.analyzeJson === true || options.maxJs !== undefined || options.onAnalyze !== undefined
+}
+
 function emitBundleAnalysis(run: BuildRun, built: BuiltOutput, clientDir: string, prerenderBaseDir: string | undefined): void {
   const { options, assetPrefix } = run
-  if (options.analyze !== true && options.analyzeJson !== true && options.maxJs === undefined)
+  if (!wantsBundleAnalysis(options))
     return
   const report = analyzeBundleWeights(built.manifest, clientDir, assetPrefix, built.metafile, built.analyzeOrigins, [built.outPublicDir, run.publicDir], prerenderBaseDir)
+  options.onAnalyze?.(report)
   if (options.analyzeJson === true)
     console.log(formatBundleReportJson(report))
   else if (options.analyze === true)

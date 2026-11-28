@@ -9,6 +9,7 @@
     "check:size": "bun scripts/size-check.ts",
     "check:guardrails": "bun scripts/guardrails-check.ts",
     "check:dup": "bun scripts/dup-check.ts",
+    "build:ts-plugin": "bun scripts/build-ts-plugin.ts",
     "test": "bun test packages/prunelle/tests",
     "bench": "bun bench-app/bench.ts",
     "bench:server": "bun bench-app/server-bench.ts",

@@ -231,11 +231,89 @@ function devCommand(cwd: string): Commands[string] {
   }
 }
 
+function docsCommand(cwd: string): Commands[string] {
+  return {
+    summary: 'search llms.txt across prunelle and installed plugins',
+    run: async (args) => {
+      const { values, positionals } = parse(args, 'prunelle docs [options] <words...>: searches llms.txt of prunelle and every installed @prunellejs/* package', {
+        json: { type: 'boolean', description: 'print { query, words, packages, matches } as JSON' },
+        limit: { type: 'string', description: 'maximum matching sections to print (default: 20)' },
+        root: ROOT,
+      }, { positionals: ['<words...>'], exits: [OK, [1, 'no matching section found'], USAGE_EXIT] })
+      const limit = values.limit === undefined ? undefined : Number(values.limit)
+      if (limit !== undefined && (!Number.isInteger(limit) || limit <= 0))
+        return badUsage(`invalid --limit "${values.limit}": give a positive integer`)
+      const query = positionals.join(' ').trim()
+      if (query === '')
+        return badUsage('give at least one search word, e.g. prunelle docs action')
+      const { formatDocsSearchResult, searchLlmsDocs } = await import('./docs')
+      const result = searchLlmsDocs(rootOf(cwd, values.root, undefined), query, { limit })
+      if (values.json === true) {
+        console.log(JSON.stringify(result, null, 2))
+        return result.matches.length > 0 ? 0 : 1
+      }
+      console.log(formatDocsSearchResult(result))
+      return result.matches.length > 0 ? 0 : 1
+    },
+  }
+}
+
+function renderCommand(cwd: string): Commands[string] {
+  return {
+    summary: 'render a URL in-process without binding a port',
+    run: async (args) => {
+      const { values, positionals: [url] } = parse(args, 'prunelle render [options] <url>: builds or reuses a test build and prints the response with no port bound', {
+        method: { type: 'string', short: 'X', description: 'HTTP method (default: GET, or POST when --body is passed)' },
+        body: { type: 'string', short: 'd', description: 'request body string' },
+        header: { type: 'string', short: 'H', multiple: true, description: 'request header as "Name: Value" (repeatable)' },
+        cookie: { type: 'string', short: 'b', multiple: true, description: 'request cookie as "name=value" (repeatable)' },
+        include: { type: 'boolean', short: 'i', description: 'include HTTP status line and response headers before the body' },
+        fresh: { type: 'boolean', description: 'force a fresh build instead of reusing the cached render build' },
+        root: ROOT,
+      }, { positionals: ['<url>'], exits: [[0, 'response status is 2xx or 3xx'], [1, 'response status is 4xx/5xx or the render failed'], USAGE_EXIT] })
+      const { formatRenderResult, renderUrl } = await import('./render')
+      const result = await failing('render', () => renderUrl({
+        root: rootOf(cwd, values.root, undefined),
+        url: url!,
+        method: values.method,
+        body: values.body,
+        headers: values.header,
+        cookies: values.cookie,
+        includeHeaders: values.include === true,
+        fresh: values.fresh === true,
+      }))
+      const out = formatRenderResult(result, values.include === true)
+      process.stdout.write(out.endsWith('\n') || out.length === 0 ? out : `${out}\n`)
+      return result.ok ? 0 : 1
+    },
+  }
+}
+
+function mcpCommand(cwd: string): Commands[string] {
+  return {
+    summary: 'run the Prunelle stdio MCP server for coding agents',
+    run: async (args) => {
+      const { values, positionals: [dir] } = parse(args, 'prunelle mcp [options] [dir]: runs a stdio MCP server exposing check, inspect, build analysis, render, docs, dev errors, and llms.txt resources', {
+        'allow-write': { type: 'boolean', description: 'allow MCP tools that write build output to disk' },
+        'root': ROOT,
+      }, { positionals: ['[dir]'], exits: [OK, [1, 'the MCP server exited with an error'], USAGE_EXIT] })
+      const { runPrunelleMcpStdio } = await import('./mcp')
+      return await failing('mcp', () => runPrunelleMcpStdio({
+        root: rootOf(cwd, values.root, dir),
+        allowWrite: values['allow-write'] === true,
+      }))
+    },
+  }
+}
+
 export function builtinCommands(cwd: string): Commands {
   return {
     new: newCommand(cwd),
     check: checkCommand(cwd),
     inspect: inspectCommand(cwd),
+    docs: docsCommand(cwd),
+    render: renderCommand(cwd),
+    mcp: mcpCommand(cwd),
     dev: devCommand(cwd),
     build: buildCommand(cwd),
     start: startCommand(cwd),

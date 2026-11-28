@@ -108,7 +108,7 @@ describe('prunelle dev incremental client/server split, build-driven watch set, 
 
     const srv = await devServer({ root: dir, port: 0 })
     try {
-      expect(await (await fetch(srv.url)).text()).toContain('<p>ext-v1</p>')
+      expect(await (await fetch(srv.url)).text()).toMatch(/<p[^>]*>ext-v1<\/p>/)
 
       // Edit file OUTSIDE app `src/` inside symlinked workspace package — watcher must pick it up automatically!
       writeFileSync(extFile, 'export const LABEL = "ext-v2"\n')
@@ -117,11 +117,11 @@ describe('prunelle dev incremental client/server split, build-driven watch set, 
       let html = ''
       while (Date.now() < deadline) {
         html = await (await fetch(srv.url)).text()
-        if (html.includes('<p>ext-v2</p>'))
+        if (/<p[^>]*>ext-v2<\/p>/.test(html))
           break
         await Bun.sleep(40)
       }
-      expect(html).toContain('<p>ext-v2</p>')
+      expect(html).toMatch(/<p[^>]*>ext-v2<\/p>/)
     }
     finally {
       srv.stop()

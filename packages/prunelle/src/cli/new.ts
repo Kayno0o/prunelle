@@ -15,8 +15,8 @@ export interface ScaffoldOptions {
 
 const TEMPLATES_DIR = join(import.meta.dir, '../../templates')
 
-// npm leaves any file named `.gitignore` out of a package, so the template stores it under another name.
-const RENAMED: Record<string, string> = { gitignore: '.gitignore' }
+// npm leaves dotfiles like `.gitignore` out of a package, so the template stores them without the leading dot.
+const RENAMED: Record<string, string> = { 'gitignore': '.gitignore', 'mcp.json': '.mcp.json' }
 
 export function scaffoldProject(targetDir: string, options: ScaffoldOptions = {}): { root: string, files: string[] } {
   const root = resolve(targetDir)

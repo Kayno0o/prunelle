@@ -16,6 +16,7 @@ import type { HydrationMarker, MapCallMatch } from './shared'
 
 import { analyzeModule, loadDeclarations, parseTsx } from './analyze'
 import { walk } from './ast'
+import { createDevSourceAttr } from './dev-source'
 import { collectStaticStyleNames, compileElementAttributes, compileRawTextChildren, formatSetTextOp, resolveComponentCallee } from './dom-attrs'
 import { emitWalkStatements, moduleHeader, SVG_CHILD_TAGS } from './emit'
 import { SourceEditor } from './patch'
@@ -39,6 +40,8 @@ import {
 
 export interface CompileDomOptions {
   analysis?: ModuleAnalysis | undefined
+  /** Project root for dev-only `data-pru-src="file:line:col"` attributes; omit in production. */
+  devSourceRoot?: string | undefined
 }
 
 export interface CompileDomResult {
@@ -58,6 +61,7 @@ export function compileDom(filename: string, code: string, options: CompileDomOp
   const jsxNodes = analysis.jsxNodes
   const exprContext = createExprContext(program, jsxNodes)
   const staticStyleNames = collectStaticStyleNames(program, exprContext.primitiveVars)
+  const devSrc = createDevSourceAttr(filename, code, options.devSourceRoot)
 
   const editor = new SourceEditor(code)
   const used = new Set<string>()
@@ -177,8 +181,6 @@ export function compileDom(filename: string, code: string, options: CompileDomOp
   function compileLoopCall(
     match: MapCallMatch,
     scopeRewrites: ReadonlyMap<string, string>,
-    parentExpr: string,
-    anchorExpr: string,
     skipArg = '',
   ): { isStatic: boolean, call: (p: string, a: string) => string } {
     const eachCode = compileExpression(match.target, scopeRewrites)
@@ -214,8 +216,6 @@ export function compileDom(filename: string, code: string, options: CompileDomOp
     const rawRowBody = match.isJsxBody ? compileRootJsx(match.body as JSXElement | JSXFragment, rowRewrites) : compileExpression(match.body, rowRewrites)
     const rowBody = withPrelude(rawRowBody, match.body, prelude)
     const rowParams = idxSig !== undefined ? `${rowSig}, ${idxSig}` : rowSig
-    void parentExpr
-    void anchorExpr
     return {
       isStatic: false,
       call: (p, a) => `${use('loop')}(${p}, ${a}, () => ${eachCode}, ${keyFn}, (${rowParams}) => ${rowBody}${skipArg})`,
@@ -276,7 +276,7 @@ export function compileDom(filename: string, code: string, options: CompileDomOp
         compileExpression,
       })
 
-      let html = `<${tag}${attrHtml}>`
+      let html = `<${tag}${devSrc(el, tag)}${attrHtml}>`
       if (VOID_ELEMENTS.has(tag))
         return html
 
@@ -372,7 +372,7 @@ export function compileDom(filename: string, code: string, options: CompileDomOp
           if (slot.kind === 'loop') {
             const anchorVar = claimRangeAnchor(marker, open, close)
             const skipArg = marker === 'none' && domIndex > 0 ? `, ${domIndex}` : ''
-            const compiled = compileLoopCall(slot.match, scopeRewrites, elVar, anchorVar, skipArg)
+            const compiled = compileLoopCall(slot.match, scopeRewrites, skipArg)
             ops.push(`${compiled.call(elVar, anchorVar)};`)
             continue
           }
@@ -489,7 +489,7 @@ export function compileDom(filename: string, code: string, options: CompileDomOp
         items.push(hasSiblings ? `${use('fragInsert')}(() => ${rendered})` : rendered)
       }
       else if (slot.kind === 'loop') {
-        const compiled = compileLoopCall(slot.match, scopeRewrites, '_s.parentNode', '_s')
+        const compiled = compileLoopCall(slot.match, scopeRewrites)
         if (compiled.isStatic)
           items.push(`(() => { const _s = ${use('claimRange')}(); if (_s !== null) { ${compiled.call('_s.parentNode', '_s')}; return null; } const _f = document.createDocumentFragment(); ${compiled.call('_f', 'null')}; return _f; })()`)
         else

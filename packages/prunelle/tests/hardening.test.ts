@@ -352,6 +352,18 @@ describe('Milestone 4: prunelle new scaffolder & prunelle check validator', () =
     expect(files).toContain('.gitignore')
     expect(files).not.toContain('gitignore')
     expect(readFileSync(join(dir, '.gitignore'), 'utf8')).toBe('node_modules/\ndist/\n.prunelle-cache/\n')
+    expect(files).toContain('.mcp.json')
+    expect(files).not.toContain('mcp.json')
+    expect(JSON.parse(readFileSync(join(dir, '.mcp.json'), 'utf8'))).toEqual({
+      mcpServers: {
+        prunelle: {
+          command: 'bunx',
+          args: ['prunelle', 'mcp'],
+        },
+      },
+    })
+    const tsconfig = JSON.parse(readFileSync(join(dir, 'tsconfig.json'), 'utf8')) as { compilerOptions?: { plugins?: { name: string }[] } }
+    expect(tsconfig.compilerOptions?.plugins).toEqual([{ name: 'prunelle/ts-plugin' }])
   })
 
   // Their types are checked by the repo's tsconfig, which includes packages/prunelle/templates.
