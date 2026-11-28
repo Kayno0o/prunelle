@@ -18,84 +18,84 @@
     },
     "packages/plugin-auth": {
       "name": "@prunellejs/auth",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
     "packages/plugin-content": {
       "name": "@prunellejs/content",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
     "packages/plugin-i18n": {
       "name": "@prunellejs/i18n",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
     "packages/plugin-icons": {
       "name": "@prunellejs/icons",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
     "packages/plugin-images": {
       "name": "@prunellejs/images",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
     "packages/plugin-live": {
       "name": "@prunellejs/live",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
     "packages/plugin-mail": {
       "name": "@prunellejs/mail",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
     "packages/plugin-mcp": {
       "name": "@prunellejs/mcp",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
     "packages/plugin-seo": {
       "name": "@prunellejs/seo",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
     "packages/plugin-spa": {
       "name": "@prunellejs/spa",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
     "packages/plugin-tailwind": {
       "name": "@prunellejs/tailwind",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
     "packages/prunelle": {
       "name": "prunelle",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "bin": {
         "prunelle": "./src/cli/index.ts",
       },
@@ -114,9 +114,9 @@
     },
     "packages/ui": {
       "name": "@prunellejs/ui",
-      "version": "0.3.0",
+      "version": "0.4.0",
       "peerDependencies": {
-        "prunelle": "^0.3.0",
+        "prunelle": "^0.4.0",
       },
     },
   },

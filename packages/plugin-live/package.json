@@ -1,6 +1,6 @@
 {
   "name": "@prunellejs/live",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Zero-dependency typed SSE rooms and coalesced presence plugin for Prunelle",
   "license": "MIT",
   "type": "module",
@@ -22,6 +22,6 @@
     "directory": "packages/plugin-live"
   },
   "peerDependencies": {
-    "prunelle": "^0.3.0"
+    "prunelle": "^0.4.0"
   }
 }
