@@ -1,0 +1,8 @@
+@layer kui {
+  [data-ui="field"] {
+    display: flex;
+    flex-direction: column;
+    & :is(input:not([type="checkbox"], [type="radio"]), select) { min-block-size: var(--ui-touch-min, auto); }
+    & :is(input:not([type="checkbox"], [type="radio"]), select, textarea) { font-size: var(--ui-input-floor, inherit); }
+  }
+}

@@ -124,11 +124,11 @@ describe('PrunellePlugin API (tailwind + i18n + spa + custom transform)', () => 
     const enHtml = await enRes.text()
     expect(enHtml).toContain('<html lang="en">')
     expect(enHtml).toContain('<h1>Welcome</h1>')
-    expect(enHtml).toMatch(/<link rel="stylesheet" href="\/_pru\/app-[^"]+\.css">/)
+    expect(enHtml).toMatch(/<link rel="stylesheet" href="\/_pru\/(?:site|app)-[^"]+\.css">/)
     expect(enHtml).toMatch(/<script type="module" src="\/_pru\/runtime-[^"]+\.js">/)
 
     // Verify bundled CSS is served cleanly
-    const cssMatch = /href="(\/_pru\/app-[^"]+\.css)"/.exec(enHtml)
+    const cssMatch = /href="(\/_pru\/(?:site|app)-[^"]+\.css)"/.exec(enHtml)
     expect(cssMatch).not.toBeNull()
     const cssRes = await app.get(cssMatch![1]!)
     expect(cssRes.status).toBe(200)

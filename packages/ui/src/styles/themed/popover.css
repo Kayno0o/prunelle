@@ -1,0 +1,11 @@
+@layer kui {
+  [data-ui="popover"][popover] {
+    background: var(--ui-pop-bg, var(--ui-surface));
+    color: var(--ui-ink);
+    border: var(--ui-pop-bd, 1px solid var(--ui-line));
+    border-radius: var(--ui-radius);
+    box-shadow: var(--ui-pop-sh, none);
+    padding: var(--ui-pop-pad, 0.35rem);
+    min-inline-size: var(--ui-pop-w, 12rem);
+  }
+}

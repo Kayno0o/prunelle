@@ -5,7 +5,6 @@
 // - <Head> collection + cancel-safe streaming <Suspense> (0-overhead fast path when unused)
 // - Hybrid prerendered HTML serving + embedded single-executable mode
 
-import type { Html, HydrateStrategy } from '../jsx-runtime'
 import type { ActionRegistry, RegisteredAction } from './action-registry'
 import type { ServedFile } from './assets'
 import type { NormalizedConsentConfig } from './consent'
@@ -22,30 +21,29 @@ import type { FastHandler } from './routing'
 import type { TrustProxy } from './security'
 import { join } from 'node:path'
 import { createAppContext, getAppContext, resolvePlugins, runWithAppContext } from '../plugins/index'
-import { createRenderContext, runWithRenderContext } from '../ssr/context'
 import { createNavigation } from '../ssr/navigation'
-import { raw, renderDocument, ssrChild, ssrIsland } from '../ssr/index'
-import { ACTION_ERROR_COOKIE, executeAction, finishActionRedirect, hydrateActionErrorFlash, isServerAction } from './action'
+import { executeAction, finishActionRedirect, isServerAction } from './action'
 import { createActionRegistry } from './action-registry'
 import { createAssets } from './assets'
-import { CompressionCache, compressedHtmlResponse, compressedHtmlStream, markCompressionHandled, maybeCompressResponse } from './compress'
+import { CompressionCache, maybeCompressResponse } from './compress'
 import { normalizeConsentConfig } from './consent'
-import { addedInlineStyleHashes, createDocumentHooks, createHtmlHeaders, mergeStyleHashes, resolveRenderedIslands, revivePreload, withPluginHtmlCsp } from './document'
+import { createDocumentHooks, createHtmlHeaders, withPluginHtmlCsp } from './document'
 import { createErrorNotifier, createFallbackPages, devErrorResponse } from './errors'
-import { collectHealthChecks, createHealthHandler, createRequestIdResolver, createTiming, endTimer, formatServerTiming, runTimedChain, startTimer, withRequestId } from './health'
-import { acceptsHtml, applyHstsHeader, DEFAULT_MAX_REQUEST_BODY_SIZE, enforceRequestBodyLimit, finalizeResponse, getDeniedInfo, isNotFound, makeRequestContext, runChain, wantsJson } from './http'
-import { allowedMethodsHeader, pickPageIslandProps, stripHeadBody } from './page'
+import { collectHealthChecks, createHealthHandler, createRequestIdResolver, createTiming, formatServerTiming, runTimedChain, withRequestId } from './health'
+import { acceptsHtml, applyHstsHeader, DEFAULT_MAX_REQUEST_BODY_SIZE, enforceRequestBodyLimit, finalizeResponse, getDeniedInfo, makeRequestContext, runChain, wantsJson } from './http'
+import { stripHeadBody } from './page'
 import { resolveParamMatchers } from './param-matchers'
 import { allowedPluginMethodsHeader, createServerPluginHost, takesEncoded } from './plugin-host'
 
-import { hasRegionHeader, invalidRegionResponse, requestedRegion, respondRegion, withRegionVary } from './region'
+import { withRegionVary } from './region'
 import { decodeRequestPath, literalPath } from './request-path'
 import { nativePrerenderedCheck } from './prerendered'
-import { compileRouteTable } from './route-table'
+import { createRouteCache } from './route-cache'
+import { compileRouteTable, createCompiledRouteRenderer } from './route-table'
 import { actionRoutePrefix, createAncestorMiddlewareLookup, inferRoutesServerPrefix, methodNotAllowed } from './routing'
-import { hasActionErrorCookie, isPlainRead, isRead, serveHandlers } from './serve-handlers'
-import { buildSecurityHeaderEntries, resolveHstsValue, styleHashesOf, verifyOrigin } from './security'
-import { createStreamTracker, STREAM_TAIL_MARK, streamDocument } from './stream'
+import { isPlainRead, isRead, serveHandlers } from './serve-handlers'
+import { buildSecurityHeaderEntries, resolveHstsValue, verifyOrigin } from './security'
+import { createStreamTracker } from './stream'
 
 /**
  * Request-scoped locals bag shared across middlewares, plugins, actions, layouts, and pages.
@@ -66,6 +64,8 @@ export type { HealthCheckConfig, HealthCheckFn, HealthCheckResult } from './heal
 export { DEFAULT_MAX_REQUEST_BODY_SIZE, notFound } from './http'
 export type { EmbeddedServerConfig, ExtractRouteParams, PrunelleApp, LayoutProps, LoaderData, LoaderFn, Middleware, NotFoundResult, PageProps, ParamMatcherTypes, RequestContext, RouteContext, ServerOptions, StatusPageProps } from './http'
 export { createServer } from './loader'
+export { buildRouteCacheSpec, createRouteCache, formatCacheSpec, parseCacheDuration, RouteCache } from './route-cache'
+export type { CachedRouteEntry, RouteCacheOptions, RouteCacheSpec } from './route-cache'
 export { DEFAULT_CSP, DEFAULT_HSTS, DEFAULT_PERMISSIONS_POLICY, getClientIp, isHttpsRequest, isTrustedOrigin, PRUNELLE_ISLAND_STYLE_HASH, PRUNELLE_STREAM_SCRIPT_HASH, PRUNELLE_SUSPENSE_STYLE_HASH, verifyOrigin, withCspHashes } from './security'
 export type { SecurityHeadersOptions, TrustProxy } from './security'
 export { formatIssuePath, formatSchemaIssues, validateSchema, validateSchemaSync } from './standard-schema'
@@ -100,13 +100,6 @@ const makeServerError = (securityRecord: Record<string, string>) => (): Response
 const badRequest = (): Response => new Response('Bad Request', { status: 400, headers: { 'content-type': 'text/plain; charset=utf-8' } })
 const makeFileGone = (securityRecord: Record<string, string>) => (): Response => new Response('Not Found', { status: 404, headers: { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', ...securityRecord } })
 
-function lookupPrerendered<T>(map: ReadonlyMap<string, T>, staticPath: string | undefined): T | undefined {
-  if (staticPath === undefined)
-    return undefined
-  const normPath = staticPath.length > 1 && staticPath.endsWith('/') ? staticPath.slice(0, -1) : staticPath
-  return map.get(staticPath) ?? map.get(normPath)
-}
-
 function matchPluginRoute(pluginRouter: ServerPluginHost['router'], requestPath: RequestPath, effective: RequestPath) {
   const rawMatch = effective !== requestPath ? takesEncoded(pluginRouter.match(requestPath), requestPath) : undefined
   return rawMatch ?? takesEncoded(pluginRouter.match(effective), effective)
@@ -134,27 +127,6 @@ function matchStaticOrPublic(
     && (matchedPlugin.data.has(reqMethod) || (reqMethod === 'HEAD' && matchedPlugin.data.has('GET')) || matchedPlugin.data.has('ALL'))
   return shadowedByPlugin ? undefined : pub
 }
-
-async function renderRouteBody(route: CompiledRoute, data: unknown, pageProps: Record<string, unknown>, ctx: RequestContext): Promise<string> {
-  const { entry, mod, layouts } = route
-  let inner: string
-  if (entry.isIsland && entry.islandChunk !== undefined) {
-    inner = ssrIsland(
-      entry.islandChunk,
-      () => ssrChild(mod.default!(pageProps) as Html),
-      pickPageIslandProps(data, entry, mod),
-      entry.islandHydrate as HydrateStrategy | undefined,
-      true, mod.default!.name,
-    )
-  }
-  else {
-    inner = ssrChild(await mod.default!(pageProps) as Html)
-  }
-  for (let i = layouts.length - 1; i >= 0; i--)
-    inner = ssrChild(await layouts[i]!.default({ children: raw(inner), url: ctx.url, params: ctx.params, locals: ctx.locals }) as Html)
-  return inner
-}
-
 
 function createRequestGuards(
   maxRequestBodySize: number,
@@ -310,6 +282,7 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
 
   const compressEnabled = config.compress ?? !isDev
   const compressCache = compressEnabled ? new CompressionCache() : undefined
+  const routeCache = createRouteCache(config.routeCache, isDev || config.prerender === true)
 
   const files = createAssets({ assets, assetPrefix, isDev, compressEnabled, compressCache, nosniffHeader, securityRecord, withHsts })
   const { assetMap, publicMap, serveFile } = files
@@ -386,7 +359,7 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
   const { router, fastStaticPages } = compileRouteTable({
     manifest, modules, paramMatchers, lang, alwaysLoadRuntime, navigation: navigation.html, middlewaresFor,
     pluginIntercepts: path => hasPluginRewrites || hasHeadHooks || hasHtmlTransformers || pluginRouter.match(literalPath(path)) !== undefined,
-    fast: { trustProxy, consent, htmlHeaders, compressCache, actions, buildNotFoundResponse, renderError, renderDenied, notifyError, finish, withHsts, dev: isDev, resolveRequestId },
+    fast: { trustProxy, consent, htmlHeaders, compressCache, routeCache, actions, buildNotFoundResponse, renderError, renderDenied, notifyError, finish, withHsts, dev: isDev, resolveRequestId },
   })
   const { all: prerenderedMap, fast: fastPrerenderedMap } = files.collectPrerendered(manifest.routes, {
     prerendered,
@@ -397,115 +370,9 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
     isFast: nativePrerenderedCheck({ site, rewrites: pluginHost.rewrites, pluginRouter, router, actions, middlewaresForPaths, trustProxy, consent }),
   })
 
-  async function renderCompiledRoute(
-    route: CompiledRoute,
-    ctx: RequestContext,
-    disableTimeout?: () => void,
-    staticPath?: string,
-    timing?: DevTiming,
-  ): Promise<Response> {
-    const { entry, mod, doc } = route
-
-    const isRegion = hasRegionHeader(ctx.request)
-    // Serve prerendered HTML after middlewares have passed (skip on full-page GETs with a flash cookie so it hydrates & clears, and on region requests)
-    if (isRead(ctx.request)) {
-      const pre = lookupPrerendered(prerenderedMap, staticPath)
-      if (pre !== undefined && !isRegion && (ctx.request.method === 'HEAD' || !hasActionErrorCookie(ctx.request)))
-        return serveFile(ctx.request, pre)
-      // Prerendered dynamic route: unlisted param returns 404 (never falls back to SSR)
-      if (pre === undefined && entry.prerender === true && entry.prerendered !== undefined && route.dynamic)
-        return buildNotFoundResponse(ctx.url, ctx.request, ctx, entry.file)
-    }
-
-    // API route (.ts exporting GET/POST/etc.) — HEAD falls back to GET without a body
-    const method = ctx.request.method.toUpperCase()
-    const methodHandler = mod[method]
-    if (typeof methodHandler === 'function')
-      return await (methodHandler as (c: RequestContext) => Response | Promise<Response>)(ctx)
-    if (method === 'HEAD' && typeof mod.GET === 'function')
-      return stripHeadBody(await mod.GET(ctx))
-
-    // Page routes only handle GET/HEAD; unsafe methods (POST/PUT/PATCH/DELETE) without a method export get 405.
-    if (typeof mod.default !== 'function' || !isRead(ctx.request))
-      return methodNotAllowed(allowedMethodsHeader(mod))
-    if (isRegion && requestedRegion(ctx.request) === undefined)
-      return invalidRegionResponse(ctx.request)
-
-    // Hydrate one-shot flash cookie on full page GETs only; defer deletion until a full page renders (not load() redirects or <Region> requests)
-    const hasFlash = ctx.request.method === 'GET' && !isRegion && hasActionErrorCookie(ctx.request) && hydrateActionErrorFlash(ctx)
-
-    let data: unknown
-    if (entry.hasLoad && typeof mod.load === 'function') {
-      const loadStart = startTimer(timing)
-      try {
-        data = await mod.load(ctx)
-      }
-      catch (error) {
-        if (isNotFound(error))
-          return buildNotFoundResponse(ctx.url, ctx.request, ctx, entry.file)
-        throw error
-      }
-      endTimer(timing, 'load', loadStart)
-    }
-    if (isNotFound(data))
-      return buildNotFoundResponse(ctx.url, ctx.request, ctx, entry.file)
-    if (data instanceof Response)
-      return data
-    const pageProps: Record<string, unknown> = {
-      params: ctx.params,
-      locals: ctx.locals,
-      url: ctx.url,
-      ...(data !== undefined ? { data } : {}),
-    }
-
-    if (isRegion) {
-      return respondRegion(
-        ctx.request, mod, pageProps, entry.path, htmlHeaders,
-        rctx => resolveDocumentHead(rctx, doc.headTags as readonly string[] | undefined, ctx.url, ctx.request, ctx),
-        streamTimeout, error => notifyError(error, ctx.request, 'route', ctx.requestId),
-        hasHtmlTransformers ? html => applyHtmlTransforms(html, ctx.url, ctx.request, ctx) : undefined,
-      )
-    }
-
-    const renderStart = startTimer(timing)
-    const rctx = createRenderContext(undefined, undefined, ctx.consent, error => notifyError(error, ctx.request, 'route', ctx.requestId))
-    const body = await runWithRenderContext(rctx, () => renderRouteBody(route, data, pageProps, ctx))
-    if (hasFlash)
-      ctx.cookies.delete(ACTION_ERROR_COOKIE)
-    const docHead = await resolveDocumentHead(rctx, doc.headTags as readonly string[] | undefined, ctx.url, ctx.request, ctx)
-    const renderedIslands = resolveRenderedIslands(rctx, body)
-    const isStreamed = rctx.pending.length > 0
-    const hasIslands = renderedIslands.hasIslands || (isStreamed && entry.islandChunks.length > 0)
-    // A streamed page preloads before its boundaries render, so it takes the route's eager islands: a lazy one loads when its strategy fires.
-    const preloadChunks = [...isStreamed ? entry.eagerIslandChunks ?? entry.islandChunks : renderedIslands.eagerChunks, ...revivePreload(rctx, manifest.reviveScript)]
-    const hasRegions = rctx.regionNames.size > 0
-
-    const trustedStyleHashes = mergeStyleHashes(route.headStyleHashes, docHead.styleHashes, styleHashesOf(rctx.inlineStyles))
-
-    // Streaming SSR when <Suspense> boundaries are pending, compressed per flush, never buffered
-    if (isStreamed) {
-      endTimer(timing, 'render', renderStart)
-      const streamStart = startTimer(timing)
-      if (ctx.request.method === 'HEAD') {
-        endTimer(timing, 'stream', streamStart)
-        return markCompressionHandled(new Response(null, { status: 200, headers: withRegionVary(htmlHeaders(hasIslands, true, true, trustedStyleHashes), hasRegions) }))
-      }
-      disableTimeout?.()
-      const docShell = renderDocument({ ...doc, body: body + STREAM_TAIL_MARK, head: docHead.head, lang: docHead.lang, htmlAttrs: docHead.htmlAttrs, preloadChunks, hasIslands, hasSuspense: true })
-      // Transforms see the document with its initial body; boundaries resolved later stream as they render.
-      const shell = hasHtmlTransformers ? await applyHtmlTransforms(docShell, ctx.url, ctx.request, ctx) : docShell
-      const streamStyleHashes = mergeStyleHashes(trustedStyleHashes, addedInlineStyleHashes(docShell, shell))
-      endTimer(timing, 'stream', streamStart)
-      return compressedHtmlStream(streamDocument(shell, rctx, streamTimeout, error => notifyError(error, ctx.request, 'route', ctx.requestId)), 200, withRegionVary(htmlHeaders(hasIslands, true, true, streamStyleHashes), hasRegions), ctx.request, compressCache)
-    }
-
-    const docHtml = renderDocument({ ...doc, body, head: docHead.head, lang: docHead.lang, htmlAttrs: docHead.htmlAttrs, preloadChunks, hasIslands })
-    const html = hasHtmlTransformers ? await applyHtmlTransforms(docHtml, ctx.url, ctx.request, ctx) : docHtml
-    const finalStyleHashes = mergeStyleHashes(trustedStyleHashes, addedInlineStyleHashes(docHtml, html))
-    endTimer(timing, 'render', renderStart)
-
-    return compressedHtmlResponse(html, 200, withRegionVary(htmlHeaders(hasIslands, false, true, finalStyleHashes), hasRegions), ctx.request, compressCache)
-  }
+  const renderCompiledRoute = createCompiledRouteRenderer({
+    manifest, prerenderedMap, serveFile, buildNotFoundResponse, htmlHeaders, resolveDocumentHead, applyHtmlTransforms, hasHtmlTransformers, streamTimeout, compressCache, routeCache, notifyError, actions, rewrites: pluginHost.rewrites, trustProxy, consent, resolveRequestId, serverAppCtx,
+  })
 
   const dispatchAction = createActionDispatcher({
     actions, rewrites: pluginHost.rewrites, trustedOrigins, trustProxy, consent, rateLimits: pluginHost.rateLimits, isDev, refuseCrossSite, checkBodyLimit, finish, notifyError, renderError,
@@ -649,7 +516,7 @@ export async function createServerFromEmbedded(config: EmbeddedServerConfig): Pr
         : route.middlewares
 
       try {
-        const rawRes = await actions.run(ctx, () => runTimedChain(ctx, routeMiddlewares, () => renderCompiledRoute(route, ctx, disableTimeout, staticPath, timing), timing, runChain))
+        const rawRes = await actions.run(ctx, () => runTimedChain(ctx, routeMiddlewares, () => renderCompiledRoute(route, ctx, cookieStore, disableTimeout, staticPath, timing), timing, runChain))
         const handledRes = await maybeRenderDenied(rawRes, ctx.request, ctx.url, ctx, renderDenied, route.entry.file, isApiHandler(route.mod, method))
         const res = isEventStream(handledRes) ? streams.track(handledRes, disableTimeout) : handledRes
         // Compress uncompressed API/middleware responses after the middleware chain unwinds.

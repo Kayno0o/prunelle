@@ -1,0 +1,55 @@
+/* @prunellejs/ui base floor: box-sizing, screen-reader utility, single focus indicator, reduced motion & [hidden].
+ * Everything sits inside @layer kui so Tailwind utilities and user CSS always win without !important. */
+
+@layer kui {
+  [data-ui] *,
+  [data-ui] *::before,
+  [data-ui] *::after {
+    box-sizing: border-box;
+  }
+
+  .kui-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  [data-ui] :focus-visible,
+  [data-ui]:focus-visible {
+    outline: 2px solid var(--ui-focus-color, var(--ui-accent, currentColor));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --ui-motion: 0.01ms;
+    }
+    [data-ui],
+    [data-ui] *,
+    [data-ui] *::before,
+    [data-ui] *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Touch-friendly 44px targets & iOS 16px input floor on phones */
+  @media (max-width: 600px) {
+    :root {
+      --ui-touch-min: 44px;
+      --ui-input-floor: max(1rem, 16px);
+    }
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+}

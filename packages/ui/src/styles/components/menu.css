@@ -1,0 +1,21 @@
+@layer kui {
+  [data-ui="menu"] {
+    display: inline-block;
+  }
+  [data-ui="menu"] [data-part="content"] {
+    inset: auto;
+    margin: 4px 0;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: flip-block, flip-inline;
+    min-inline-size: anchor-size(inline);
+  }
+  [data-ui="menu"] [data-part="item"] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    text-align: start;
+    cursor: pointer;
+    text-decoration: none;
+  }
+}

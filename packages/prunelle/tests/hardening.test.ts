@@ -203,9 +203,9 @@ describe('Milestone 4: CSS Modules, public/ static files, and plugins in --compi
     `)
 
     const manifest = await build({ root: dir, static: true })
-    // Zero JS runtime shipped when there are no islands!
+    // Zero JS runtime shipped when there are no islands, and both CSS files consolidate into 1 hashed sheet (#29)!
     expect(manifest.runtimeScript).toBeUndefined()
-    expect(manifest.styles.length).toBe(2)
+    expect(manifest.styles.length).toBe(1)
     expect(manifest.publicFiles).toEqual(['images/dot.svg', 'robots.txt'])
     // --static copied public files directly into dist/ with no server/ folder
     expect(existsSync(join(dir, 'dist/server'))).toBe(false)

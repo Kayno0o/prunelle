@@ -1,0 +1,4 @@
+@layer kui {
+  [data-ui="tabs"] [data-part="list"] { display: var(--ui-tab-disp, flex); }
+  [data-ui="tabs"] [data-part="trigger"] { cursor: pointer; min-block-size: var(--ui-touch-min, auto); }
+}

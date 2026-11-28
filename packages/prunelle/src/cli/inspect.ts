@@ -2,6 +2,7 @@
 
 import type { ActionsByFile } from '../build/islands'
 import type { PrunelleConfig, PrunellePlugin, ServerPluginAPI } from '../plugins/index'
+import type { RouteCacheSpec } from '../server/route-cache'
 import { existsSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import { relPosix, walkRoutes } from '../build/files'
@@ -12,6 +13,7 @@ import { hasRouteHandlerExport, routeGroupsOf, SPECIAL_ROUTE_FILES } from '../bu
 import { createAppContext, loadConfig, pickRuntimeConfig, resolvePlugins, runWithAppContext } from '../plugins/index'
 import { actionHash } from '../server/action'
 import { extractOptionalParams, extractPatternMatchers } from '../server/param-matchers'
+import { formatCacheSpec } from '../server/route-cache'
 
 const HTTP_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'])
 
@@ -27,6 +29,8 @@ export interface InspectRoute {
   middlewares: string[]
   load: boolean
   prerender: boolean
+  cache?: RouteCacheSpec | undefined
+  cacheable?: boolean | undefined
 }
 
 export interface InspectIsland {
@@ -222,6 +226,8 @@ export async function inspectProject(rootDir: string): Promise<InspectReport> {
       middlewares: entry.middlewares,
       load: entry.hasLoad === true,
       prerender: entry.prerender === true,
+      ...(entry.cache !== undefined ? { cache: entry.cache } : {}),
+      ...(entry.cacheable === true ? { cacheable: true } : {}),
     }
   })
 
@@ -284,6 +290,10 @@ export function formatInspectReport(report: InspectReport): string {
         parts.push('load')
       if (r.prerender)
         parts.push('prerender')
+      if (r.cache !== undefined)
+        parts.push(`cache=${formatCacheSpec(r.cache)}`)
+      if (r.cacheable === true)
+        parts.push('cacheable')
       if (r.layouts.length > 0)
         parts.push(`layouts=[${r.layouts.join(', ')}]`)
       if (r.middlewares.length > 0)

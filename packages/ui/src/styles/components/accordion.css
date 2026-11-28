@@ -1,0 +1,10 @@
+@layer kui {
+  [data-ui="accordion"] summary[data-part="trigger"] {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    min-block-size: var(--ui-touch-min, auto);
+    &::-webkit-details-marker { display: none; }
+  }
+}

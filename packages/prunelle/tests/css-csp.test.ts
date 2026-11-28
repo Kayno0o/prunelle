@@ -145,13 +145,16 @@ describe('Per-route CSS scoping, strict CSP hashes, and bundle weight report (#3
     expect(notFoundCss).not.toContain('.about-only')
     expect(notFoundCss).not.toContain('.widget-only')
 
-    // 4. Metafile / bundle weight report reflects per-route JS & CSS accurately
+    // 4. Metafile / bundle weight report reflects per-route JS & CSS accurately, with at most 1 site-wide + 1 per-route sheet (#29)
     const weights = analyzeBundleWeights(manifest, join(dir, 'dist/client'))
     const homeRow = weights.routes.find(r => r.path === '/')!
     const aboutRow = weights.routes.find(r => r.path === '/about')!
     expect(homeRow.jsGzip).toBeGreaterThan(0)
     expect(aboutRow.jsGzip).toBe(0)
-    expect(aboutRow.cssFiles).toBeLessThan(homeRow.cssFiles)
+    expect(homeStyles.length).toBeLessThanOrEqual(2)
+    expect(aboutStyles.length).toBeLessThanOrEqual(2)
+    expect(homeStyles[0]).toBe(aboutStyles[0])
+    expect(aboutRow.cssRaw).toBeLessThan(homeRow.cssRaw)
 
     const reportText = formatBundleReport(weights)
     expect(reportText).toContain('PRUNELLE BUNDLE WEIGHT REPORT')

@@ -3,9 +3,11 @@
 import type { CallExpression, ExportNamedDeclaration, Function as OxcFunction, Node, Program, Statement, VariableDeclaration } from 'oxc-parser'
 import { parseSync } from 'oxc-parser'
 import { computeJsxNodes, walk } from './ast'
+import type { RouteCacheSpec } from '../server/route-cache'
 import type { BindingFacts, Interactivity } from './interactivity'
 import type { CompilerWarning } from './mistakes'
 import { checkBrowserGlobals } from './browser-globals'
+import { parseCacheExport } from './cacheability'
 import { analyzeDefaultDataKeys } from './data-keys'
 import { checkCompliance } from './compliance'
 import { resolveInteractivity } from './interactivity'
@@ -47,6 +49,10 @@ export interface ModuleAnalysis extends Interactivity {
   /** Precomputed set of AST nodes containing JSX (itself included), for O(1) subtree checks during codegen. */
   jsxNodes: WeakSet<Node>
   hasPrerender: boolean
+  /** True when the module explicitly exports `prerender = false`. */
+  prerenderFalse: boolean
+  /** Parsed `export const cache = ...` policy when present and valid. */
+  cache?: RouteCacheSpec | undefined
   hasPaths: boolean
   usesRenderContext: boolean
   defaultHydrate: string | undefined
@@ -272,6 +278,7 @@ interface DeclarationScan {
   hasLoadExport: boolean
   hasPaths: boolean
   hasPrerender: boolean
+  prerenderFalse: boolean
   defaultHydrate: string | undefined
   exportedActions: string[]
   /** The action() calls prunelle gives a URL to: the initialisers of top-level `export const`s. */
@@ -281,7 +288,7 @@ interface DeclarationScan {
 }
 
 function scanDeclarations(program: Program, filename: string, imports: ImportScan): DeclarationScan {
-  const scan: DeclarationScan = { localInits: new Map(), exportLocals: new Map(), asyncLocals: new Set(), defaultLocal: undefined, hasAsyncDefault: false, hasLoadExport: false, hasPaths: false, hasPrerender: false, defaultHydrate: undefined, exportedActions: [], registeredActions: new Set(), reexports: [], exportedNames: [] }
+  const scan: DeclarationScan = { localInits: new Map(), exportLocals: new Map(), asyncLocals: new Set(), defaultLocal: undefined, hasAsyncDefault: false, hasLoadExport: false, hasPaths: false, hasPrerender: false, prerenderFalse: false, defaultHydrate: undefined, exportedActions: [], registeredActions: new Set(), reexports: [], exportedNames: [] }
   const collectInits = (decl: VariableDeclaration): void => {
     for (const d of decl.declarations) {
       if (d.id.type === 'Identifier' && d.init !== null)
@@ -358,8 +365,12 @@ function scanExportedDeclaration(scan: DeclarationScan, decl: NonNullable<Export
         continue
       const name = d.id.name
       addExport(name, name)
-      if (name === 'prerender' && d.init?.type === 'Literal' && d.init.value === true)
-        scan.hasPrerender = true
+      if (name === 'prerender' && d.init?.type === 'Literal') {
+        if (d.init.value === true)
+          scan.hasPrerender = true
+        else if (d.init.value === false)
+          scan.prerenderFalse = true
+      }
       if (name === 'hydrate' && d.init !== null)
         scan.defaultHydrate = checkExportHydrate(d.init, filename)
       if (d.init !== null && isActionCall(d.init, imports.actionLocalName, imports.serverNamespaces)) {
@@ -584,6 +595,7 @@ export function analyzeModule(filename: string, code: string, program: Program =
   if (interactivity.serverOnly !== undefined)
     guarded(interactivity.serverOnly.offset, () => { throw serverOnlyTagError(filename, interactivity.serverOnly!) })
 
+  const cacheExport = parseCacheExport(program)
   return {
     filename,
     program,
@@ -594,6 +606,8 @@ export function analyzeModule(filename: string, code: string, program: Program =
     hasJsx: body.hasJsx,
     jsxNodes: body.hasJsx ? computeJsxNodes(program) : new WeakSet<Node>(),
     hasPrerender: decls.hasPrerender,
+    prerenderFalse: decls.prerenderFalse,
+    ...(cacheExport.spec !== undefined ? { cache: cacheExport.spec } : {}),
     hasPaths: decls.hasPaths,
     usesRenderContext: body.usesRenderContext,
     defaultHydrate: decls.defaultHydrate,

@@ -45,9 +45,13 @@
     "oxc-parser": "^0.155.0"
   },
   "peerDependencies": {
+    "axe-core": "^4.14.0",
     "playwright-core": "^1.64.0"
   },
   "peerDependenciesMeta": {
+    "axe-core": {
+      "optional": true
+    },
     "playwright-core": {
       "optional": true
     }

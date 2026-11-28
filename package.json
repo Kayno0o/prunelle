@@ -17,12 +17,13 @@
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^21.0.4",
-    "prunelle": "link:./packages/prunelle",
     "@kaynooo/cli-kit": "^0.52.0",
     "@types/bun": "^1.4.4",
+    "axe-core": "^4.14.1",
     "happy-dom": "^21.0.4",
     "mitata": "1.0.34",
     "playwright-core": "1.64.1",
+    "prunelle": "link:./packages/prunelle",
     "typescript": "^6.0.3"
   }
 }

@@ -3,6 +3,7 @@
 import type { ModuleAnalysis } from '../compiler/index'
 import { existsSync } from 'node:fs'
 import { basename, dirname, join, relative } from 'node:path'
+import { parseCacheExport } from '../compiler/cacheability'
 import { BUILTIN_PARAM_MATCHER_NAMES, extractPatternMatchers, isBuiltinMatcher, parsePatternSegment } from '../server/param-matchers'
 import { relPosix } from './files'
 
@@ -162,6 +163,9 @@ export function routeExportProblemLocation(analysis: ModuleAnalysis, file: strin
         return { message: `${init?.type === 'Literal' ? `prerender = ${init.raw ?? String(init.value)}` : 'prerender set at runtime'} in ${file}: write prerender = true or prerender = false.`, offset: d.start }
     }
   }
+  const cacheExport = parseCacheExport(analysis.program)
+  if (cacheExport.problem !== undefined)
+    return { message: `${cacheExport.problem.replace(':', ` in ${file}:`)}.`, offset: cacheExport.offset }
   return undefined
 }
 

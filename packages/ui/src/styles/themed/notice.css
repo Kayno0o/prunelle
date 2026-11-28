@@ -1,0 +1,17 @@
+@layer kui {
+  [data-ui="notice"] {
+    --ui-tone: var(--ui-accent);
+    border-style: solid;
+    border-width: var(--ui-notice-bw, 0);
+    border-color: var(--ui-line, transparent);
+    border-radius: var(--ui-radius);
+    background: var(--ui-notice-bg, var(--ui-surface));
+    color: var(--ui-notice-fg, var(--ui-ink));
+    padding: var(--ui-notice-pad, 0.75rem 1.05rem);
+
+    &[data-tone="accent"] { --ui-tone: var(--ui-accent); }
+    &[data-tone="success"] { --ui-tone: var(--ui-success); }
+    &[data-tone="warning"] { --ui-tone: var(--ui-warning); }
+    &[data-tone="danger"] { --ui-tone: var(--ui-danger); }
+  }
+}

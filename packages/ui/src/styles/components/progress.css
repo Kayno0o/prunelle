@@ -1,0 +1,14 @@
+@layer kui {
+  /* Progress: the native bar; a grammar may draw the eye instead */
+  [data-ui="progress"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  [data-ui="progress"] [data-part="eye"] {
+    display: none;
+  }
+  [data-ui="progress"] progress {
+    accent-color: var(--ui-accent-fill, var(--ui-accent, currentColor));
+  }
+}

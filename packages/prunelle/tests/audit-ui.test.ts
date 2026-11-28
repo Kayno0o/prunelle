@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import type { Signal } from '../src/reactivity/index'
 import { build } from '../src/build/index'
 import { testApp } from '../src/test/index'
-import { ui } from '../../ui/src/plugin'
+import { renderGrammarCss, ui } from '../../ui/src/plugin'
 
 const UI_ENTRY = join(import.meta.dir, '../../ui/src/index.ts')
 const STYLES_DIR = join(import.meta.dir, '../../ui/src/styles')
@@ -765,8 +765,8 @@ describe('Box 21 — Dialog, Drawer, Field, DataTable search & CommandPalette la
       fs.dispose()
     }
 
-    // 3. Switch keyboard focus-visible indicator exists in bare.css
-    const bareCss = readFileSync(join(STYLES_DIR, 'bare.css'), 'utf8')
+    // 3. Switch keyboard focus-visible indicator exists in bare CSS
+    const bareCss = renderGrammarCss('bare')
     expect(bareCss).toContain('[data-ui="switch"]:has(input:focus-visible) [data-part="track"]')
 
     // 4. Toast clears setTimeout handles on manual dismiss() and clear()
@@ -883,16 +883,14 @@ describe('Box 24 — WCAG Contrast >= 4.5:1 across all grammars, Orbit focus ind
   })
 
   it('orbit.css: command palette input preserves a clear visible :focus-visible indicator', () => {
-    const css = readFileSync(join(GRAMMARS_DIR, 'orbit.css'), 'utf8')
-    const cmdBlock = css.slice(css.indexOf('dialog[data-ui="command"] {'))
-    const inputBlock = cmdBlock.match(/&\s*\[data-part="input"\]\s*\{[\s\S]*?\n\s*\}/)?.[0] ?? ''
-    expect(inputBlock).not.toMatch(/&:focus\s*\{\s*outline:\s*none;\s*\}/)
-    expect(inputBlock).toContain(':focus-visible')
-    expect(inputBlock).toMatch(/outline:|border-bottom-color:/)
+    const css = renderGrammarCss('orbit')
+    expect(css).not.toMatch(/outline:\s*(?:none|0)\b/)
+    expect(css).toContain('[data-ui] :focus-visible')
+    expect(css).toMatch(/outline:\s*2px solid var\(--ui-focus-color/)
   })
 
   it('bare.css: includes @media (prefers-reduced-motion: reduce) disabling/minimizing transitions and animations', () => {
-    const css = readFileSync(join(STYLES_DIR, 'bare.css'), 'utf8')
+    const css = renderGrammarCss('bare')
     expect(css).toContain('@media (prefers-reduced-motion: reduce)')
     expect(css).toMatch(/animation-duration\s*:/)
     expect(css).toMatch(/transition-duration\s*:/)
@@ -973,14 +971,16 @@ describe('Box 40 — ControlledDialog, ControlledDrawer, CommandPalette: open={s
   })
 
   it('bare.css & all grammars zero padding on <dialog> and put padding on [data-part="panel"]', () => {
-    const bare = readFileSync(join(STYLES_DIR, 'bare.css'), 'utf8')
-    expect(bare).toMatch(/dialog\[data-ui="dialog"\][^\{]*\{[^}]*padding:\s*0;/)
+    const bare = renderGrammarCss('bare')
+    expect(bare).toMatch(/dialog\[data-ui="dialog"\][^{]*\{[^}]*padding:\s*0;/)
 
-    for (const name of ['editorial', 'workshop', 'soft', 'console', 'orbit', 'prunelle']) {
-      const css = readFileSync(join(GRAMMARS_DIR, `${name}.css`), 'utf8')
-      const dialogBlock = css.match(/dialog\[data-ui="dialog"\]\s*\{[\s\S]*?\n\s*\}/)?.[0] ?? ''
-      expect(dialogBlock, `${name}.css dialog should not have direct non-zero padding`).not.toMatch(/^\s*padding:\s*[1-9]/m)
-      expect(dialogBlock, `${name}.css dialog should style > [data-part="panel"]`).toContain('> [data-part="panel"]')
+    for (const name of ['editorial', 'workshop', 'soft', 'console', 'orbit', 'prunelle'] as const) {
+      const css = renderGrammarCss(name)
+      const dialogBlocks = [...css.matchAll(/dialog\[data-ui="dialog"\]\s*\{[\s\S]*?\n  \}/g)].map(m => m[0])
+      expect(dialogBlocks.length, `${name} should define dialog[data-ui="dialog"]`).toBeGreaterThan(0)
+      for (const block of dialogBlocks)
+        expect(block, `${name} dialog should not have direct non-zero padding`).not.toMatch(/^\s*padding:\s*[1-9]/m)
+      expect(css, `${name} dialog should style > [data-part="panel"]`).toContain('> [data-part="panel"]')
     }
   })
 })

@@ -1,0 +1,4 @@
+@layer kui {
+  [data-ui="checkbox"] { font-size: var(--ui-chk-fs, inherit); }
+  [data-ui="checkbox"] input { accent-color: var(--ui-chk-acc, var(--ui-accent-fill, var(--ui-accent))); }
+}

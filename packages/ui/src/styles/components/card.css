@@ -1,0 +1,5 @@
+@layer kui {
+  [data-ui="card"] {
+    display: block;
+  }
+}

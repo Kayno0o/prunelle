@@ -1,8 +1,9 @@
 // Prunelle Server Footprint & Compression Benchmark:
 // Measures compiled binary RssAnon, RssFile, VmRSS, cold boot latency, wire sizes, and in-process req/s.
 
-import { existsSync, readFileSync, rmSync } from 'node:fs'
-import { join } from 'node:path'
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { measure } from 'mitata'
 import { build } from 'prunelle/build'
 import { createServer } from 'prunelle/server'
@@ -102,9 +103,34 @@ const rawStats = await measure(async () => (await app.handle(reqRaw)).arrayBuffe
 const gzipStats = await measure(async () => (await app.handle(reqGzip)).arrayBuffer(), { min_cpu_time: 1e9 })
 const zstdStats = await measure(async () => (await app.handle(reqZstd)).arrayBuffer(), { min_cpu_time: 1e9 })
 
+// 4. In-process throughput with `export const cache = '1h'` (isolated temp copy so bench-app/src stays untouched)
+const cachedDir = mkdtempSync(join(tmpdir(), 'prunelle-bench-cached-'))
+let cachedRawStats: Awaited<ReturnType<typeof measure>>
+let cachedGzipStats: Awaited<ReturnType<typeof measure>>
+let cachedZstdStats: Awaited<ReturnType<typeof measure>>
+try {
+  cpSync(join(ROOT, 'src'), join(cachedDir, 'src'), { recursive: true })
+  const indexPath = join(cachedDir, 'src/routes/index.tsx')
+  writeFileSync(indexPath, `export const cache = '1h'\n${readFileSync(indexPath, 'utf8')}`)
+  symlinkSync(resolve(ROOT, '../node_modules'), join(cachedDir, 'node_modules'), 'dir')
+  await build({ root: cachedDir, minify: true })
+  const cachedApp = await createServer({ root: cachedDir })
+  await cachedApp.handle(reqRaw)
+  await cachedApp.handle(reqGzip)
+  await cachedApp.handle(reqZstd)
+  cachedRawStats = await measure(async () => (await cachedApp.handle(reqRaw)).arrayBuffer(), { min_cpu_time: 1e9 })
+  cachedGzipStats = await measure(async () => (await cachedApp.handle(reqGzip)).arrayBuffer(), { min_cpu_time: 1e9 })
+  cachedZstdStats = await measure(async () => (await cachedApp.handle(reqZstd)).arrayBuffer(), { min_cpu_time: 1e9 })
+  await cachedApp.dispose?.()
+}
+finally {
+  rmSync(cachedDir, { recursive: true, force: true })
+}
+
 console.log('\n=== PRUNELLE SERVER FOOTPRINT (bench-app --compile) ===')
 console.log(`Build + --compile: ${buildMs.toFixed(1)} ms`)
 console.log(`Cold boot + 1st page (median of 3): ${median(bootSamples).toFixed(1)} ms`)
 console.log(`Memory after 1st page: RssAnon ${median(anonSamples).toFixed(1)} MiB | RssFile ${median(fileSamples).toFixed(1)} MiB | VmRSS ${median(rssSamples).toFixed(1)} MiB`)
 console.log(`Wire size (/): raw ${(rawBytes / 1024).toFixed(2)} KB | gzip ${(gzipBytes / 1024).toFixed(2)} KB (-${(100 - gzipBytes / rawBytes * 100).toFixed(1)}%) | zstd ${(zstdBytes / 1024).toFixed(2)} KB (-${(100 - zstdBytes / rawBytes * 100).toFixed(1)}%)`)
 console.log(`SSR req/s (500 products): raw ${Math.round(1e9 / rawStats.avg)} | gzip(LRU) ${Math.round(1e9 / gzipStats.avg)} | zstd(LRU) ${Math.round(1e9 / zstdStats.avg)}`)
+console.log(`Cached SSR req/s (500 products, cache='1h'): raw ${Math.round(1e9 / cachedRawStats.avg)} | gzip ${Math.round(1e9 / cachedGzipStats.avg)} | zstd ${Math.round(1e9 / cachedZstdStats.avg)}`)

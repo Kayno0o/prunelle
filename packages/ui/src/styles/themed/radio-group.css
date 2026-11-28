@@ -1,0 +1,12 @@
+@layer kui {
+  [data-ui="radio-group"] input { accent-color: var(--ui-chk-acc, var(--ui-accent-fill, var(--ui-accent))); }
+  [data-ui="radio-group"] [data-part="legend"] {
+    font: var(--ui-rg-lf, 600 0.8rem/1.2 var(--ui-font-body));
+    text-transform: var(--ui-rg-lc, none);
+    letter-spacing: var(--ui-rg-lt, normal);
+    color: var(--ui-rg-lfg, var(--ui-muted));
+    margin-block-end: var(--ui-rg-lmb, 0.45rem);
+  }
+  [data-ui="radio-group"] [data-part="option"] { font-size: var(--ui-chk-fs, inherit); }
+  [data-ui="radio-group"] [data-part="hint"] { font-size: var(--ui-rg-hs, 0.8rem); color: var(--ui-muted); }
+}

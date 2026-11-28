@@ -10,9 +10,10 @@ import { isInNodeModules, isNotSourceDir, isTsFile, relPosix, walkFiles, walkRou
 import { ModuleGraph } from '../build/graph'
 import { nodeEnvWarning, renderProblems, serverNodeEnvReads } from '../build/render-rules'
 import { analyzeIslands } from '../build/islands'
-import { discoverRouteMatchers, fileToRoutePath, hasRouteHandlerExport, missingPathsProblem, normalizeRoutePattern, routeExportProblemLocation, routeFileProblem, SPECIAL_ROUTE_FILES } from '../build/routes'
+import { ancestorFiles, discoverRouteMatchers, fileToRoutePath, hasRouteHandlerExport, missingPathsProblem, normalizeRoutePattern, routeExportProblemLocation, routeFileProblem, SPECIAL_ROUTE_FILES } from '../build/routes'
 import { findUnknownStatusPages } from '../build/status-pages'
 import { analyzeModule } from '../compiler/analyze'
+import { findCachedRoutePrivateReads } from '../compiler/cacheability'
 import { collectProjectComplianceWarnings, shouldEmitWarning } from '../compiler/compliance'
 import { collectMistakes, PrunelleMistake, serverOnlyTagError } from '../compiler/mistakes'
 import { DIAGNOSTIC_PREFIX_RE, formatDiagnostic, formatLoc } from '../compiler/shared'
@@ -347,7 +348,18 @@ export async function checkProject(rootDir: string, options: { skipTypecheck?: b
     }
   }
 
-  // 3c. French web law compliance checks (CSS third-party URLs, LCEN legal notice, RGAA accessibility statement)
+  // 3c. Cached route private-read guardrails (#6)
+  for (const problem of findCachedRoutePrivateReads({
+    graph,
+    pageFiles,
+    layoutsFor: file => ancestorFiles(routesDir, file, ['_layout.tsx']),
+    toRel: file => relPosix(root, file),
+    tool: 'prunelle check',
+  })) {
+    errors.push(formatDiagnostic(locOf(root, problem.file, sources, problem.offset), problem.message))
+  }
+
+  // 3d. French web law compliance checks (CSS third-party URLs, LCEN legal notice, RGAA accessibility statement)
   warnings.push(...collectProjectComplianceWarnings({ root, srcDir, routesDir, routeFiles, analyses, compliance, site }))
 
   // 3d. Form field / schema checks & public action protection warnings (#4, #5)

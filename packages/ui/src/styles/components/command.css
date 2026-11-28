@@ -1,0 +1,25 @@
+@layer kui {
+  html:has(dialog[data-ui]:modal) { overflow: hidden; }
+  dialog[data-ui="command"] {
+    padding: 0;
+    margin: auto;
+    max-inline-size: min(32rem, calc(100vw - 2rem));
+    max-block-size: calc(100dvh - 2rem);
+    overflow: auto;
+    inline-size: min(34rem, calc(100vw - 2rem));
+    margin-block-start: min(14vh, 6rem);
+  }
+  dialog[data-ui="command"]::backdrop { background: rgb(0 0 0 / 0.45); }
+  dialog[data-ui="command"] [data-part="input"] {
+    width: 100%;
+    font-size: var(--ui-input-floor, inherit);
+    &:focus-visible { outline-offset: -2px; }
+  }
+  dialog[data-ui="command"] [data-part="item"] {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+  }
+}

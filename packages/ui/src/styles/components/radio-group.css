@@ -1,0 +1,11 @@
+@layer kui {
+  [data-ui="radio-group"] { border: 0; padding: 0; margin: 0; }
+  [data-ui="radio-group"] [data-part="options"] { display: flex; flex-direction: column; gap: 0.45rem; }
+  [data-ui="radio-group"] [data-part="option"] {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-radio-gap, 0.5rem);
+    min-block-size: var(--ui-touch-min, auto);
+    cursor: pointer;
+  }
+}

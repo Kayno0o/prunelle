@@ -495,12 +495,19 @@ describe('Issue #3635 Part 1 — Cross-plugin audit fixes', () => {
       })
       const html = await (await app.get('/')).text()
       const layerIdx = html.indexOf('<style>@layer properties,theme,base,kui,components,utilities;</style>')
-      const uiLinkIdx = html.search(/<link rel="stylesheet" href="\/_pru\/editorial-[^"]+\.css">/)
-      const twLinkIdx = html.search(/<link rel="stylesheet" href="\/_pru\/app-[^"]+\.css">/)
-
+      const links = [...html.matchAll(/<link rel="stylesheet" href="([^"]+)">/g)].map(m => m[1]!)
       expect(layerIdx).toBeGreaterThan(-1)
-      expect(uiLinkIdx).toBeGreaterThan(layerIdx)
-      expect(twLinkIdx).toBeGreaterThan(uiLinkIdx)
+      expect(links.length).toBeGreaterThanOrEqual(1)
+      expect(links.length).toBeLessThanOrEqual(2)
+      expect(html.indexOf(`<link rel="stylesheet" href="${links[0]}">`)).toBeGreaterThan(layerIdx)
+
+      let combinedCss = ''
+      for (const href of links)
+        combinedCss += `${await (await app.get(href)).text()}\n`
+      const kuiIdx = combinedCss.indexOf('@layer kui')
+      const utilIdx = combinedCss.indexOf('@layer utilities')
+      expect(kuiIdx).toBeGreaterThan(-1)
+      expect(utilIdx).toBeGreaterThan(kuiIdx)
     })
   })
 

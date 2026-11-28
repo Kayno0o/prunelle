@@ -1,0 +1,42 @@
+@layer kui {
+  [data-ui="switch"] {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-switch-gap, 0.55rem);
+    min-block-size: var(--ui-touch-min, auto);
+    cursor: pointer;
+    user-select: none;
+    &[data-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+  }
+  [data-ui="switch"] input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    inline-size: 1px;
+    block-size: 1px;
+    pointer-events: none;
+  }
+  [data-ui="switch"] [data-part="track"] {
+    position: relative;
+    display: inline-block;
+    inline-size: 2.25rem;
+    block-size: 1.25rem;
+    flex-shrink: 0;
+    &::after {
+      content: '';
+      position: absolute;
+      inset-block: 2px;
+      inset-inline-start: 2px;
+      aspect-ratio: 1;
+      transition: inset-inline-start 140ms ease, transform 140ms ease;
+    }
+  }
+  [data-ui="switch"] input:checked + [data-part="track"]::after {
+    inset-inline-start: calc(100% - 2px);
+    transform: translateX(-100%);
+  }
+  [data-ui="switch"]:has(input:focus-visible) [data-part="track"],
+  [data-ui="switch"] input:focus-visible + [data-part="track"] {
+    outline: var(--ui-switch-track-focus-w, 2px) solid var(--ui-focus-color, var(--ui-accent, currentColor));
+    outline-offset: 2px;
+  }
+}

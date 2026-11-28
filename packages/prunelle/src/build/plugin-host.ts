@@ -2,7 +2,7 @@
 
 import type { AppRuntimeContext } from '../plugins/context'
 import type { BuildPluginContext, FinalizeBuildContext, PrunellePlugin } from '../plugins/index'
-import type { RouteManifestEntry } from './manifest'
+import type { RouteManifestEntry, StatusPageManifestEntry } from './manifest'
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { precompressFiles } from './precompress'
@@ -66,6 +66,9 @@ export interface PluginHostOptions {
   isStatic: boolean
   isDev: boolean
   routes: RouteManifestEntry[]
+  statusPages?: StatusPageManifestEntry[] | undefined
+  routeSourceFiles?: ReadonlyMap<string, readonly string[]> | undefined
+  globalSourceFiles?: readonly string[] | undefined
   publicFiles: PublicFiles
   /** Client files already emitted, relative to the client dir. */
   assets: string[]
@@ -73,14 +76,88 @@ export interface PluginHostOptions {
   globalStyles: string[]
 }
 
-export function createPluginHost(options: PluginHostOptions) {
-  const { plugins, appCtx, outDir, clientDir, outPublicDir, assetPrefix, routes, assets, styleUrls, globalStyles } = options
-  const assetSet = new Set(assets)
+function createStyleMutators(
+  styleUrls: string[],
+  globalStyles: string[],
+  routes: RouteManifestEntry[],
+  statusPages: StatusPageManifestEntry[],
+) {
   const styleSet = new Set(styleUrls)
   const globalStyleSet = new Set(globalStyles)
+  let prependedGlobalCount = 0
+
+  const addStyleUrl = (href: string): void => {
+    if (!styleSet.has(href)) {
+      styleSet.add(href)
+      styleUrls.push(href)
+    }
+  }
+
+  return {
+    addStyle(href: string) {
+      addStyleUrl(href)
+      if (!globalStyleSet.has(href)) {
+        globalStyleSet.add(href)
+        globalStyles.push(href)
+      }
+      for (const r of routes) {
+        if (r.styles !== undefined && !r.styles.includes(href))
+          r.styles.push(href)
+      }
+      for (const sp of statusPages) {
+        if (!sp.styles.includes(href))
+          sp.styles.push(href)
+      }
+    },
+    prependStyle(href: string) {
+      addStyleUrl(href)
+      const insertAt = prependedGlobalCount
+      if (!globalStyleSet.has(href)) {
+        globalStyleSet.add(href)
+        globalStyles.splice(insertAt, 0, href)
+        prependedGlobalCount++
+      }
+      for (const r of routes) {
+        if (r.styles !== undefined && !r.styles.includes(href))
+          r.styles.splice(Math.min(insertAt, r.styles.length), 0, href)
+      }
+      for (const sp of statusPages) {
+        if (!sp.styles.includes(href))
+          sp.styles.splice(Math.min(insertAt, sp.styles.length), 0, href)
+      }
+    },
+    addRouteStyle(routePath: string, href: string) {
+      addStyleUrl(href)
+      const route = routes.find(r => r.path === routePath)
+      if (route !== undefined) {
+        route.styles ??= [...globalStyles]
+        if (!route.styles.includes(href))
+          route.styles.push(href)
+      }
+    },
+    prependRouteStyle(routePath: string, href: string) {
+      addStyleUrl(href)
+      const route = routes.find(r => r.path === routePath)
+      if (route !== undefined) {
+        route.styles ??= [...globalStyles]
+        if (!route.styles.includes(href)) {
+          let idx = 0
+          while (idx < route.styles.length && globalStyleSet.has(route.styles[idx]!))
+            idx++
+          route.styles.splice(idx, 0, href)
+        }
+      }
+    },
+  }
+}
+
+export function createPluginHost(options: PluginHostOptions) {
+  const { plugins, appCtx, outDir, clientDir, outPublicDir, assetPrefix, routes, statusPages = [], assets, styleUrls, globalStyles } = options
+  const assetSet = new Set(assets)
   const headTags: string[] = []
   const pluginData: Record<string, Record<string, unknown>> = {}
   const precompressed = new Set<string>()
+  const styles = createStyleMutators(styleUrls, globalStyles, routes, statusPages)
 
   function emitAsset(relPath: string, content: string | Uint8Array): string {
     const clean = cleanRel(relPath)
@@ -100,13 +177,6 @@ export function createPluginHost(options: PluginHostOptions) {
     mkdirSync(dirname(dst), { recursive: true })
     writeFileSync(dst, content)
     return `/${clean}`
-  }
-
-  function addStyleUrl(href: string): void {
-    if (!styleSet.has(href)) {
-      styleSet.add(href)
-      styleUrls.push(href)
-    }
   }
 
   // resolvePlugins() refuses two plugins sharing a name, so each name has one owner.
@@ -131,26 +201,9 @@ export function createPluginHost(options: PluginHostOptions) {
 
   const buildCtx = {
     ...shared,
-    addStyle(href: string) {
-      addStyleUrl(href)
-      if (!globalStyleSet.has(href)) {
-        globalStyleSet.add(href)
-        globalStyles.push(href)
-      }
-      for (const r of routes) {
-        if (r.styles !== undefined && !r.styles.includes(href))
-          r.styles.push(href)
-      }
-    },
-    addRouteStyle(routePath: string, href: string) {
-      addStyleUrl(href)
-      const route = routes.find(r => r.path === routePath)
-      if (route !== undefined) {
-        route.styles ??= [...globalStyles]
-        if (!route.styles.includes(href))
-          route.styles.push(href)
-      }
-    },
+    ...(options.routeSourceFiles !== undefined ? { routeSourceFiles: options.routeSourceFiles } : {}),
+    ...(options.globalSourceFiles !== undefined ? { globalSourceFiles: options.globalSourceFiles } : {}),
+    ...styles,
     addHead(html: string) {
       if (html !== '')
         headTags.push(html)

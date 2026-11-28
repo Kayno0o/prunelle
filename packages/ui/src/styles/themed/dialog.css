@@ -1,0 +1,13 @@
+@layer kui {
+  dialog[data-ui="dialog"] {
+    border: var(--ui-dlg-bd, 1px solid var(--ui-line-strong));
+    border-radius: var(--ui-dlg-r, var(--ui-radius));
+    background: var(--ui-dlg-bg, var(--ui-surface));
+    color: var(--ui-ink);
+    box-shadow: var(--ui-dlg-sh, none);
+    font-family: var(--ui-font-body);
+    & > [data-part="panel"] { padding: var(--ui-dlg-pad, 1.5rem); }
+    & [data-part="title"] { margin: 0 0 0.5rem; font: var(--ui-dlg-tf, 600 1.25rem/1.25 var(--ui-font-display, var(--ui-font-body))); }
+    & [data-part="description"] { color: var(--ui-muted); font-size: 0.875rem; }
+  }
+}

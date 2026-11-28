@@ -1,0 +1,25 @@
+@layer kui {
+  [data-ui="select"] { display: inline-block; }
+  [data-ui="select"] [data-part="trigger"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    min-block-size: var(--ui-touch-min, auto);
+    cursor: pointer;
+  }
+  [data-ui="select"] [data-part="listbox"] {
+    inset: auto;
+    margin: 4px 0;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: flip-block, flip-inline;
+    min-inline-size: anchor-size(inline);
+  }
+  [data-ui="select"] [data-part="option"] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    text-align: start;
+    cursor: pointer;
+  }
+}

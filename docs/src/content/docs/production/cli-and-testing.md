@@ -21,6 +21,7 @@ order: 4
 | `prunelle ui-eject <grammar> [dest]` | Eject a `@prunellejs/ui` CSS Grammar into your repo |
 | `prunelle mcp-footprint` | Print `@prunellejs/mcp` tool sizes in bytes and estimated tokens |
 | `prunelle i18n-check` | List missing translation keys across `@prunellejs/i18n` locales |
+| `prunelle a11y [--routes /a,/b] [--all-static] [--json] [--draft [dest]] [--out <path>] [--no-fail]` | Audit rendered routes in Chromium with `axe-core` (mapped to French RGAA 4.1 criteria) and optionally draft an editable RGAA 4.1.2 accessibility declaration (`src/routes/accessibilite.tsx`) — enabled by the built-in `a11y()` plugin |
 
 ### How `prunelle dev` reloads
 
@@ -127,3 +128,41 @@ it('counts clicks', async () => {
 - `page.errors`: Page errors, `console.error` messages and failed requests collected since the page opened.
 - `browser.app`, `browser.origin`: The `testApp` of the build, and `http://127.0.0.1:<port>`.
 - Options are those of `testApp()`, plus `browserPath` and `timeout` (milliseconds, default 10000).
+
+## Accessibility audit & RGAA declaration (`a11y()`)
+
+Prunelle ships a built-in `a11y()` plugin in `prunelle/config` that adds the `prunelle a11y` command. It builds the app, opens every prerendered route (or static non-dynamic HTML routes when none are prerendered, or with `--all-static` / `--routes`) in headless Chromium via `testBrowser()`, runs `axe-core` (WCAG 2.0/2.1 A & AA), and maps violations to French RGAA 4.1 criteria.
+
+Install the optional dev dependencies once:
+
+```bash
+bun add -d axe-core playwright-core
+```
+
+Register `a11y()` in `prunelle.config.ts`:
+
+```ts
+import { a11y, defineConfig } from 'prunelle/config'
+
+export default defineConfig({
+  plugins: [a11y()],
+})
+```
+
+Run an audit or draft an editable RGAA 4.1.2 accessibility declaration page:
+
+```bash
+# Audit prerendered routes (exits 1 when violations are found)
+prunelle a11y
+
+# Machine-readable JSON report, or audit specific routes
+prunelle a11y --json
+prunelle a11y --routes /,/contact --no-fail
+
+# Draft an editable RGAA 4.1.2 / Décret n° 2019-768 declaration page
+# (writes src/routes/accessibilite.tsx by default, satisfying rgaa/accessibility-statement)
+prunelle a11y --draft
+prunelle a11y --draft src/routes/accessibilite.tsx --org "Mon organisme" --contact accessibilite@exemple.fr
+```
+
+`axe-core` and `playwright-core` stay optional dev dependencies and never enter the client or server bundles. Automated `axe-core` checks cover only part of RGAA 4.1.2: review the generated declaration and complete a manual RGAA audit before claiming `totalement conforme`.

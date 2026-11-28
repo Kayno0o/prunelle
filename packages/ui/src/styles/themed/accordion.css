@@ -1,0 +1,20 @@
+@layer kui {
+  [data-ui="accordion"] details {
+    border: var(--ui-acc-bd, none);
+    border-bottom: var(--ui-acc-bb, var(--ui-acc-bd, none));
+    border-radius: var(--ui-acc-r, 0);
+    background: var(--ui-acc-bg, transparent);
+    padding: var(--ui-acc-ipad, 0);
+    & + details { margin-block-start: var(--ui-acc-gap, 0); }
+  }
+  [data-ui="accordion"] summary[data-part="trigger"] {
+    justify-content: var(--ui-acc-jc, space-between);
+    gap: 0.5rem;
+    padding: var(--ui-acc-tpad, 0.85rem 0);
+    font: var(--ui-acc-tf, 600 1rem/1.3 var(--ui-font-body));
+    color: var(--ui-ink);
+    &::after { content: var(--ui-acc-m, none); color: var(--ui-muted); font-family: var(--ui-font-body); }
+  }
+  [data-ui="accordion"] details[open] summary[data-part="trigger"]::after { content: var(--ui-acc-mo, var(--ui-acc-m, none)); }
+  [data-ui="accordion"] [data-part="content"] { padding: var(--ui-acc-cpad, 0 0 1rem); color: var(--ui-muted); }
+}

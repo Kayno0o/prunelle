@@ -93,7 +93,7 @@ Core holds the compiler, runtime, router, SSR and build. Every optional capabili
 | Package | Purpose | Notes |
 | :--- | :--- | :--- |
 | **`prunelle`** | Compiler, linked-list signals, DOM runtime, router, SSR/Suspense, actions, build/compile, `prunelle/test` | 2 runtime deps (`oxc-parser`, `@kaynooo/cli-kit` for the CLI) |
-| **`@prunellejs/ui`** | Platform-first headless primitives + 6 structurally distinct pure CSS `@layer kui` Grammars (`prunelle`, `editorial`, `workshop`, `console`, `soft`, `orbit`) + `prunelle ui-eject` | Zero JS recipe engine, zero Tailwind lock-in |
+| **`@prunellejs/ui`** | Platform-first headless primitives + 6 tokenized pure CSS `@layer kui` Grammars (`prunelle`, `editorial`, `workshop`, `console`, `soft`, `orbit`) with per-component route CSS & `prunelle ui-eject` | Zero JS recipe engine, zero Tailwind lock-in |
 | **`@prunellejs/auth`** | Argon2id passwords, hashed DB sessions, email verification, magic links, OAuth 2.0 + PKCE (GitHub/Discord/Google), `auth.guard()`, RGPD helpers, `bun:sqlite` store | Zero external deps |
 | **`@prunellejs/live`** | Typed real-time SSE rooms, microtask-coalesced presence, `useLive()` browser signal hook | Zero external deps |
 | **`@prunellejs/content`** | `Bun.markdown` GFM collections, YAML frontmatter + Standard Schema, lazy `render()`, heading TOC, `paths()` prerender, RSS XML | Zero external deps |
@@ -123,12 +123,14 @@ cd examples/noticeboard && bun run dev
 ```sh
 bunx prunelle new my-app [--template minimal|fullstack|blog|app]  # Scaffold a new project
 prunelle check [--no-typecheck]             # Validate routes, compiler rules, RGAA/RGPD/LCEN compliance, plugin checks & types
+prunelle inspect [--json]                   # Inspect routes (cacheable/cache), islands, actions & plugins without bundling
 prunelle dev [--port 3000] [--host [addr]]  # Fast rebuild + live reload, the app in a child process (127.0.0.1 by default)
-prunelle build [--analyze] [--max-js 40kb] # Production build; per-route islands, fonts and first-load report, or a JS budget
-prunelle build --static                     # Pure static HTML export
+prunelle build [--analyze] [--max-js 40kb]  # Production build; per-route islands, EcoIndex, fonts & first-load report, or JS budget
+prunelle build --static                     # Pure static HTML export (or --auto-prerender for cacheable pages)
 prunelle build --compile [out]              # Single standalone executable
 prunelle start [--port 3000] [--host [addr]] # Serve the built app or static export, reloading each new build
 prunelle upgrade [--no-install]             # Move an app written for kay v2 onto prunelle
+prunelle a11y [--draft [dest]]              # Run axe-core RGAA 4.1 audit in Chromium and draft /accessibilite (via a11y() plugin)
 prunelle ui-eject <grammar> [dest]          # Eject a standalone @prunellejs/ui CSS Grammar
 prunelle mcp-footprint                      # Inspect @prunellejs/mcp tool byte & token budgets
 prunelle --completions fish                 # Shell completion script (also bash, zsh)

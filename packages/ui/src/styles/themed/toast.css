@@ -1,0 +1,18 @@
+@layer kui {
+  [data-ui="toast"] {
+    --ui-tone: var(--ui-accent);
+    background: var(--ui-tst-bg, var(--ui-surface));
+    color: var(--ui-tst-fg, var(--ui-ink));
+    border-style: solid;
+    border-width: var(--ui-tst-bw, 1px);
+    border-color: var(--ui-tst-bc, var(--ui-line));
+    border-radius: var(--ui-radius);
+    box-shadow: var(--ui-tst-sh, none);
+    padding: var(--ui-tst-pad, 0.75rem 1rem);
+
+    &[data-tone="accent"] { --ui-tone: var(--ui-accent); }
+    &[data-tone="success"] { --ui-tone: var(--ui-success); }
+    &[data-tone="warning"] { --ui-tone: var(--ui-warning); }
+    &[data-tone="danger"] { --ui-tone: var(--ui-danger); }
+  }
+}

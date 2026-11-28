@@ -9,7 +9,7 @@
   - Static & native-platform primitives (`0 KB` JS): `Button`, `Card`, `CardHeader`, `CardBody`, `CardFooter`, `Badge`, `Notice`, `Field`, `FieldContext`, `useFieldContext`, `Checkbox`, `Switch`, `RadioGroup`, `Progress`, `Accordion`, `AccordionItem`, `Popover`, `Dialog`, `Drawer` (opened by `commandfor`/`command` buttons and closed by Esc or a backdrop click, with no JS; `ui()` adds a fallback that only a browser without invoker commands, `closedby` or anchor positioning loads)
   - Interactive island primitives: `ControlledDialog`, `ControlledDrawer`, `Tabs`, `Menu`, `Select`, `CommandPalette`, `DataTable`, `Toaster`
   - Headless signal behaviors & helpers: `createDialog`, `createTabs`, `createDataTable`, `toast`, `handleListKeyDown`, `findFirstEnabledIndex`, `findLastEnabledIndex`, `findNextEnabledIndex`, `isDialogBackdropClick`, `syncDialogOpen`, `nextUiId`
-- `@prunellejs/ui/plugin`: `ui(options?)`, `GRAMMAR_NAMES`, `grammarCssPath`, `renderGrammarCss`, `ejectGrammar`
+- `@prunellejs/ui/plugin`: `ui(options?)`, `GRAMMAR_NAMES`, `UI_COMPONENT_PARTS`, `UI_EXPORT_TO_PARTS`, `grammarCssPath`, `renderGrammarCss`, `renderGrammarBaseCss`, `renderGrammarPartsCss`, `ejectGrammar`
 - CSS subpaths: `@prunellejs/ui/bare.css`, `@prunellejs/ui/grammars/{editorial,workshop,console,soft,orbit,prunelle}.css`
 
 ## Plugin Setup (`prunelle.config.ts`)
@@ -25,7 +25,13 @@ export default defineConfig({
 
 - `grammar`: `'editorial'` (default) | `'workshop'` | `'console'` | `'soft'` | `'orbit'` | `'prunelle'` (prunelle's own: eye radios, switches and progress; titles in Fraunces, which the app loads) | `'bare'` | `false` (skip injecting CSS when importing your own).
 - `emitGrammars`: `boolean | GrammarName[] | { dir?: string, grammars?: GrammarName[] }` — emits standalone CSS files to `/<dir>/<name>.css` (default `grammars/<name>.css`) for runtime theme switching.
-- CLI: `prunelle ui-eject <grammar> [dest]` copies a self-contained CSS grammar (with `bare.css` inlined) into your app (default `editorial` → `src/styles/ui.css`).
+- CLI: `prunelle ui-eject <grammar> [dest]` copies a self-contained CSS grammar (with `base.css` and component sheets inlined) into your app (default `editorial` → `src/styles/ui.css`).
+
+## Tokenized Grammar Architecture & Per-Component CSS
+
+- All styles live inside `@layer kui`, layered as `base.css` (box-sizing, `.kui-sr-only`, single `:focus-visible` indicator, reduced motion, `[hidden]`) → per-component structural sheets (`components/<part>.css`) → shared tokenized sheets (`themed/<part>.css`) → thin grammar token files (`grammars/<name>.css`).
+- Focus visibility (RGAA 10.7) is defined once in `base.css` via `--ui-focus-color` (falling back to `--ui-accent`); grammars never suppress focus outlines with `outline: none`.
+- Per-component assembly: `renderGrammarBaseCss(grammar)` returns the base floor + grammar tokens; `renderGrammarPartsCss(grammar, parts)` returns only the requested `UiComponentPart` stylesheets in deterministic cascade order; `UI_EXPORT_TO_PARTS` maps every component export to its required parts (including transitive dependencies).
 
 ## Key Props & Types
 

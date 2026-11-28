@@ -1,0 +1,22 @@
+@layer kui {
+  [data-ui="field"] {
+    gap: var(--ui-fld-gap, 0.35rem);
+
+    & [data-part="label"] { font: var(--ui-fld-lf, 600 0.8rem/1.2 var(--ui-font-body)); color: var(--ui-fld-lfg, var(--ui-ink)); }
+    & :is(input:not([type="checkbox"], [type="radio"]), textarea, select) {
+      min-block-size: max(var(--ui-touch-min, 0px), var(--ui-in-h, 0px));
+      font: var(--ui-in-f, 400 0.95rem/1.4 var(--ui-font-body));
+      font-size: max(var(--ui-input-floor, 0px), var(--ui-in-fs, 0.95rem));
+      color: var(--ui-ink);
+      background: var(--ui-in-bg, var(--ui-surface));
+      border: var(--ui-in-bd, 1px solid var(--ui-line-strong));
+      border-radius: var(--ui-in-r, var(--ui-radius-inner, var(--ui-radius)));
+      padding: var(--ui-in-pad, 0.5rem 0.75rem);
+      transition: border-color var(--ui-motion), box-shadow var(--ui-motion);
+    }
+    & :is(input:not([type="checkbox"], [type="radio"]), textarea, select):focus { border-color: var(--ui-in-fbd, var(--ui-accent)); }
+    & [aria-invalid="true"] { border-color: var(--ui-danger); }
+    & [data-part="hint"] { margin: 0; font-size: var(--ui-fld-ms, 0.82rem); color: var(--ui-muted); }
+    & [data-part="error"] { margin: 0; font-size: var(--ui-fld-ms, 0.82rem); color: var(--ui-danger); }
+  }
+}

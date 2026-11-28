@@ -1,9 +1,11 @@
 // The build manifest: its shape, and the per-route entries (islands, styles, layouts, middlewares) computed from the module graph.
 
+import type { RouteCacheSpec } from '../server/route-cache'
 import type { ModuleGraph } from './graph'
 import type { IslandPlan } from './islands'
 import type { StatusPageManifestEntry } from './status-pages'
 import { join } from 'node:path'
+import { isRouteCacheable } from '../compiler/cacheability'
 import { isInside } from './is-inside'
 import { islandKey } from './islands'
 import { ancestorFiles, fileToRoutePath, MIDDLEWARE_NAMES } from './routes'
@@ -42,6 +44,10 @@ export interface RouteManifestEntry {
   /** The route, a layout or a component it renders imports `<Region>`. */
   usesRegion?: boolean | undefined
   prerender?: boolean | undefined
+  /** Route response cache policy from `export const cache = ...`. */
+  cache?: RouteCacheSpec | undefined
+  /** True when static analysis proves the page reads nothing from the request or clock. */
+  cacheable?: boolean | undefined
   prerendered?: Record<string, string> | undefined
   /** CSP hashes of the app's `<style>` blocks per prerendered URL, for the pages that have any. */
   prerenderedStyleHashes?: Record<string, string[]> | undefined
@@ -86,6 +92,8 @@ interface FileReach {
   chunks: Set<string>
   eager: Set<string>
   styles: Set<string>
+  /** All reachable source files (`.ts`/`.tsx`) walked from this file. */
+  files: Set<string>
   usesRenderContext: boolean
   usesRegion: boolean
 }
@@ -175,14 +183,25 @@ function createReachWalker(graph: ModuleGraph, islands: IslandPlan, islandChunks
       || graph.localDeps(file).some(dep => walkRegion(dep, seen))
   }
 
+  function walkFiles(file: string, seen: Set<string>): void {
+    if (seen.has(file))
+      return
+    seen.add(file)
+    for (const target of islands.pageBindings.get(file)?.values() ?? [])
+      walkFiles(target.file, seen)
+    for (const dep of graph.localDeps(file))
+      walkFiles(dep, seen)
+  }
+
   // Layouts are shared by many routes, so each file is walked once.
   const memo = new Map<string, FileReach>()
   return (file: string): FileReach => {
     let reach = memo.get(file)
     if (reach === undefined) {
-      reach = { chunks: new Set(), eager: new Set(), styles: new Set(), usesRenderContext: false, usesRegion: false }
+      reach = { chunks: new Set(), eager: new Set(), styles: new Set(), files: new Set(), usesRenderContext: false, usesRegion: false }
       walkIslands(file, new Set(), reach)
       walkStyles(file, new Set(), reach.styles)
+      walkFiles(file, reach.files)
       reach.usesRenderContext = walkRenderContext(file, new Set())
       reach.usesRegion = walkRegion(file, new Set())
       memo.set(file, reach)
@@ -198,6 +217,10 @@ export interface RouteEntries {
   globalStyles: string[]
   /** The plugins' CSS alone. */
   globalPluginStyles: string[]
+  /** Reachable source files for each route path (layouts + page + islands + local deps). */
+  routeSourceFiles: Map<string, string[]>
+  /** Reachable source files of the root layout and status/error pages. */
+  globalSourceFiles: string[]
 }
 
 export function buildRouteEntries(options: {
@@ -211,6 +234,8 @@ export function buildRouteEntries(options: {
   specialFiles?: readonly string[] | undefined
   pluginCssFiles: string[]
   isStatic: boolean
+  /** Automatically prerender static cacheable pages (no middleware, not `prerender = false`, no `cache` export). */
+  autoPrerender?: boolean | undefined
   /** Maps a source file to its compiled module, relative to the out dir. */
   toOutRel: (srcFile: string) => string
 }): RouteEntries {
@@ -220,6 +245,8 @@ export function buildRouteEntries(options: {
   const globalPluginStyles = [...new Set(options.pluginCssFiles.map(css => options.srcCssToUrl.get(css)).filter((url): url is string => url !== undefined))]
   const rootLayout = join(routesDir, '_layout.tsx')
   const globalStyles = [...new Set([...globalPluginStyles, ...(graph.analyses.has(rootLayout) ? reachOf(rootLayout).styles : [])])]
+  const routeSourceFiles = new Map<string, string[]>()
+  const globalSourceSet = new Set<string>(graph.analyses.has(rootLayout) ? reachOf(rootLayout).files : [])
 
   const routes = options.pageFiles.map((file): RouteManifestEntry => {
     const analysis = graph.analyses.get(file)
@@ -228,6 +255,7 @@ export function buildRouteEntries(options: {
     const chunks = new Set<string>()
     const eagerChunks = new Set<string>()
     const styles = new Set<string>(globalPluginStyles)
+    const reachableFiles = new Set<string>()
     let usesRenderContext = false
     let usesRegion = false
     for (const src of [...layoutSrcs, file]) {
@@ -238,14 +266,22 @@ export function buildRouteEntries(options: {
         eagerChunks.add(chunk)
       for (const style of reach.styles)
         styles.add(style)
+      for (const f of reach.files)
+        reachableFiles.add(f)
       usesRenderContext ||= reach.usesRenderContext
       usesRegion ||= reach.usesRegion
     }
+    const routePath = fileToRoutePath(routesDir, file)
+    routeSourceFiles.set(routePath, [...reachableFiles])
+    const middlewareSrcs = ancestorFiles(routesDir, file, MIDDLEWARE_NAMES)
+    const cacheable = isRouteCacheable({ graph, islands, file, layoutSrcs, middlewareCount: middlewareSrcs.length, routePath })
+    const cache = analysis?.cache
+    const autoPre = options.autoPrerender === true && cacheable && cache === undefined
     return {
-      path: fileToRoutePath(routesDir, file),
+      path: routePath,
       file: toOutRel(file),
       layouts: layoutSrcs.map(toOutRel),
-      middlewares: ancestorFiles(routesDir, file, MIDDLEWARE_NAMES).map(toOutRel),
+      middlewares: middlewareSrcs.map(toOutRel),
       hasLoad: analysis?.hasLoadExport,
       isIsland: page?.interactive,
       islandChunk: islandChunks.get(`${file}#default`),
@@ -256,9 +292,17 @@ export function buildRouteEntries(options: {
       styles: [...styles],
       usesRenderContext,
       usesRegion,
-      prerender: analysis?.hasPrerender || options.isStatic,
+      prerender: analysis?.hasPrerender || options.isStatic || autoPre,
+      ...(cache !== undefined ? { cache } : {}),
+      ...(cacheable ? { cacheable: true } : {}),
     }
   })
+  for (const special of options.specialFiles ?? []) {
+    if (graph.analyses.has(special)) {
+      for (const f of reachOf(special).files)
+        globalSourceSet.add(f)
+    }
+  }
   const statusPages = buildStatusPageEntries({
     routesDir,
     specialFiles: options.specialFiles ?? [],
@@ -266,7 +310,7 @@ export function buildRouteEntries(options: {
     reachOf,
     toOutRel,
   })
-  return { routes, statusPages, globalStyles, globalPluginStyles }
+  return { routes, statusPages, globalStyles, globalPluginStyles, routeSourceFiles, globalSourceFiles: [...globalSourceSet] }
 }
 
 export function buildActionEntries(actionsByFile: Map<string, { exportName: string, url: string }[]>, routesDir: string, toOutRel: (srcFile: string) => string): ActionManifestEntry[] {

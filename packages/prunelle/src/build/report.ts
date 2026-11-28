@@ -1,12 +1,17 @@
 // The `--analyze` report and the `--max-js` budget: eager JS and CSS weight per route, from the manifest and the client metafile (or the chunks' own imports), and the islands behind it.
 
+import type { EcoIndexGrade, RouteEcoIndex } from './ecoindex'
 import type { ModuleGraph } from './graph'
 import type { IslandPlan } from './islands'
 import type { BuildManifest } from './manifest'
 import { existsSync, readFileSync } from 'node:fs'
 import { join, posix } from 'node:path'
+import { computeEcoIndex, countDomElements, measureRouteEcoIndex } from './ecoindex'
 import { relPosix } from './files'
 import { distLocator, firstLoadUrls, measureFirstLoad, STATIC_CHUNK_IMPORT_RE } from './first-load'
+
+export type { EcoIndexGrade, RouteEcoIndex }
+export { computeEcoIndex, countDomElements }
 
 export interface IslandOrigin {
   /** The component's export name, `default` for a page or a default export. */
@@ -35,6 +40,8 @@ export interface RouteBundleMetrics {
   /** Everything a first visit fetches except the HTML (CSS, eager JS and its imports, fonts, images, icons), brotli. */
   firstLoad: number
   islands: RouteIsland[]
+  /** GreenIT EcoIndex score and footprint measured on prerendered HTML output (worst URL for dynamic routes). */
+  ecoIndex?: RouteEcoIndex | undefined
 }
 
 export interface BundleReport {
@@ -65,6 +72,7 @@ export function analyzeBundleWeights(
   metafile?: Bun.BuildOutput['metafile'],
   origins = new Map<string, IslandOrigin>(),
   publicDirs: readonly string[] = [],
+  prerenderBaseDir?: string | undefined,
 ): BundleReport {
   const locate = distLocator({ clientDir, assetPrefix, publicDirs })
   const prefix = `${assetPrefix.replace(/\/$/, '')}/`
@@ -166,6 +174,9 @@ export function analyzeBundleWeights(
 
     const headUrls = firstLoadUrls([...manifest.headTags ?? [], ...r.headTags ?? []].join(''))
     const load = measureFirstLoad([...cssList, ...eagerJsRoots, ...headUrls], locate)
+    const ecoIndex = prerenderBaseDir !== undefined
+      ? measureRouteEcoIndex(r, { prerenderBaseDir, locate })
+      : undefined
 
     return {
       path: r.path,
@@ -178,6 +189,7 @@ export function analyzeBundleWeights(
       jsFiles: jsSet.size,
       cssFiles: cssList.length,
       islands,
+      ...(ecoIndex !== undefined ? { ecoIndex } : {}),
     }
   })
 
@@ -203,25 +215,34 @@ const kb = (b: number): string => `${(b / 1024).toFixed(2)} KB`
 const islandLine = (island: RouteIsland): string => `${island.name} (${island.file}) ${island.reason}`
 
 export function formatBundleReport(report: BundleReport): string {
+  const hasEco = report.routes.some(r => r.ecoIndex !== undefined)
   const lines = [
     '\n=== PRUNELLE BUNDLE WEIGHT REPORT ===',
     `Total emitted: JS ${kb(report.totalJsGzip)} gz | CSS ${kb(report.totalCssGzip)} gz`,
     '',
-    'Route'.padEnd(28) + 'Eager JS (gz)'.padStart(16) + 'CSS (gz)'.padStart(14) + 'Fonts (br)'.padStart(14) + 'First load (br)'.padStart(18) + 'Files'.padStart(10),
+    'Route'.padEnd(28) + 'Eager JS (gz)'.padStart(16) + 'CSS (gz)'.padStart(14) + 'Fonts (br)'.padStart(14) + 'First load (br)'.padStart(18) + 'Files'.padStart(10) + (hasEco ? 'EcoIndex'.padStart(12) : ''),
   ]
   for (const r of report.routes) {
+    const ecoCell = hasEco
+      ? (r.ecoIndex !== undefined ? `${r.ecoIndex.grade} (${Math.round(r.ecoIndex.score)})` : '-').padStart(12)
+      : ''
     lines.push(
       r.path.padEnd(28)
       + kb(r.jsGzip).padStart(16)
       + kb(r.cssGzip).padStart(14)
       + kb(r.fonts).padStart(14)
       + kb(r.firstLoad).padStart(18)
-      + `${r.jsFiles}j/${r.cssFiles}c`.padStart(10),
+      + `${r.jsFiles}j/${r.cssFiles}c`.padStart(10)
+      + ecoCell,
     )
+    if (r.ecoIndex?.url !== undefined)
+      lines.push(`  worst page: ${r.ecoIndex.url} (${r.ecoIndex.dom} DOM, ${r.ecoIndex.requests} req, ${kb(r.ecoIndex.weightBytes)} br, ${r.ecoIndex.ghgGrams} gCO2e)`)
     for (const island of r.islands)
       lines.push(`  ${island.eager ? 'island' : 'island, deferred'}: ${islandLine(island)}`)
   }
   lines.push('', 'First load is what a first visit downloads besides the page\'s HTML: CSS, eager JS and its imports, fonts, images and icons, brotli.')
+  if (hasEco)
+    lines.push('EcoIndex (A–G, 0–100) scores prerendered pages from DOM elements, first-visit requests and brotli transfer weight, with estimated gCO2e and water per view.')
   if (report.topModules.length > 0) {
     lines.push('', 'Top modules (minified output bytes):')
     for (const m of report.topModules.slice(0, 8))

@@ -13,6 +13,7 @@ import type { PublicFiles } from './plugin-host'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { checkAppForms } from '../cli/check-forms'
+import { findCachedRoutePrivateReads } from '../compiler/cacheability'
 import { collectProjectComplianceWarnings, shouldEmitWarning } from '../compiler/compliance'
 import { formatCodeFrame, formatDiagnostic, formatLoc } from '../compiler/shared'
 import { createAppContext, loadConfig, resolvePlugins, runWithAppContext } from '../plugins/index'
@@ -32,15 +33,16 @@ import { prerender } from './prerender'
 import { analyzeBundleWeights, checkJsBudget, formatBundleReport, formatBundleReportJson, islandOrigins } from './report'
 import { SERVER_ENTRY_FILE, serverEntrySource } from './server-entry'
 import { PRUNELLE_SRC_ROOT, resolvePrunelleSpecifier } from './resolve'
-import { assertNoRouteConflicts, discoverRouteMatchers, fileToRoutePath, hasRouteHandlerExport, missingPathsProblem, normalizeRoutePattern, routeExportProblem, routeFileProblem, SPECIAL_ROUTE_FILES } from './routes'
+import { ancestorFiles, assertNoRouteConflicts, discoverRouteMatchers, fileToRoutePath, hasRouteHandlerExport, missingPathsProblem, normalizeRoutePattern, routeExportProblem, routeFileProblem, SPECIAL_ROUTE_FILES } from './routes'
 import { exportStatic } from './static'
 import { findUnknownStatusPages } from './status-pages'
+import { consolidateStylesheets } from './style-bundles'
 
 export type { BuildCache } from './graph'
 export { createBuildCache } from './graph'
 export type { ActionManifestEntry, BuildManifest, RouteManifestEntry, StatusPageKind, StatusPageManifestEntry } from './manifest'
-export { analyzeBundleWeights, checkJsBudget, formatBundleReport, formatBundleReportJson } from './report'
-export type { BundleReport, RouteBundleMetrics, RouteIsland } from './report'
+export { analyzeBundleWeights, checkJsBudget, computeEcoIndex, countDomElements, formatBundleReport, formatBundleReportJson } from './report'
+export type { BundleReport, EcoIndexGrade, RouteBundleMetrics, RouteEcoIndex, RouteIsland } from './report'
 export { resolvePrunelleSpecifier } from './resolve'
 
 export interface BuildOptions {
@@ -64,6 +66,8 @@ export interface BuildOptions {
   static?: boolean | undefined
   /** Run build-time prerendering for routes exporting `prerender = true` (default: true; disabled in `prunelle dev`). */
   prerender?: boolean | undefined
+  /** Automatically prerender static pages that read nothing from the request or clock (and have no middleware or `cache` export). */
+  autoPrerender?: boolean | undefined
   /** Copy `public/` files into `outDir/public` (default: true; disabled in `prunelle dev` where `public/` is served directly). */
   copyPublic?: boolean | undefined
   /** Compile into a single standalone executable at this path (or true -> dist/server-bin). */
@@ -124,6 +128,7 @@ interface BuildRun {
   assetPrefix: string
   site: string | undefined
   compliance: ComplianceConfig | undefined
+  autoPrerender: boolean
   minify: boolean
   isDev: boolean
   nodeEnv: string | undefined
@@ -182,6 +187,7 @@ export async function build(options: BuildOptions): Promise<BuildManifest> {
       assetPrefix,
       site,
       compliance: fileConfig.compliance,
+      autoPrerender: options.autoPrerender ?? fileConfig.autoPrerender ?? false,
       minify: options.minify ?? true,
       isDev,
       nodeEnv: effectiveNodeEnv,
@@ -248,6 +254,15 @@ function planCheckedIslands(root: string, routesDir: string, graph: ModuleGraph,
     if (missing !== undefined)
       place(file, missing.offset, `prunelle build: ${missing.message}`)
   }
+  const cacheProblems = findCachedRoutePrivateReads({
+    graph,
+    pageFiles,
+    layoutsFor: file => ancestorFiles(routesDir, file, ['_layout.tsx']),
+    toRel: file => relPosix(root, file),
+    tool: 'prunelle build',
+  })
+  for (const problem of cacheProblems)
+    place(problem.file, problem.offset, problem.message)
   if (placed.length > 0)
     throw new Error(placed.join('\n\n'))
   return islands
@@ -421,7 +436,7 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
   }
   const builtClientAssets = new Set(assets)
 
-  const { routes, statusPages, globalStyles } = buildRouteEntries({
+  const { routes, statusPages, globalStyles, routeSourceFiles, globalSourceFiles } = buildRouteEntries({
     graph,
     islands,
     islandChunks: client.islandChunks,
@@ -431,7 +446,7 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
     pageFiles,
     specialFiles,
     pluginCssFiles,
-    isStatic,
+    isStatic, autoPrerender: run.autoPrerender,
     toOutRel,
   })
   const paramMatchers = customMatchers.size > 0
@@ -461,6 +476,9 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
     isStatic,
     isDev,
     routes,
+    statusPages,
+    routeSourceFiles,
+    globalSourceFiles,
     publicFiles,
     assets,
     styleUrls: client.styleUrls,
@@ -468,6 +486,7 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
   })
   await host.runBuild()
   restoreCachedPluginAssets(options.cache, clientDir, assets, anyPassSkipped)
+  consolidateStylesheets({ clientDir, assetPrefix, minify: run.minify, routes, statusPages, globalStyles, assets, styleUrls: client.styleUrls })
   await host.precompressOutput()
 
   const manifest: BuildManifest = {
@@ -489,17 +508,11 @@ async function runBuild(run: BuildRun): Promise<BuildManifest> {
   }
   const writeManifest = (): void => writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2))
   writeManifest()
-  if (options.analyze === true || options.analyzeJson === true || options.maxJs !== undefined) {
-    const report = analyzeBundleWeights(manifest, clientDir, assetPrefix, client.metafile, islandOrigins(islands, client.islandChunks, graph, root), [outPublicDir, run.publicDir])
-    if (options.analyzeJson === true)
-      console.log(formatBundleReportJson(report))
-    else if (options.analyze === true)
-      console.log(formatBundleReport(report))
-    if (options.maxJs !== undefined)
-      checkJsBudget(report, options.maxJs)
-  }
+  const analyzeOrigins = options.analyze === true || options.analyzeJson === true || options.maxJs !== undefined
+    ? islandOrigins(islands, client.islandChunks, graph, root)
+    : undefined
 
-  await landBuild(run, { manifest, writeManifest, host, env, assets, builtClientAssets, hasNotFoundFile })
+  await landBuild(run, { manifest, writeManifest, host, env, assets, builtClientAssets, hasNotFoundFile, metafile: client.metafile, analyzeOrigins, outPublicDir })
   return manifest
 }
 
@@ -511,6 +524,22 @@ interface BuiltOutput {
   assets: string[]
   builtClientAssets: ReadonlySet<string>
   hasNotFoundFile: boolean
+  metafile: Bun.BuildOutput['metafile']
+  analyzeOrigins: ReturnType<typeof islandOrigins> | undefined
+  outPublicDir: string
+}
+
+function emitBundleAnalysis(run: BuildRun, built: BuiltOutput, clientDir: string, prerenderBaseDir: string | undefined): void {
+  const { options, assetPrefix } = run
+  if (options.analyze !== true && options.analyzeJson !== true && options.maxJs === undefined)
+    return
+  const report = analyzeBundleWeights(built.manifest, clientDir, assetPrefix, built.metafile, built.analyzeOrigins, [built.outPublicDir, run.publicDir], prerenderBaseDir)
+  if (options.analyzeJson === true)
+    console.log(formatBundleReportJson(report))
+  else if (options.analyze === true)
+    console.log(formatBundleReport(report))
+  if (options.maxJs !== undefined)
+    checkJsBudget(report, options.maxJs)
 }
 
 /** Prerenders, runs the plugins' after-prerender hooks, exports or carries the previous build's dropped files, compiles, then swaps the stage in. */
@@ -533,6 +562,7 @@ async function landBuild(run: BuildRun, built: BuiltOutput): Promise<void> {
     await host.precompressOutput()
     if (Object.keys(host.pluginData).length > 0)
       manifest.pluginData = host.pluginData
+    emitBundleAnalysis(run, built, clientDir, prerendered !== undefined ? (isStatic ? prerenderDir : outDir) : undefined)
 
     if (isStatic) {
       await exportStatic({

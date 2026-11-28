@@ -165,6 +165,7 @@ function buildCommand(cwd: string): Commands[string] {
     run: async (args) => {
       const { values, positionals: [dir] } = parse(args, 'prunelle build [options] [dir]: builds the app into dist/', {
         'static': { type: 'boolean', description: 'export plain HTML files instead of a server' },
+        'auto-prerender': { type: 'boolean', description: 'prerender static pages that read nothing from the request or clock' },
         'compile': { type: 'string', optional: { bare: '' }, description: 'also produce one binary, at [out] when given' },
         'analyze': { type: 'boolean', description: 'list each island with why it is one' },
         'json': { type: 'boolean', description: 'with --analyze, print the bundle report as JSON' },
@@ -178,7 +179,8 @@ function buildCommand(cwd: string): Commands[string] {
       const analyzeJson = values.analyze === true && values.json === true
       const { build } = await import('../build/index')
       const t0 = performance.now()
-      const manifest = await failing('build', async () => build({ root: rootOf(cwd, values.root, dir), static: values.static === true, compile, analyze: values.analyze === true, analyzeJson, maxJs }))
+      const autoPrerender = values['auto-prerender'] === true ? true : undefined
+      const manifest = await failing('build', async () => build({ root: rootOf(cwd, values.root, dir), static: values.static === true, autoPrerender, compile, analyze: values.analyze === true, analyzeJson, maxJs }))
       const ms = (performance.now() - t0).toFixed(1)
       if (!analyzeJson)
         console.log(`prunelle build done in ${ms} ms (${manifest.routes.length} routes, ${manifest.assets.length} client assets, ${manifest.actions.length} actions)`)

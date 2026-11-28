@@ -1,0 +1,21 @@
+@layer kui {
+  [data-ui="button"] {
+    gap: var(--ui-btn-gap, 0.5rem);
+    min-block-size: max(var(--ui-touch-min, 0px), var(--ui-btn-h, 0px));
+    font: var(--ui-btn-f, 500 0.88rem/1 var(--ui-font-body));
+    padding: var(--ui-btn-pad, 0.6rem 1.1rem);
+    border-radius: var(--ui-btn-r, var(--ui-radius));
+    border: var(--ui-btn-bd, 1px solid var(--ui-line-strong));
+    background: var(--ui-btn-bg, var(--ui-surface));
+    color: var(--ui-btn-fg, var(--ui-ink));
+    transition: background var(--ui-motion), color var(--ui-motion), border-color var(--ui-motion), box-shadow var(--ui-motion), transform var(--ui-motion);
+
+    &:disabled { opacity: 0.45; }
+    &[data-variant="outline"] { background: transparent; color: var(--ui-ink); border-color: var(--ui-line-strong); }
+    &[data-variant="ghost"] { background: transparent; border-color: transparent; color: var(--ui-ink); box-shadow: none; }
+    &[data-tone="accent"] { background: var(--ui-accent-fill, var(--ui-accent)); border-color: var(--ui-accent-fill, var(--ui-accent)); color: var(--ui-on-accent); text-decoration: none; }
+    &[data-tone="danger"] { background: var(--ui-danger); border-color: var(--ui-danger); color: var(--ui-on-accent); }
+    &[data-size="sm"] { min-block-size: max(var(--ui-touch-min, 0px), var(--ui-btn-sm-h, 0px)); font-size: var(--ui-btn-sm-fs, 0.8rem); padding: var(--ui-btn-sm-pad, 0.45rem 0.85rem); }
+    &[data-size="lg"] { min-block-size: max(var(--ui-touch-min, 0px), var(--ui-btn-lg-h, 0px)); font-size: var(--ui-btn-lg-fs, 0.98rem); padding: var(--ui-btn-lg-pad, 0.85rem 1.5rem); }
+  }
+}

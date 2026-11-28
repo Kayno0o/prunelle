@@ -1,9 +1,12 @@
 // `prunelle/config`: what `prunelle.config.ts` and plugin packages use.
 
+export { a11y, auditAccessibility, draftAccessibilityStatement, formatA11yReport, rgaaCriteriaForAxeRule } from '../a11y/index'
+export type { A11yAuditOptions, A11yAuditReport, A11yImpact, A11yPluginOptions, A11yRouteReport, A11yViolation, A11yViolationNode, AccessibilityDeclarationOptions, AccessibilityDeclarationResult, ComplianceStatus, RgaaCriterion } from '../a11y/index'
 export { isInside } from '../build/is-inside'
 export { distLocator, firstLoadUrls, measureFirstLoad } from '../build/first-load'
 export type { FirstLoad, Locate } from '../build/first-load'
 export { brotliSize } from '../build/precompress'
+export { minifyCss } from '../build/style-bundles'
 export { defineConfig, definePlugin } from './config'
 export { CONTENT_IMAGE_RESOLVER_SERVICE, I18N_CONFIG_SERVICE, serviceKey } from './services'
 export type { ActiveI18nConfig, ContentImageResolver, ContentImageResult, ServiceKey } from './services'

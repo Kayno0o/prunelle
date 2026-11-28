@@ -1,0 +1,8 @@
+@layer kui {
+  [data-ui="popover"][popover] {
+    inset: auto;
+    margin: 0;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: flip-block, flip-inline;
+  }
+}

@@ -1,0 +1,11 @@
+@layer kui {
+  [data-ui="checkbox"] {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--ui-check-gap, 0.55rem);
+    min-block-size: var(--ui-touch-min, auto);
+    cursor: pointer;
+    user-select: none;
+    &[data-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+  }
+}

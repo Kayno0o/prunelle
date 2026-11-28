@@ -167,3 +167,22 @@ export function paths() {
 Dynamic routes with `prerender = true` must export `paths()`. Without it, `prunelle check` and `prunelle build` both fail at the `prerender` export. Any request for a param not returned by `paths()` receives a `404` instead of falling back to SSR.
 
 In `prunelle dev`, prerendering is skipped so routes render on demand. In `prunelle build` and `prunelle build --static`, all paths prerender concurrently.
+
+## Route caching (`export const cache`) & auto-prerendering
+
+Pages whose HTML can be shared across visitors can export `cache` (a duration string such as `'30s'`, `'5m'`, `'1h'`, `'1d'`, a positive number of seconds, or `{ maxAge, staleWhileRevalidate? }`):
+
+```tsx
+export const cache = '1h'
+// or: export const cache = { maxAge: '5m', staleWhileRevalidate: '1h' }
+
+export async function load(ctx: RequestContext) {
+  return { posts: await listPublicPosts(ctx.params.category) }
+}
+```
+
+Prunelle keeps rendered 200 HTML responses in a bounded in-memory LRU cache (default: 500 entries / 32 MiB; configure or disable via `routeCache` in `prunelle.config.ts`) and sends `Cache-Control: public, s-maxage=<maxAge>, stale-while-revalidate=<swr>` (plus `Age: <seconds>` on hits). Once an entry is stale, hits keep serving immediately while a single deduplicated background render refreshes it. Responses that set cookies (`Set-Cookie`), partial `<Region>` requests, flash-cookie requests, streamed `<Suspense>` responses, and `prunelle dev` bypass the cache.
+
+To prevent leaking per-visitor state across users, `prunelle check` and `prunelle build` fail whenever a cached route's `load()`, page component, or ancestor `_layout.tsx` reads `ctx.cookies`, `cookies`, `ctx.locals`, `locals`, `ctx.consent`, `request.headers.get('cookie')`, `getActionError()`, or `<ConsentGate>`.
+
+Static pages that export no `load()`, are not `async`, sit outside `_middleware.ts`, and read nothing from the request (`params`, `url`, `locals`, `cookies`, `headers`, `consent`, `ip`) or the clock (`Date.now()`, `new Date()`, `performance.now()`) are reported as `cacheable` by `prunelle inspect`. Enable `autoPrerender: true` in `prunelle.config.ts` (or pass `prunelle build --auto-prerender`) to automatically prerender them at build time (skipping pages with `export const prerender = false` or `export const cache`).

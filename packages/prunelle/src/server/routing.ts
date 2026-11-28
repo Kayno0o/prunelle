@@ -16,6 +16,7 @@ import type { PrunelleLocals } from './index'
 import type { LoadedLayoutModule, LoadedMiddlewareModule, LoadedPageModule } from './page'
 import type { ParamMatcherMap } from './param-matchers'
 import type { RequestPath } from './request-path'
+import type { RouteCache, RouteCacheSpec } from './route-cache'
 import type { TrustProxy } from './security'
 import { createRenderContext, runWithRenderContext } from '../ssr/context'
 import { raw, renderDocument, ssrChild, ssrIsland } from '../ssr/index'
@@ -28,6 +29,7 @@ import { pickPageIslandProps } from './page'
 import { BUILTIN_PARAM_MATCHERS } from './param-matchers'
 import { withRegionVary } from './region'
 import { pathPrefix } from './request-path'
+import { isCacheableRequest, serveCachedHit, withCacheControl } from './route-cache'
 import { Router } from './router'
 import { styleHashesOf } from './security'
 
@@ -217,6 +219,7 @@ export interface FastStaticPageOptions {
   consent?: NormalizedConsentConfig | undefined
   htmlHeaders: HtmlHeaders
   compressCache: CompressionCache | undefined
+  routeCache?: RouteCache | undefined
   actions: ActionRegistry
   buildNotFoundResponse: (url?: URL, req?: Request, ctx?: RequestContext, routeFile?: string) => Promise<Response>
   renderError: (error: unknown, cookieStore: CookieStore | undefined, url: URL, request: Request, ctx?: RequestContext, routeFile?: string) => Promise<Response>
@@ -228,13 +231,74 @@ export interface FastStaticPageOptions {
   resolveRequestId?: RequestIdResolver | undefined
 }
 
-/** Builds the zero-overhead static-path page handler, keeping `actions.run()` active through load, render, and 404 fallback. */
-export function createFastStaticPageHandler(options: FastStaticPageOptions): FastHandler {
-  const { entry, mod, layouts, doc, reviveScript, hasIslands, hasLoad, trustProxy, consent, htmlHeaders, compressCache, actions, buildNotFoundResponse, renderError, renderDenied, notifyError, finish, withHsts } = options
-  const isDev = options.dev === true
-  const getRequestId: RequestIdResolver = options.resolveRequestId ?? (req => resolveFallbackRequestId(req, trustProxy))
+interface FastRevalidateContext {
+  entry: RouteManifestEntry
+  mod: LoadedPageModule
+  layouts: LoadedLayoutModule[]
+  hasLoad: boolean
+  hasIslands: boolean
+  trustProxy: TrustProxy
+  consent: NormalizedConsentConfig | undefined
+  htmlHeaders: HtmlHeaders
+  routeCache: RouteCache
+  actions: ActionRegistry
+  notifyError: NotifyError
+  getRequestId: RequestIdResolver
+  docPrefix: string
+  revivingPrefix: string
+  docSuffix: string
+  headStyleHashes: string[]
+}
 
-  const eagerChunks = entry.eagerIslandChunks ?? entry.islandChunks
+async function revalidateFastStaticRoute(
+  rc: FastRevalidateContext,
+  url: URL,
+  cacheKey: string,
+  cacheSpec: RouteCacheSpec,
+): Promise<void> {
+  const bgReq = new Request(url.href, { method: 'GET' })
+  const bgReqId = rc.getRequestId(bgReq)
+  const { ctx, cookieStore } = makeRequestContext(bgReq, {}, { trustProxy: rc.trustProxy, url, consent: rc.consent, requestId: bgReqId })
+  const rctx = createRenderContext(undefined, undefined, ctx.consent, error => rc.notifyError(error, bgReq, 'route', bgReqId))
+  await rc.actions.run(ctx, async () => {
+    let data: unknown
+    if (rc.hasLoad) {
+      try {
+        data = await rc.mod.load!(ctx)
+      }
+      catch (error) {
+        if (isNotFound(error)) {
+          rc.routeCache.delete(cacheKey)
+          return
+        }
+        throw error
+      }
+      if (isNotFound(data) || data instanceof Response) {
+        rc.routeCache.delete(cacheKey)
+        return
+      }
+    }
+    const body = await runWithRenderContext(rctx, async () => {
+      const pageProps: Record<string, unknown> = { params: {}, locals: ctx.locals, url, ...(data !== undefined ? { data } : {}) }
+      let cur = rc.entry.isIsland && rc.entry.islandChunk !== undefined
+        ? ssrIsland(rc.entry.islandChunk, () => ssrChild(rc.mod.default!(pageProps) as Html), pickPageIslandProps(data, rc.entry, rc.mod), rc.entry.islandHydrate as HydrateStrategy | undefined, true, rc.mod.default!.name)
+        : ssrChild(await rc.mod.default!(pageProps) as Html)
+      for (let i = rc.layouts.length - 1; i >= 0; i--)
+        cur = ssrChild(await rc.layouts[i]!.default({ children: raw(cur), url, params: {}, locals: ctx.locals }) as Html)
+      return cur
+    })
+    if (cookieStore.hasChanges) {
+      rc.routeCache.delete(cacheKey)
+      return
+    }
+    const html = (rctx.revives ? rc.revivingPrefix : rc.docPrefix) + body + keepScrollTag(body) + rc.docSuffix
+    const styleHashes = mergeStyleHashes(rc.headStyleHashes, styleHashesOf(rctx.inlineStyles))
+    const headers = withCacheControl(withRegionVary(rc.htmlHeaders(rc.hasIslands, false, true, styleHashes), rctx.regionNames.size > 0), cacheSpec.cacheControl)
+    rc.routeCache.set(cacheKey, html, headers, cacheSpec)
+  })
+}
+
+function buildFastDocShell(doc: DocumentOptions, eagerChunks: string[], reviveScript: string | undefined, hasIslands: boolean): { docPrefix: string, revivingPrefix: string, docSuffix: string } {
   const shellAround = (preloadChunks: string[]): [string, string] => {
     const shell = renderDocument({ ...doc, body: '\0', preloadChunks, hasIslands })
     const splitAt = shell.indexOf('\0')
@@ -242,8 +306,21 @@ export function createFastStaticPageHandler(options: FastStaticPageOptions): Fas
   }
   const [docPrefix, docSuffix] = shellAround(eagerChunks)
   const revivingPrefix = reviveScript === undefined ? docPrefix : shellAround([...eagerChunks, reviveScript])[0]
+  return { docPrefix, revivingPrefix, docSuffix }
+}
+
+/** Builds the zero-overhead static-path page handler, keeping `actions.run()` active through load, render, and 404 fallback. */
+export function createFastStaticPageHandler(options: FastStaticPageOptions): FastHandler {
+  const { entry, mod, layouts, doc, reviveScript, hasIslands, hasLoad, trustProxy, consent, htmlHeaders, compressCache, routeCache, actions, buildNotFoundResponse, renderError, renderDenied, notifyError, finish, withHsts } = options
+  const isDev = options.dev === true
+  const getRequestId: RequestIdResolver = options.resolveRequestId ?? (req => resolveFallbackRequestId(req, trustProxy))
+  const cacheSpec = routeCache !== undefined ? entry.cache : undefined
+  const { docPrefix, revivingPrefix, docSuffix } = buildFastDocShell(doc, entry.eagerIslandChunks ?? entry.islandChunks, reviveScript, hasIslands)
   const headStyleHashes = headTagStyleHashes(doc.headTags)
   const singleLayout = layouts.length === 1 ? layouts[0]! : undefined
+  const revalidateCtx: FastRevalidateContext | undefined = cacheSpec !== undefined && routeCache !== undefined
+    ? { entry, mod, layouts, hasLoad, hasIslands, trustProxy, consent, htmlHeaders, routeCache, actions, notifyError, getRequestId, docPrefix, revivingPrefix, docSuffix, headStyleHashes }
+    : undefined
 
   const fail = (error: unknown, request: Request, url: URL, cookieStore?: CookieStore, ctx?: RequestContext): Promise<Response> => {
     notifyError(error, request, 'route', ctx?.requestId)
@@ -253,9 +330,14 @@ export function createFastStaticPageHandler(options: FastStaticPageOptions): Fas
     const html = (rctx.revives ? revivingPrefix : docPrefix) + body + keepScrollTag(body) + docSuffix
     const styleHashes = mergeStyleHashes(headStyleHashes, styleHashesOf(rctx.inlineStyles))
     const headers = withRegionVary(htmlHeaders(hasIslands, false, true, styleHashes), rctx.regionNames.size > 0)
+    const st = timing !== undefined ? finishRenderTiming(timing) : undefined
+    if (cacheSpec !== undefined && routeCache !== undefined && !cookieStore.hasChanges && isCacheableRequest(request)) {
+      const cachedHeaders = withCacheControl(headers, cacheSpec.cacheControl)
+      const stored = routeCache.set(ctx.url.pathname + ctx.url.search, html, cachedHeaders, cacheSpec)
+      return withHsts(routeCache.respondMiss(stored, html, cachedHeaders, request, ctx.requestId, compressCache, st), request)
+    }
     const res = compressedHtmlResponse(html, 200, headers, request, compressCache, !hasLoad)
     res.headers.set('x-request-id', ctx.requestId)
-    const st = timing !== undefined ? finishRenderTiming(timing) : undefined
     if (st !== undefined)
       res.headers.set('server-timing', st)
     return cookieStore.hasChanges ? finish(res, request, cookieStore, ctx.requestId, st) : withHsts(res, request)
@@ -324,6 +406,12 @@ export function createFastStaticPageHandler(options: FastStaticPageOptions): Fas
 
   return (request, remoteIp, url = new URL(request.url), requestId?: string) => {
     const reqId = requestId ?? getRequestId(request)
+    if (revalidateCtx !== undefined && cacheSpec !== undefined && routeCache !== undefined && !(request.method === 'HEAD' && typeof mod.HEAD === 'function') && isCacheableRequest(request)) {
+      const cacheKey = url.pathname + url.search
+      const cached = serveCachedHit(routeCache, cacheKey, request, reqId, compressCache, () => revalidateFastStaticRoute(revalidateCtx, url, cacheKey, cacheSpec), error => notifyError(error, request, 'route', reqId))
+      if (cached !== undefined)
+        return withHsts(cached, request)
+    }
     const timing = createTiming(isDev)
     const { ctx, cookieStore } = makeRequestContext(request, {}, { trustProxy, remoteIp, url, consent, requestId: reqId })
     if (request.method === 'HEAD' && typeof mod.HEAD === 'function') {

@@ -10,7 +10,6 @@
     "packages/plugin-content/src/components.ts::parseLiteralValue": 240,
     "packages/plugin-mcp/src/rpc.ts::createRpcDispatcher": 191,
     "packages/prunelle/src/build/bundle.ts::buildClient": 164,
-    "packages/prunelle/src/build/index.ts::runBuild": 151,
     "packages/prunelle/src/compiler/data-keys.ts::analyzeDefaultDataKeys": 192,
     "packages/prunelle/src/compiler/dom.ts::compileDom": 454,
     "packages/prunelle/src/compiler/dom.ts::compileDom.compileElementTree": 204,
@@ -26,7 +25,7 @@
     "packages/prunelle/src/dom/island.ts::defineIslandElement": 162,
     "packages/prunelle/src/dom/loop.ts::loop": 223,
     "packages/prunelle/src/dom/loop.ts::loop.effect()": 163,
-    "packages/prunelle/src/server/index.ts::createServerFromEmbedded": 354,
+    "packages/prunelle/src/server/index.ts::createServerFromEmbedded": 268,
     "packages/ui/src/CommandPalette.tsx::CommandPalette": 163
   },
   "functionComplexity": {

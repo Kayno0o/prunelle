@@ -1,0 +1,17 @@
+@layer kui {
+  [data-ui="tabs"] [data-part="list"] {
+    gap: var(--ui-tab-gap, 0.25rem);
+    border-bottom: var(--ui-tab-lbb, none);
+  }
+  [data-ui="tabs"] [data-part="trigger"] {
+    background: transparent;
+    border: var(--ui-tab-bd, 0);
+    padding: var(--ui-tab-pad, 0.5rem 0.85rem);
+    font: var(--ui-tab-f, 500 0.86rem/1 var(--ui-font-body));
+    color: var(--ui-tab-fg, var(--ui-muted));
+    transition: color var(--ui-motion);
+    &:hover { color: var(--ui-ink); }
+    &[data-state="active"] { color: var(--ui-tab-afg, var(--ui-ink)); background: var(--ui-tab-abg, transparent); }
+  }
+  [data-ui="tabs"] [data-part="panel"] { padding: var(--ui-tab-ppad, 1rem 0 0); }
+}

@@ -1,0 +1,9 @@
+@layer kui {
+  [data-ui="datatable"] { display: flex; flex-direction: column; gap: var(--ui-table-gap, 0.75rem); }
+  [data-ui="datatable"] [data-part="scroll"] { overflow-x: auto; }
+  [data-ui="datatable"] [data-part="search"] { min-block-size: var(--ui-touch-min, auto); font-size: var(--ui-input-floor, inherit); }
+  [data-ui="datatable"] [data-part="pagination"] [data-layout="cluster"] { --ui-gap: 0.4rem; }
+  table[data-ui="table"] { width: 100%; border-collapse: collapse; text-align: left; }
+  table[data-ui="table"] > caption { text-align: start; font-weight: 600; margin-block-end: 0.5rem; }
+  [data-ui="datatable"] [data-part="sort"] { background: transparent; border: 0; padding: 0; font: inherit; text-transform: inherit; letter-spacing: inherit; color: inherit; cursor: pointer; }
+}

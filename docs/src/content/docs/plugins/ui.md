@@ -1,6 +1,6 @@
 ---
 title: "@prunellejs/ui (6 Style Grammars)"
-description: Platform-first headless UI primitives and pure CSS @layer kui Style Grammars with zero JS styling runtime and one-file eject.
+description: Platform-first headless UI primitives and pure CSS @layer kui Style Grammars with zero JS styling runtime, tokenized per-component CSS, and one-file eject.
 section: plugins
 order: 1
 ---
@@ -61,9 +61,19 @@ export default function Settings() {
 
 The `prunelle` grammar draws its controls as an eye, in the accent colour. A radio is a shut eye that opens when checked, and a switch's knob opens its eye when on. A loading `Progress` looks left and right, then blinks; with a value, its pupil widens until it fills the eye. Its titles are set in Fraunces, which the app loads itself, for instance through the `fonts` option of `@prunellejs/seo`; Georgia stands in until then.
 
+## Tokenized Architecture & Per-Component CSS
+
+Every grammar builds on three shared layers inside `@layer kui`:
+
+1. **`base.css`**: `box-sizing`, `.kui-sr-only`, `prefers-reduced-motion`, `[hidden]`, and **one single `:focus-visible` indicator** (`outline: 2px solid var(--ui-focus-color, var(--ui-accent, currentColor))`). No grammar ever sets `outline: none` on focusable elements, keeping RGAA 10.7 focus visibility intact across every theme.
+2. **Per-component sheets (`components/<part>.css` + `themed/<part>.css`)**: structural layout, top-layer positioning, 44px mobile touch targets, and `--ui-*` token-driven visual styles split per component (`layout`, `button`, `card`, `badge`, `notice`, `field`, `checkbox`, `switch`, `radio-group`, `progress`, `accordion`, `tabs`, `dialog`, `drawer`, `command`, `popover`, `menu`, `select`, `toast`, `datatable`).
+3. **Thin grammar sheets (`grammars/<name>.css`)**: `:root` CSS custom property palettes plus only the small rules a token cannot express (such as Prunelle's eye controls, Orbit's starfield, or Console's `[badge]` brackets).
+
+Need only a subset of component styles? `@prunellejs/ui/plugin` exports `renderGrammarBaseCss(grammar)`, `renderGrammarPartsCss(grammar, parts)`, `UI_COMPONENT_PARTS`, and `UI_EXPORT_TO_PARTS` so tooling or routes can assemble CSS for only the components a page uses.
+
 ## Eject & own your CSS
 
-Because every grammar is a single pure CSS file wrapped in `@layer kui`, you can eject and customize it anytime — and Tailwind or your own stylesheet always wins without `!important`:
+Because every grammar resolves to a single pure CSS file wrapped in `@layer kui`, you can eject and customize it anytime — and Tailwind or your own stylesheet always wins without `!important`:
 
 ```bash
 prunelle ui-eject prunelle src/styles/ui.css

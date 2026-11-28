@@ -451,7 +451,7 @@ export function checkRouteCompliance(pageRoutePaths: readonly string[], complian
   if (compliance?.publicBody === true && !isRuleIgnored('rgaa/accessibility-statement', compliance)) {
     const hasA11y = [...normalized].some(p => ACCESSIBILITY_PATHS.has(p))
     if (!hasA11y) {
-      out.push(formatDiagnostic('prunelle.config.ts:1:1', '[rgaa/accessibility-statement] Public-body site (compliance.publicBody: true) has no accessibility statement route: add /accessibilite (or /accessibility).', 'warning'))
+      out.push(formatDiagnostic('prunelle.config.ts:1:1', '[rgaa/accessibility-statement] Public-body site (compliance.publicBody: true) has no accessibility statement route: add /accessibilite (or /accessibility), or draft one with `prunelle a11y --draft`.', 'warning'))
     }
   }
 

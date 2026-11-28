@@ -1,0 +1,11 @@
+@layer kui {
+  [data-ui="button"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: var(--ui-touch-min, auto);
+    text-decoration: none;
+    cursor: pointer;
+    &:disabled { cursor: not-allowed; }
+  }
+}

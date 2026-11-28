@@ -7,6 +7,7 @@ import type { ConsentConfig } from '../server/consent'
 import type { HealthCheckConfig, HealthCheckFn, HealthCheckResult } from '../server/health'
 import type { Middleware, RequestContext } from '../server/index'
 import type { RateLimit, RateLimiter } from '../server/rate-limit'
+import type { RouteCacheOptions } from '../server/route-cache'
 import type { SecurityHeadersOptions, TrustProxy } from '../server/security'
 import type { NavigationConfig } from '../ssr/navigation'
 import type { ServiceKey } from './services'
@@ -24,14 +25,22 @@ export interface BuildPluginContext {
   readonly isStatic: boolean
   readonly dev: boolean
   readonly routes: readonly RouteManifestEntry[]
+  /** Reachable source files (layouts, page, islands, local imports) for each route path. */
+  readonly routeSourceFiles?: ReadonlyMap<string, readonly string[]> | undefined
+  /** Reachable source files of the root layout and status/error pages (shared across the site). */
+  readonly globalSourceFiles?: readonly string[] | undefined
   /** Emit an immutable build asset into dist/client/<relPath>; returns its public URL (`/_pru/<relPath>`). */
   emitAsset(relPath: string, content: string | Uint8Array): string
   /** Emit a static file into dist/public/<relPath> served at `/<relPath>`. */
   emitPublic(relPath: string, content: string | Uint8Array): string
   /** Add a stylesheet URL to <head> on every page. */
   addStyle(href: string): void
+  /** Prepend a global stylesheet URL before app stylesheets (preserving plugin-before-app cascade order). */
+  prependStyle?(href: string): void
   /** Add a stylesheet URL to <head> on a specific route path only. */
   addRouteStyle(routePath: string, href: string): void
+  /** Prepend a route-specific stylesheet URL before that route's app stylesheets. */
+  prependRouteStyle?(routePath: string, href: string): void
   /** Add raw HTML to <head> on every page (e.g. font preloads, default meta/OG, JSON-LD). */
   addHead(html: string): void
   /** Add raw HTML to <head> on a specific route path only. */
@@ -226,6 +235,8 @@ export interface ServerRuntimeConfig {
   /** CNIL/RGPD consent categories, cookie name, retention, and POST endpoint. */
   consent?: ConsentConfig | undefined
   compress?: boolean | undefined
+  /** Bounded in-memory cache for routes exporting `export const cache = ...` (default: 500 entries / 32 MiB; set `false` to disable). */
+  routeCache?: RouteCacheOptions | false | undefined
   /** Health check function or named check map evaluated on `GET ${assetPrefix}/health`. */
   healthCheck?: HealthCheckConfig | undefined
   onError?: ((info: ServerErrorInfo) => void) | undefined
@@ -239,4 +250,6 @@ export interface PrunelleConfig extends ServerRuntimeConfig {
   publicDir?: string | undefined
   /** French web law compliance checks (RGAA, RGPD, LCEN) configuration and rule silencing. */
   compliance?: ComplianceConfig | undefined
+  /** Automatically prerender static pages that read nothing from the request or clock (and have no middleware or `cache` export). */
+  autoPrerender?: boolean | undefined
 }

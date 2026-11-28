@@ -1,0 +1,21 @@
+@layer kui {
+  [data-ui="menu"] [data-part="content"] {
+    background: var(--ui-pop-bg, var(--ui-surface));
+    color: var(--ui-ink);
+    border: var(--ui-pop-bd, 1px solid var(--ui-line));
+    border-radius: var(--ui-radius);
+    box-shadow: var(--ui-pop-sh, none);
+    padding: var(--ui-pop-pad, 0.35rem);
+    min-inline-size: var(--ui-pop-w, 12rem);
+  }
+  [data-ui="menu"] [data-part="item"] {
+    background: transparent;
+    border: 0;
+    border-radius: var(--ui-it-r, var(--ui-radius-inner, 0));
+    padding: var(--ui-it-pad, 0.45rem 0.65rem);
+    font: var(--ui-it-f, 500 0.88rem/1.3 var(--ui-font-body));
+    color: var(--ui-ink);
+    &:hover, &[data-highlighted="true"] { background: var(--ui-it-hbg, var(--ui-surface)); }
+    &[data-selected="true"] { color: var(--ui-accent); }
+  }
+}

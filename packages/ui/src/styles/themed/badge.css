@@ -1,0 +1,20 @@
+@layer kui {
+  [data-ui="badge"] {
+    font: var(--ui-badge-f, 600 0.74rem/1 var(--ui-font-body));
+    padding: var(--ui-badge-pad, 0.25rem 0.55rem);
+    border: var(--ui-badge-bd, none);
+    border-radius: var(--ui-badge-r, var(--ui-radius));
+    background: var(--ui-badge-bg, transparent);
+    color: var(--ui-badge-fg, var(--ui-muted));
+
+    &[data-tone="accent"] { --ui-tone: var(--ui-accent); }
+    &[data-tone="success"] { --ui-tone: var(--ui-success); }
+    &[data-tone="warning"] { --ui-tone: var(--ui-warning); }
+    &[data-tone="danger"] { --ui-tone: var(--ui-danger); }
+    &[data-tone] {
+      color: var(--ui-badge-tfg, var(--ui-tone));
+      background: color-mix(in srgb, var(--ui-tone) var(--ui-badge-tbg, 0%), transparent);
+      border-color: color-mix(in srgb, var(--ui-tone) var(--ui-badge-tbd, 100%), var(--ui-badge-tbd0, transparent));
+    }
+  }
+}
